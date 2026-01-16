@@ -1,98 +1,173 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+````md
+# saas-core-platform-api
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Enterprise-style API starter built with NestJS (Fastify adapter). Designed for government/enterprise-grade patterns: strict config boundaries, clean layering, and security-first roadmap (sessions, CSRF, rate limiting, RBAC, refresh rotation).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Goals
 
-## Description
+- Provide a credible, reviewable backend starter that looks and behaves like a real institutional codebase.
+- Keep runtime configuration centralized (no process.env drift).
+- Keep persistence swappable (DB ports + ORM adapters).
+- Build the security perimeter early (Redis locks, CSRF, rate limiting) before heavy auth/RBAC flows.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech stack
 
-## Project setup
+- Runtime: Node.js, TypeScript, NestJS, Fastify
+- DB: PostgreSQL (via Prisma)
+- i18n: nestjs-i18n
+- Logging: Pino (structured logs)
+- Tests: Jest + Supertest (e2e)
+
+## Current status
+
+Implemented (Phase 0 + Phase 1):
+
+- App bootstrap and module structure
+- Health endpoint: `GET /health`
+- Global exception handling + response envelope
+- i18n setup and message keys
+- Prisma integration (module/service)
+- Minimal DB Ports (Application layer) + Prisma Adapters (Infra layer)
+  - Users repository
+  - Sessions repository
+  - RBAC repositories (roles/permissions)
+- e2e test coverage for `/health`
+
+Planned next (high-level roadmap):
+
+- Phase 2: Redis core + CSRF double-submit + rate limiting
+- Phase 3: RBAC engine (registry bootstrap, bitset, cache, guards)
+- Phase 4: Auth core (sessions, refresh rotation, reuse detection)
+- Phase 5: Action tokens + email queue + templates
+- Phase 6: MFA (TOTP) + step-up
+- Phase 7: Social login (provider-swappable)
+- Phase 8: Observability + audit + hardening tests
+
+## Architecture overview
+
+This repository follows a Ports/Adapters approach:
+
+- Application layer defines repository ports (interfaces) that represent what the app needs.
+- Infrastructure layer implements these ports using Prisma.
+- Prisma types must not leak outside infra; mapping is done in adapters.
+
+This keeps the domain/application logic stable even if the ORM changes later.
+
+## Folder structure (simplified)
+
+- `src/core/`
+  - `config/` - centralized configuration (AppConfigService)
+  - `exceptions/` - typed errors and error definitions
+  - `filters/` - global exception filter
+  - `i18n/` - locales and i18n setup
+  - `db/prisma/` - PrismaModule + PrismaService
+- `src/modules/`
+  - `users/`
+    - `domain/` - entities, ports
+    - `infra/` - prisma repositories + mappers
+  - `sessions/` (or shared under infra if currently minimal)
+  - `health/` - /health endpoint
+
+## API conventions
+
+- Responses are wrapped in a consistent envelope (success and error).
+- Errors use message keys (i18n) and stable error codes.
+- Logging is structured and intended for production observability.
+
+## Run locally
+
+### 1) Install
 
 ```bash
-$ npm install
+npm install
 ```
+````
 
-## Compile and run the project
+### 2) Configure environment
+
+- Copy `.env.example` to `.env`
+- Ensure `DATABASE_URL` is set (Postgres connection string)
+
+### 3) Database
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npx prisma migrate dev
+npx prisma db seed
 ```
 
-## Run tests
+### 4) Start dev server
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev
 ```
 
-## Deployment
+## Scripts (typical)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- `npm run start:dev` - dev mode
+- `npm run build` - production build
+- `npm run start:prod` - run compiled build
+- `npm run test:e2e` - e2e tests
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+(Exact scripts depend on `package.json`.)
+
+## Testing
+
+### e2e
+
+- `/health` is used as a stable, dependency-light endpoint for e2e validation.
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run test:e2e
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Config boundaries (important)
 
-## Resources
+- Runtime code must not read `process.env` directly.
+- Runtime configuration must go through `AppConfigService` (and config modules).
+- Prisma CLI and seed are allowed to read `DATABASE_URL` directly for tooling only.
 
-Check out a few resources that may come in handy when working with NestJS:
+This rule is intentional to prevent hidden config drift and to keep production configuration auditable.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Prisma notes
 
-## Support
+- `prisma/schema.prisma` defines minimal core tables (users, sessions, roles, permissions).
+- Migrations represent the database history.
+- Seed creates initial roles/permissions for local development.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Roadmap details (phases)
 
-## Stay in touch
+### Phase 2 - Security perimeter
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- Redis module + key prefixes
+- CSRF double-submit:
+  - cookie: `__Host-csrf`
+  - header: `x-csrf-token`
+  - enforced on POST/PUT/PATCH/DELETE
+  - origin/referer allowlist as an extra guard
+
+- Rate limiting:
+  - global defaults + per-route overrides
+  - key strategy configurable (ip/userId/sid)
+
+### Phase 3 - RBAC engine
+
+- Permission registry bootstrap from DB at startup (strict mode)
+- Effective permissions builder (roles -> bitset) + caching (L1 + Redis)
+- Guards/decorators like `@RequirePerm('users:read')`
+- Invalidation strategy on RBAC changes
+
+### Phase 4 - Auth core
+
+- Register/login with session-backed refresh tokens
+- Refresh rotation on every refresh
+- Redis lock to prevent refresh race
+- Reuse detection (family revoke + logout)
+- Session management endpoints (list/revoke/logout-all)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Private/internal (adjust as needed).
+
+```
+
+```

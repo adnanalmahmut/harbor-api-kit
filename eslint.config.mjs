@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['eslint.config.mjs', 'dist/**', 'generated/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -17,7 +17,7 @@ export default tseslint.config(
         ...globals.node,
         ...globals.jest,
       },
-      sourceType: 'commonjs',
+      sourceType: 'module',
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
@@ -25,11 +25,42 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@prisma/client',
+                '**/generated/prisma/**',
+                '**/infrastructure/db/prisma/**',
+              ],
+              message:
+                'Prisma must be isolated inside infra/* or src/infrastructure/db/prisma only. Use ports/entities/DTOs outside infra.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/core/db/prisma/**/*.ts',
+      'src/modules/**/infra/**/*.ts',
+      'src/modules/playground/**/*.ts',
+    ],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
 );

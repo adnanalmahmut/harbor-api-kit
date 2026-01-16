@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  locale          String    @default("en-US")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  sessions        Session[]
+  roles           UserRole[]
+  userPerms       UserPermission[]
+
+  assignedRoles   UserRole[] @relation("AssignedByUser")
+
+  @@map("users")
+  @@index([email])
+}
+
+model Session {
+  sid              String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid @map("user_id")
+
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  familyId         String    @db.Uuid @map("family_id")
+  parentId         String?   @db.Uuid @map("parent_id")
+
+  expiresAt        DateTime  @map("expires_at")
+  rotatedAt        DateTime? @map("rotated_at")
+  revokedAt        DateTime? @map("revoked_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+
+  ipHash           String?   @map("ip_hash")
+  uaHash           String?   @map("ua_hash")
+
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+  @@index([userId])
+  @@index([familyId])
+  @@index([parentId])
+}
+
+
+enum GrantEffect {
+  ALLOW
+  DENY
+}
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePerms   RolePermission[]
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  action      String
+  subject     String
+
+  index       Int      @unique @map("perm_index")
+
+  description String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePerms   RolePermission[]
+  userPerms   UserPermission[]
+
+  @@unique([action, subject])
+  @@index([subject])
+  @@map("permissions")
+}
+
+model UserRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid @map("user_id")
+  roleId      String   @db.Uuid @map("role_id")
+  assignedBy  String?  @db.Uuid @map("assigned_by")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  assignedByUser User? @relation("AssignedByUser", fields: [assignedBy], references: [id], onDelete: SetNull)
+  user           User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@index([assignedBy])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  roleId       String     @db.Uuid @map("role_id")
+  permissionId String     @db.Uuid @map("permission_id")
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @db.Uuid @map("user_id")
+  permissionId String      @db.Uuid @map("permission_id")
+
+  effect       GrantEffect @default(ALLOW)
+
+   sourceRoleId String?     @db.Uuid @map("source_role_id")
+  note         String?
+
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([userId, permissionId, effect], map: "idx_user_perm_uid_pid_effect")
+  @@map("user_permissions")
+}
