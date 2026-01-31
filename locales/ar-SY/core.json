@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "common": {
+      "internal": "حدث خطأ داخلي",
+      "bad_request": "طلب غير صالح",
+      "not_found": "المورد غير موجود",
+      "validation": "فشل التحقق",
+      "conflict": "المورد موجود مسبقاً",
+      "invalid_json": "تنسيق JSON غير صالح",
+      "not_allowed_by_cors": "الطلب غير مسموح به من سياسة CORS",
+      "too_many_requests": "طلبات كثيرة جداً، يرجى المحاولة لاحقاً",
+      "unprocessable_entity": "غير قادر على معالجة الطلب"
+    },
+    "auth": {
+      "forbidden": "ليس لديك صلاحية للوصول إلى هذا المورد",
+      "unauthorized": "المصادقة مطلوبة",
+      "invalid_credentials": "بيانات اعتماد غير صالحة"
+    },
+    "security": {
+      "csrf": "فشل التحقق من CSRF",
+      "csrf_origin_not_allowed": "المصدر غير مسموح به",
+      "csrf_token_missing": "رمز CSRF مفقود",
+      "csrf_token_invalid": "رمز CSRF غير صالح",
+      "rate_limit": "طلبات كثيرة جداً. يرجى المحاولة لاحقاً."
+    },
+    "validation_error": "خطأ في التحقق"
+  }
+}

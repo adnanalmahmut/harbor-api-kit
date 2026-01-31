@@ -5,7 +5,7 @@ export class DatabaseException extends AppException {
   static conflict(message?: string) {
     return new DatabaseException({
       code: AppErrorCode.CONFLICT,
-      messageKey: 'errors.common.conflict',
+      messageKey: 'core.errors.common.conflict',
       details: { message },
     });
   }
@@ -13,7 +13,7 @@ export class DatabaseException extends AppException {
   static unknown(message?: string) {
     return new DatabaseException({
       code: AppErrorCode.INTERNAL_ERROR,
-      messageKey: 'errors.common.internal',
+      messageKey: 'core.errors.common.internal',
       details: { message },
     });
   }

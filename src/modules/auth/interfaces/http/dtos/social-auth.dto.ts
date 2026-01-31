@@ -56,3 +56,4 @@ export class LinkedAccountDto {
   @ApiProperty()
   createdAt!: Date;
 }
+

@@ -64,6 +64,12 @@ export class SessionResponseDto implements Session {
   @ApiProperty({ required: false, nullable: true })
   userAgent?: string | null;
 
+  @ApiProperty({ required: false, nullable: true, example: 'Istanbul' })
+  city?: string | null;
+
+  @ApiProperty({ required: false, nullable: true, example: 'TR' })
+  country?: string | null;
+
   @ApiProperty()
   createdAt!: Date;
 

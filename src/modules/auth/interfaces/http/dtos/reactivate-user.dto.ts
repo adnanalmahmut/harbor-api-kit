@@ -12,3 +12,4 @@ export class ReactivateUserDto extends createStrictZodDto(
   @ApiProperty({ example: 'john@example.com' })
   email!: string;
 }
+

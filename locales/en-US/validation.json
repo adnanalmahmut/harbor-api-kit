@@ -1,0 +1,36 @@
+{
+  "mixed": {
+    "required": "This field is required"
+  },
+  "email": {
+    "invalid": "Invalid email address",
+    "max": "Email address is too long"
+  },
+  "password": {
+    "required": "Password is required",
+    "min_length": "Password must be at least 8 characters",
+    "max_length": "Password must be at most 72 characters",
+    "no_match": "Passwords do not match"
+  },
+  "url": {
+    "invalid": "Invalid URL format"
+  },
+  "token": {
+    "required": "Token is required"
+  },
+  "tokens": {
+    "required": "At least one token is required"
+  },
+  "user": {
+    "first_name": {
+      "min": "First name must be at least 2 characters",
+      "max": "First name must be at most 50 characters",
+      "pattern": "First name contains invalid characters"
+    },
+    "last_name": {
+      "min": "Last name must be at least 2 characters",
+      "max": "Last name must be at most 50 characters",
+      "pattern": "Last name contains invalid characters"
+    }
+  }
+}

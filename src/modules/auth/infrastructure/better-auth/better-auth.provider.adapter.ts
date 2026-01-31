@@ -42,6 +42,14 @@ function toHeadersFromContext(ctx: RequestContext): Record<string, string> {
     if (Array.isArray(v)) h[k] = v.join(',');
     else h[k] = String(v);
   }
+  /* Inject IP and User-Agent if valid and missing in headers */
+  if (ctx.ip && !h['x-forwarded-for']) {
+    h['x-forwarded-for'] = ctx.ip;
+  }
+  if (ctx.userAgent && !h['user-agent']) {
+    h['user-agent'] = ctx.userAgent;
+  }
+
   return h;
 }
 

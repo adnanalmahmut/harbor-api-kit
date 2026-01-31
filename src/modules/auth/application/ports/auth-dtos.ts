@@ -21,6 +21,8 @@ export interface Session {
   expiresAt: Date;
   ipAddress?: string | null;
   userAgent?: string | null;
+  city?: string | null;
+  country?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

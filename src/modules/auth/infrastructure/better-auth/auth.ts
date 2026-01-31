@@ -130,6 +130,8 @@ export function createBetterAuth(
 
     advanced: {
       cookiePrefix: isProd ? 'core' : 'core-dev',
+      // Headers to check for real client IP (in order of priority)
+      ipAddressHeaders: ['x-forwarded-for', 'x-real-ip', 'cf-connecting-ip'],
       cookies: {
         session_token: {
           name: sessionTokenCookie,
@@ -162,7 +164,14 @@ export function createBetterAuth(
       },
     },
 
-    session: { modelName: 'Session', storeSessionInDatabase: true },
+    session: {
+      modelName: 'Session',
+      storeSessionInDatabase: true,
+      additionalFields: {
+        city: { type: 'string', required: false },
+        country: { type: 'string', required: false },
+      },
+    },
     account: { modelName: 'Account' },
     verification: { modelName: 'Verification' },
     socialProviders: {
@@ -219,6 +228,36 @@ export function createBetterAuth(
               }
             } catch (err) {
               logger.error(`Failed post-create hook for user ${user.id}`, err);
+            }
+          },
+        },
+      },
+      session: {
+        create: {
+          after: async (session) => {
+            // Populate city and country from IP geolocation
+            if (session.ipAddress) {
+              try {
+                const geoip = await import('geoip-lite');
+                const geo = geoip.default.lookup(session.ipAddress);
+                if (geo) {
+                  await prisma.session.update({
+                    where: { id: session.id },
+                    data: {
+                      city: geo.city || null,
+                      country: geo.country || null,
+                    },
+                  });
+                  logger.debug(
+                    `Session ${session.id}: geo ${geo.city}, ${geo.country}`,
+                  );
+                }
+              } catch (err) {
+                logger.warn(
+                  `Geolocation failed for session ${session.id}`,
+                  err,
+                );
+              }
             }
           },
         },

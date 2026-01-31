@@ -5,14 +5,14 @@ export class SecurityException extends AppException {
   static csrf() {
     return new SecurityException({
       code: AppErrorCode.FORBIDDEN,
-      messageKey: 'errors.security.csrf',
+      messageKey: 'core.errors.security.csrf',
     });
   }
 
   static rateLimitExceeded() {
     return new SecurityException({
       code: AppErrorCode.TOO_MANY_REQUESTS,
-      messageKey: 'errors.security.rate_limit',
+      messageKey: 'core.errors.security.rate_limit',
     });
   }
 }

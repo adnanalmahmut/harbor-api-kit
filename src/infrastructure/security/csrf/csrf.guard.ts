@@ -113,7 +113,7 @@ export class CsrfGuard implements CanActivate {
       if (s !== 'same-origin' && s !== 'same-site') {
         throw new AppException({
           code: AppErrorCode.NOT_ALLOWED_BY_CORS,
-          messageKey: 'errors.security.csrf.origin_not_allowed',
+          messageKey: 'core.errors.security.csrf_origin_not_allowed',
         });
       }
     } else {
@@ -127,7 +127,7 @@ export class CsrfGuard implements CanActivate {
       if (isProd && !allow) {
         throw new AppException({
           code: AppErrorCode.NOT_ALLOWED_BY_CORS,
-          messageKey: 'errors.security.csrf.origin_not_allowed',
+          messageKey: 'core.errors.security.csrf_origin_not_allowed',
         });
       }
     }
@@ -135,14 +135,14 @@ export class CsrfGuard implements CanActivate {
     if (!cookieToken || !headerToken) {
       throw new AppException({
         code: AppErrorCode.FORBIDDEN,
-        messageKey: 'errors.security.csrf.token_missing',
+        messageKey: 'core.errors.security.csrf_token_missing',
       });
     }
 
     if (headerToken !== cookieToken) {
       throw new AppException({
         code: AppErrorCode.FORBIDDEN,
-        messageKey: 'errors.security.csrf.token_invalid',
+        messageKey: 'core.errors.security.csrf_token_invalid',
       });
     }
 

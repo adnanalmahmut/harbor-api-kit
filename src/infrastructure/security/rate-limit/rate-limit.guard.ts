@@ -6,7 +6,7 @@ import {
   RATE_LIMIT_SKIP_KEY,
   type RateLimitRule,
 } from '#src/infrastructure/security/rate-limit/rate-limit.types.js';
-import { pickClientKey } from '#src/infrastructure/security/rate-limit/rate-limit.util.js';
+import { getRealIp } from '#src/infrastructure/security/rate-limit/rate-limit.util.js';
 import {
   type CanActivate,
   type ExecutionContext,
@@ -74,7 +74,7 @@ export class RateLimitGuard implements CanActivate {
     const routeUrl = getRouteUrl(req);
     const routeId = `${req.method}:${routeUrl}`;
 
-    const clientKey = pickClientKey(req, rl.keyStrategy);
+    const clientKey = `ip:${getRealIp(req)}`;
 
     const now = Date.now();
     const windowMs = rule.durationSec * 1000;

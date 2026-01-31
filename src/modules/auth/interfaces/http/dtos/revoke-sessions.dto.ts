@@ -6,10 +6,10 @@ const RevokeSessionsSchema = z.object({
   tokens: z
     .array(
       z
-        .string({ message: 'errors.validation.mixed.required' })
-        .min(1, { message: 'errors.validation.token.required' }),
+        .string({ message: 'validation.mixed.required' })
+        .min(1, { message: 'validation.token.required' }),
     )
-    .min(1, { message: 'errors.validation.tokens.required' })
+    .min(1, { message: 'validation.tokens.required' })
     .describe('Session Tokens'),
 });
 
@@ -22,3 +22,4 @@ export class RevokeSessionsDto extends createStrictZodDto(
   })
   tokens!: string[];
 }
+

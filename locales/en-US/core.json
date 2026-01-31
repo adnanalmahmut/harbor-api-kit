@@ -1,0 +1,28 @@
+{
+  "errors": {
+    "common": {
+      "internal": "An internal error occurred",
+      "bad_request": "Bad request",
+      "not_found": "Resource not found",
+      "validation": "Validation failed",
+      "conflict": "Resource already exists",
+      "invalid_json": "Invalid JSON format",
+      "not_allowed_by_cors": "Request not allowed by CORS policy",
+      "too_many_requests": "Too many requests, please try again later",
+      "unprocessable_entity": "Unable to process the request"
+    },
+    "auth": {
+      "forbidden": "You do not have permission to access this resource",
+      "unauthorized": "Authentication required",
+      "invalid_credentials": "Invalid credentials"
+    },
+    "security": {
+      "csrf": "CSRF validation failed",
+      "csrf_origin_not_allowed": "Origin not allowed",
+      "csrf_token_missing": "CSRF token is missing",
+      "csrf_token_invalid": "CSRF token is invalid",
+      "rate_limit": "Too many requests. Please try again later."
+    },
+    "validation_error": "Validation error"
+  }
+}

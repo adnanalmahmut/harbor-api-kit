@@ -1,12 +1,287 @@
 <!doctype html>
-<html>
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <title>Verify your email</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>Email Verification</title>
   </head>
-  <body>
-    <h1>Welcome, {{ firstName }}!</h1>
-    <p>Please verify your email by clicking the link below:</p>
-    <a href="{{ link }}">{{ link }}</a>
+
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #ebeced;
+      font-family: Tahoma, Arial, sans-serif;
+    "
+  >
+    <!-- Preheader -->
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        color: transparent;
+        font-size: 0;
+        line-height: 0;
+      "
+    >
+      Verify your email to complete your account setup.
+    </div>
+
+    <!-- Wrapper -->
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      bgcolor="#ebeced"
+      style="background-color: #ebeced"
+    >
+      <tr>
+        <td align="center" style="padding: 0 12px">
+          <!-- Top spacer -->
+          <div style="height: 40px; line-height: 40px; font-size: 1px">
+            &nbsp;
+          </div>
+
+          <!-- Header (Logo area) -->
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="width: 600px; max-width: 600px; margin: 0 auto"
+          >
+            <tr>
+              <td align="center" style="padding: 10px 10px 20px 10px">
+                <!-- Put your logo image/link here -->
+                <img
+                  src="{{ logoUrl }}"
+                  width="140"
+                  alt="{{ brandName }}"
+                  style="
+                    display: block;
+                    border: 0;
+                    height: auto;
+                    width: 140px;
+                    max-width: 140px;
+                  "
+                />
+              </td>
+            </tr>
+          </table>
+
+          <!-- Card container -->
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              width: 600px;
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: #fcfcfc;
+              border-radius: 30px;
+            "
+          >
+            <tr>
+              <td style="padding: 28px 28px 8px 28px" align="left">
+                <!-- Eyebrow (optional) -->
+                <div
+                  style="
+                    font-size: 12px;
+                    letter-spacing: 0.2px;
+                    color: #64748b;
+                    margin: 0 0 10px 0;
+                  "
+                >
+                  {{ brandName }}
+                </div>
+
+                <!-- Title -->
+                <h1
+                  style="
+                    margin: 0;
+                    color: #0f172a;
+                    font-size: 22px;
+                    font-weight: 700;
+                    line-height: 1.8;
+                  "
+                >
+                  Email Verification
+                </h1>
+
+                <!-- Subtitle -->
+                <div
+                  style="
+                    margin-top: 10px;
+                    color: #334155;
+                    font-size: 15px;
+                    line-height: 1.9;
+                  "
+                >
+                  Hello {{ firstName }},<br />
+                  To activate your account and complete registration, please
+                  verify your email address using the button below.
+                </div>
+
+                <!-- Button -->
+                <table
+                  role="presentation"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="margin-top: 18px"
+                >
+                  <tr>
+                    <td bgcolor="#0b5cff" style="border-radius: 14px">
+                      <a
+                        href="{{ link }}"
+                        target="_blank"
+                        style="
+                          display: inline-block;
+                          padding: 14px 20px;
+                          color: #ffffff;
+                          text-decoration: none;
+                          font-size: 14px;
+                          font-weight: 700;
+                          border-radius: 14px;
+                        "
+                      >
+                        Verify Email
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Fallback link -->
+                <div
+                  style="
+                    margin-top: 16px;
+                    color: #64748b;
+                    font-size: 12px;
+                    line-height: 1.9;
+                  "
+                >
+                  If the button doesn’t work, copy and paste the link below into
+                  your browser:
+                </div>
+                <div
+                  style="
+                    margin-top: 6px;
+                    font-size: 12px;
+                    line-height: 1.9;
+                    word-break: break-all;
+                  "
+                >
+                  <a
+                    href="{{ link }}"
+                    target="_blank"
+                    style="color: #0b5cff; text-decoration: underline"
+                  >
+                    {{ link }}
+                  </a>
+                </div>
+
+                <!-- Notice box -->
+                <div
+                  style="
+                    margin-top: 18px;
+                    padding: 12px 14px;
+                    background: #f1f6ff;
+                    border: 1px solid #dbeafe;
+                    border-radius: 14px;
+                  "
+                >
+                  <div
+                    style="color: #1e3a8a; font-size: 12px; line-height: 1.8"
+                  >
+                    If you didn’t create this account, you can safely ignore
+                    this email.
+                  </div>
+                </div>
+
+                <!-- Spacer -->
+                <div style="height: 18px; line-height: 18px; font-size: 1px">
+                  &nbsp;
+                </div>
+
+                <!-- Divider -->
+                <div style="height: 1px; background: #e5e7eb"></div>
+
+                <!-- Footer inside card -->
+                <div
+                  style="
+                    padding: 16px 0 6px 0;
+                    color: #64748b;
+                    font-size: 12px;
+                    line-height: 1.8;
+                  "
+                >
+                  {{ brandName }} © {{ year }} All rights reserved
+                </div>
+                <div
+                  style="
+                    padding: 0 0 10px 0;
+                    color: #64748b;
+                    font-size: 12px;
+                    line-height: 1.8;
+                  "
+                >
+                  Customer Support:
+                  <a
+                    href="mailto:{{ supportEmail }}"
+                    style="color: #0b5cff; text-decoration: none"
+                    >{{ supportEmail }}</a
+                  >
+                  <span style="color: #cbd5e1; padding: 0 8px">|</span>
+                  <a
+                    href="{{ websiteUrl }}"
+                    style="color: #0b5cff; text-decoration: none"
+                    >{{ websiteUrl }}</a
+                  >
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Bottom spacer -->
+          <div style="height: 40px; line-height: 40px; font-size: 1px">
+            &nbsp;
+          </div>
+
+          <!-- Tiny footer outside card -->
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="width: 600px; max-width: 600px; margin: 0 auto"
+          >
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding: 0 10px 24px 10px;
+                  color: #94a3b8;
+                  font-size: 11px;
+                  line-height: 1.6;
+                "
+              >
+                This email was sent automatically. Please do not reply to this
+                message.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

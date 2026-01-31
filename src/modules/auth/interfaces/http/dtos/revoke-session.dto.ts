@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 const RevokeSessionSchema = z.object({
   token: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .min(1, { message: 'errors.validation.token.required' })
+    .string({ message: 'validation.mixed.required' })
+    .min(1, { message: 'validation.token.required' })
     .describe('Session Token'),
 });
 
@@ -16,3 +16,4 @@ export class RevokeSessionDto extends createStrictZodDto(RevokeSessionSchema) {
   })
   token!: string;
 }
+

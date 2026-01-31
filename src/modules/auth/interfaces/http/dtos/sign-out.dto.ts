@@ -1,4 +1,4 @@
-﻿import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
@@ -14,3 +14,4 @@ export class SignOutDto extends createStrictZodDto(SignOutSchema) {
   })
   token?: string;
 }
+

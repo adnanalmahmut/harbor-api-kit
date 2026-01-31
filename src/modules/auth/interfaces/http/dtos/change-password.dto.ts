@@ -1,16 +1,16 @@
-﻿import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const ChangePasswordSchema = z.object({
   currentPassword: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .min(1, { message: 'errors.validation.mixed.required' })
+    .string({ message: 'validation.mixed.required' })
+    .min(1, { message: 'validation.mixed.required' })
     .describe('Current Password'),
   newPassword: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .min(8, { message: 'errors.validation.password.min_length' })
-    .max(32, { message: 'errors.validation.password.max_length' })
+    .string({ message: 'validation.mixed.required' })
+    .min(8, { message: 'validation.password.min_length' })
+    .max(32, { message: 'validation.password.max_length' })
     .describe('New Password'),
   revokeOtherSessions: z.boolean().optional().describe('Revoke other sessions'),
 });
@@ -31,3 +31,4 @@ export class ChangePasswordDto extends createStrictZodDto(
   })
   revokeOtherSessions?: boolean;
 }
+

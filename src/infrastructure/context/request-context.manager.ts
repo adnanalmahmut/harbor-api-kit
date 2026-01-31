@@ -30,7 +30,7 @@ export function requireTenantId(): string {
   if (!t)
     throw new AppException({
       code: AppErrorCode.BAD_REQUEST,
-      messageKey: 'errors.common.validation',
+      messageKey: 'core.errors.common.validation',
       details: { reason: 'Missing tenantId in context' },
     });
   return t;

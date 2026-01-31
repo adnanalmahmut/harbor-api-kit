@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 const VerifyPasswordSchema = z.object({
   password: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .min(1, { message: 'errors.validation.password.required' })
+    .string({ message: 'validation.mixed.required' })
+    .min(1, { message: 'validation.password.required' })
     .describe('Current Password'),
 });
 
@@ -18,3 +18,4 @@ export class VerifyPasswordDto extends createStrictZodDto(
   })
   password!: string;
 }
+

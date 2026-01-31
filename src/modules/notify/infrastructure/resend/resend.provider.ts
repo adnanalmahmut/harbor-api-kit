@@ -66,8 +66,6 @@ export class ResendEmailProvider implements EmailProviderPort {
     try {
       let content = await fs.readFile(templatePath, 'utf-8');
 
-      this.logger.debug(`Template Data Keys: ${Object.keys(data).join(', ')}`);
-
       content = content.replace(/{{\s*([\w]+)\s*}}/g, (match, key) => {
         const val = data[key];
         if (val !== undefined) {

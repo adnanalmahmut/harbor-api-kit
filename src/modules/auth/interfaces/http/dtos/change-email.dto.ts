@@ -1,15 +1,15 @@
-﻿import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const ChangeEmailSchema = z.object({
   newEmail: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .email({ message: 'errors.validation.email.invalid' })
+    .string({ message: 'validation.mixed.required' })
+    .email({ message: 'validation.email.invalid' })
     .describe('New Email Address'),
   callbackURL: z
     .string()
-    .url({ message: 'errors.validation.url.invalid' })
+    .url({ message: 'validation.url.invalid' })
     .optional()
     .describe('Callback URL'),
 });
@@ -28,3 +28,4 @@ export class ChangeEmailDto extends createStrictZodDto(ChangeEmailSchema) {
   })
   callbackURL?: string;
 }
+

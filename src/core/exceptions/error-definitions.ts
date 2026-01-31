@@ -21,50 +21,50 @@ export type ErrorDefinition = {
 export const ERROR_DEFINITIONS: Record<AppErrorCode, ErrorDefinition> = {
   [AppErrorCode.INTERNAL_ERROR]: {
     status: 500,
-    messageKey: 'errors.common.internal',
+    messageKey: 'core.errors.common.internal',
   },
   [AppErrorCode.BAD_REQUEST]: {
     status: 400,
-    messageKey: 'errors.common.bad_request',
+    messageKey: 'core.errors.common.bad_request',
   },
   [AppErrorCode.NOT_FOUND]: {
     status: 404,
-    messageKey: 'errors.common.not_found',
+    messageKey: 'core.errors.common.not_found',
   },
   [AppErrorCode.FORBIDDEN]: {
     status: 403,
-    messageKey: 'errors.auth.forbidden',
+    messageKey: 'core.errors.auth.forbidden',
   },
   [AppErrorCode.UNAUTHORIZED]: {
     status: 401,
-    messageKey: 'errors.auth.unauthorized',
+    messageKey: 'core.errors.auth.unauthorized',
   },
   [AppErrorCode.VALIDATION_ERROR]: {
     status: 400,
-    messageKey: 'errors.common.validation',
+    messageKey: 'core.errors.common.validation',
   },
   [AppErrorCode.CONFLICT]: {
     status: 409,
-    messageKey: 'errors.common.conflict',
+    messageKey: 'core.errors.common.conflict',
   },
   [AppErrorCode.INVALID_JSON]: {
     status: 400,
-    messageKey: 'errors.common.invalid_json',
+    messageKey: 'core.errors.common.invalid_json',
   },
   [AppErrorCode.NOT_ALLOWED_BY_CORS]: {
     status: 403,
-    messageKey: 'errors.common.not_allowed_by_cors',
+    messageKey: 'core.errors.common.not_allowed_by_cors',
   },
   [AppErrorCode.TOO_MANY_REQUESTS]: {
     status: 429,
-    messageKey: 'errors.common.too_many_requests',
+    messageKey: 'core.errors.common.too_many_requests',
   },
   [AppErrorCode.UNPROCESSABLE_ENTITY]: {
     status: 422,
-    messageKey: 'errors.common.unprocessable_entity',
+    messageKey: 'core.errors.common.unprocessable_entity',
   },
   [AppErrorCode.INVALID_CREDENTIALS]: {
     status: 401,
-    messageKey: 'errors.auth.invalid_credentials',
+    messageKey: 'core.errors.auth.invalid_credentials',
   },
 };

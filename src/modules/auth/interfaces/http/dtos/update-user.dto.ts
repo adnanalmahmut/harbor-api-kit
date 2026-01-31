@@ -28,3 +28,4 @@ export class UpdateUserDto extends createStrictZodDto(UpdateUserSchema) {
   @ApiPropertyOptional({ example: 'en-US' })
   locale?: string;
 }
+

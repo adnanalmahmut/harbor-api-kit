@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 const SendVerificationEmailSchema = z.object({
   email: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .email({ message: 'errors.validation.email.invalid' })
+    .string({ message: 'validation.mixed.required' })
+    .email({ message: 'validation.email.invalid' })
     .describe('User Email'),
 });
 
@@ -18,3 +18,4 @@ export class SendVerificationEmailDto extends createStrictZodDto(
   })
   email!: string;
 }
+

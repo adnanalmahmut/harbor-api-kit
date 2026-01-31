@@ -1,15 +1,15 @@
-﻿import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const ForgetPasswordSchema = z.object({
   email: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .email({ message: 'errors.validation.email.invalid' })
+    .string({ message: 'validation.mixed.required' })
+    .email({ message: 'validation.email.invalid' })
     .describe('User Email'),
   redirectTo: z
     .string()
-    .url({ message: 'errors.validation.url.invalid' })
+    .url({ message: 'validation.url.invalid' })
     .optional()
     .describe('Redirect URL'),
 });
@@ -30,3 +30,4 @@ export class ForgetPasswordDto extends createStrictZodDto(
   })
   redirectTo?: string;
 }
+

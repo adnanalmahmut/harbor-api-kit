@@ -1,14 +1,14 @@
-﻿import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 export const LoginSchema = z.object({
   email: z
-    .email({ message: 'errors.validation.email.invalid' })
+    .email({ message: 'validation.email.invalid' })
     .describe('User Email'),
   password: z
-    .string({ message: 'errors.validation.mixed.required' })
-    .min(1, { message: 'errors.validation.mixed.required' })
+    .string({ message: 'validation.mixed.required' })
+    .min(1, { message: 'validation.mixed.required' })
     .describe('Password'),
   rememberMe: z.boolean().optional().describe('Remember session'),
   redirect: z.boolean().optional().describe('Redirect to callback URL'),
@@ -46,3 +46,4 @@ export class LoginDto extends createStrictZodDto(LoginSchema) {
   })
   callbackURL?: string;
 }
+
