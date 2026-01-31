@@ -1,26 +1,33 @@
-import { UserEntity } from '#src/modules/users/domain/entities/user.entity.js';
+import type { Permission, Role } from '#src/generated/prisma/client.js';
+import { User } from '#src/modules/users/domain/entities/user.entity.js';
 
 export type PrismaUserRecord = {
   id: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
   email: string;
-  passwordHash: string;
-  firstName: string;
-  lastName: string;
+  emailVerified: boolean;
+  image: string | null;
   locale: string;
-  emailVerifiedAt: Date | null;
+  roles: Role[];
+  permissions: Permission[];
   createdAt: Date;
   updatedAt: Date;
 };
 
-export function mapPrismaUserToEntity(row: PrismaUserRecord): UserEntity {
-  return new UserEntity(
+export function mapPrismaUserToEntity(row: PrismaUserRecord): User {
+  return new User(
     row.id,
-    row.email,
-    row.passwordHash,
+    row.name,
     row.firstName,
     row.lastName,
+    row.email,
+    row.emailVerified,
+    row.image,
     row.locale,
-    row.emailVerifiedAt,
+    row.roles.map((r) => r.slug),
+    row.permissions.map((p) => `${p.subject}:${p.action}`),
     row.createdAt,
     row.updatedAt,
   );

@@ -10,7 +10,7 @@ import { I18nContext } from 'nestjs-i18n';
 @Injectable()
 export class RequestIdentityInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
-    const req = context.switchToHttp().getRequest() as any;
+    const req = context.switchToHttp().getRequest();
 
     const userId = req.user?.id ?? req.userId;
     const sessionId = req.session?.id ?? req.sessionId;

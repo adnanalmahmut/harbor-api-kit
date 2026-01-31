@@ -8,59 +8,123 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid()) @db.Uuid
-  email           String    @unique
-  passwordHash    String    @map("password_hash")
-  firstName       String    @map("first_name")
-  lastName        String    @map("last_name")
-  locale          String    @default("en-US")
-  emailVerifiedAt DateTime? @map("email_verified_at")
+  id            String    @id
+  name          String
+  firstName     String?   
+  lastName      String? 
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  locale        String    @default("ar-SY")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  sessions      Session[]
+  accounts      Account[]
 
-  sessions        Session[]
-  roles           UserRole[]
-  userPerms       UserPermission[]
+  roles         UserRole[]
+  userPerms     UserPermission[]
+  assignedRoles UserRole[] @relation("AssignedByUser")
 
-  assignedRoles   UserRole[] @relation("AssignedByUser")
-
-  @@map("users")
-  @@index([email])
+  @@map("user")
 }
 
 model Session {
-  sid              String    @id @default(uuid()) @db.Uuid
-  userId           String    @db.Uuid @map("user_id")
+  id        String   @id                      // <-- لا تجعلها UUID
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
-  refreshTokenHash String    @unique @map("refresh_token_hash")
-  familyId         String    @db.Uuid @map("family_id")
-  parentId         String?   @db.Uuid @map("parent_id")
+  ipAddress String?
+  userAgent String?
 
-  expiresAt        DateTime  @map("expires_at")
-  rotatedAt        DateTime? @map("rotated_at")
-  revokedAt        DateTime? @map("revoked_at")
-  lastUsedAt       DateTime? @map("last_used_at")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  ipHash           String?   @map("ip_hash")
-  uaHash           String?   @map("ua_hash")
-
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
   @@index([userId])
-  @@index([familyId])
-  @@index([parentId])
+  @@map("session")
 }
 
+model Account {
+  id                    String   @id          // <-- لا تجعلها UUID
+  accountId             String
+  providerId            String
+
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model UserRole {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id")       // <-- كان @db.Uuid عندك، لازم String
+  roleId     String   @db.Uuid @map("role_id")
+  assignedBy String?  @map("assigned_by")   // <-- كان @db.Uuid عندك، لازم String?
+
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user           User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedByUser", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@index([assignedBy])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @map("user_id")           // <-- كان @db.Uuid عندك، لازم String
+  permissionId String      @db.Uuid @map("permission_id")
+  effect       GrantEffect @default(ALLOW)
+  sourceRoleId String?     @db.Uuid @map("source_role_id")
+  note         String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([userId, permissionId, effect], map: "idx_user_perm_uid_pid_effect")
+  @@map("user_permissions")
+}
 
 enum GrantEffect {
   ALLOW
   DENY
 }
+
 model Role {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique
@@ -97,24 +161,6 @@ model Permission {
   @@map("permissions")
 }
 
-model UserRole {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @db.Uuid @map("user_id")
-  roleId      String   @db.Uuid @map("role_id")
-  assignedBy  String?  @db.Uuid @map("assigned_by")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  assignedByUser User? @relation("AssignedByUser", fields: [assignedBy], references: [id], onDelete: SetNull)
-  user           User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId])
-  @@index([roleId])
-  @@index([assignedBy])
-  @@map("user_roles")
-}
-
 model RolePermission {
   id           String     @id @default(uuid()) @db.Uuid
   roleId       String     @db.Uuid @map("role_id")
@@ -130,23 +176,4 @@ model RolePermission {
   @@map("role_permissions")
 }
 
-model UserPermission {
-  id           String      @id @default(uuid()) @db.Uuid
-  userId       String      @db.Uuid @map("user_id")
-  permissionId String      @db.Uuid @map("permission_id")
-
-  effect       GrantEffect @default(ALLOW)
-
-   sourceRoleId String?     @db.Uuid @map("source_role_id")
-  note         String?
-
-  createdAt    DateTime    @default(now()) @map("created_at")
-
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission   Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, permissionId])
-  @@index([userId])
-  @@index([userId, permissionId, effect], map: "idx_user_perm_uid_pid_effect")
-  @@map("user_permissions")
-}
+ 

@@ -1,29 +1,32 @@
 import { AppException } from '#src/core/exceptions/app-exception.js';
 import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
 import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { CSRF_METHODS } from '#src/infrastructure/security/csrf/csrf.constants.js';
+import {
+  isAllowedByOriginOrReferer,
+  makeCsrfToken,
+} from '#src/infrastructure/security/csrf/csrf.util.js';
 import {
   Injectable,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CSRF_METHODS } from './csrf.constants.js';
-import { isAllowedByOriginOrReferer, makeCsrfToken } from './csrf.util.js';
 
 @Injectable()
 export class CsrfGuard implements CanActivate {
   constructor(private readonly cfg: AppConfigService) {}
 
   private hasAuthCookie(req: FastifyRequest): boolean {
-    const { accessName, refreshName } = this.cfg.cookies();
+    const { sessionTokenCookie, sessionDataCookie } = this.cfg.auth();
     const cookies = (req as any).cookies as Record<string, string> | undefined;
     const cookieHeader = String(req.headers?.cookie ?? '');
 
     return (
-      Boolean(cookies?.[accessName]) ||
-      Boolean(cookies?.[refreshName]) ||
-      cookieHeader.includes(`${accessName}=`) ||
-      cookieHeader.includes(`${refreshName}=`)
+      Boolean(cookies?.[sessionTokenCookie]) ||
+      Boolean(cookies?.[sessionDataCookie]) ||
+      cookieHeader.includes(`${sessionTokenCookie}=`) ||
+      cookieHeader.includes(`${sessionDataCookie}=`)
     );
   }
 

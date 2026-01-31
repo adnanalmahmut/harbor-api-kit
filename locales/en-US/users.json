@@ -1,0 +1,10 @@
+{
+  "messages": {
+    "user_fetch_success": "User data fetched successfully",
+    "users_fetch_success": "Users data fetched successfully"
+  },
+  "errors": {
+    "user_not_found": "User not found",
+    "user_conflict": "Email already exists"
+  }
+}

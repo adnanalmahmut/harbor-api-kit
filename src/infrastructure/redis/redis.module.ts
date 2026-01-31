@@ -1,15 +1,15 @@
 import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
 import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import { Global, Module } from '@nestjs/common';
 import type { Redis as RedisClient } from 'ioredis';
-import { RedisService } from './redis.service.js';
 
 const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
 type RedisCtor = new (url: string, options?: any) => RedisClient;
 
 function resolveRedisCtor(mod: any): RedisCtor {
-  // ioredis قد يجي كـ default export أو كـ module object
+  // ioredis may come as a default export or as a module object
   return (mod?.default ?? mod) as RedisCtor;
 }
 

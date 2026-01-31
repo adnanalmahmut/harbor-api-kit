@@ -1,41 +1,179 @@
+import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
 import { PrismaModule } from '#src/infrastructure/db/prisma/prisma.module.js';
-import { Module } from '@nestjs/common';
-import { EffectivePermissionsService } from './application/services/effective-permissions.service.js';
-import { PrismaPermissionsRepository } from './infrastructure/persistence/prisma-permissions.repository.js';
-import { PrismaRolesRepository } from './infrastructure/persistence/prisma-roles.repository.js';
-import { PrismaGrantsRepository } from './infrastructure/persistence/prisma-user-permissions.repository.js';
-import { RBAC_TOKENS } from './rbac.tokens.js';
+import { RedisModule } from '#src/infrastructure/redis/redis.module.js';
+import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { AuthModule } from '#src/modules/auth/auth.module.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
+import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
+import { CreatePermissionUseCase } from '#src/modules/rbac/application/use-cases/create-permission.use-case.js';
+import { CreateRoleUseCase } from '#src/modules/rbac/application/use-cases/create-role.use-case.js';
+import { DeletePermissionUseCase } from '#src/modules/rbac/application/use-cases/delete-permission.use-case.js';
+import { DeleteRoleUseCase } from '#src/modules/rbac/application/use-cases/delete-role.use-case.js';
+import { GetPermissionByIdUseCase } from '#src/modules/rbac/application/use-cases/get-permission-by-id.use-case.js';
+import { GetRoleByIdUseCase } from '#src/modules/rbac/application/use-cases/get-role-by-id.use-case.js';
+import { GetRolePermissionsUseCase } from '#src/modules/rbac/application/use-cases/get-role-permissions.use-case.js';
+import { ListPermissionsUseCase } from '#src/modules/rbac/application/use-cases/list-permissions.use-case.js';
+import { ListRolesUseCase } from '#src/modules/rbac/application/use-cases/list-roles.use-case.js';
+import { RemovePermissionFromRoleUseCase } from '#src/modules/rbac/application/use-cases/remove-permission-from-role.use-case.js';
+import { ReplaceRolePermissionsUseCase } from '#src/modules/rbac/application/use-cases/replace-role-permissions.use-case.js';
+import { UpdatePermissionUseCase } from '#src/modules/rbac/application/use-cases/update-permission.use-case.js';
+import { UpdateRoleUseCase } from '#src/modules/rbac/application/use-cases/update-role.use-case.js';
+import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
+import type { PermissionRepositoryPort } from '#src/modules/rbac/domain/ports/permission.repository.port.js';
+import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+import { CachedRoleRepository } from '#src/modules/rbac/infrastructure/persistence/cached-role.repository.js';
+import { PrismaGrantsRepository } from '#src/modules/rbac/infrastructure/persistence/prisma-grants.repository.js';
+import { PrismaPermissionRepository } from '#src/modules/rbac/infrastructure/persistence/prisma-permission.repository.js';
+import { PrismaRoleRepository } from '#src/modules/rbac/infrastructure/persistence/prisma-role.repository.js';
+import { RbacController } from '#src/modules/rbac/presentation/http/rbac.controller.js';
+import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
+import { forwardRef, Logger, Module } from '@nestjs/common';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [
+    PrismaModule,
+    RedisModule,
+    forwardRef(() => AuthModule),
+    AppConfigModule,
+  ],
+  controllers: [RbacController],
   providers: [
-    EffectivePermissionsService,
-
+    // 1. Base Repositories (Prisma)
     {
-      provide: RBAC_TOKENS.PERMISSION_REPOSITORY,
-      useClass: PrismaPermissionsRepository,
+      provide: PrismaRoleRepository,
+      useClass: PrismaRoleRepository,
     },
-    { provide: RBAC_TOKENS.ROLE_REPOSITORY, useClass: PrismaRolesRepository },
     {
       provide: RBAC_TOKENS.GRANTS_REPOSITORY,
       useClass: PrismaGrantsRepository,
     },
-
-    // Bridge injection (لأن EffectivePermissionsService يستخدم interfaces)
     {
-      provide: 'RBAC_ROLES_REPO',
-      useExisting: RBAC_TOKENS.ROLE_REPOSITORY,
+      provide: RBAC_TOKENS.PERMISSION_REPOSITORY,
+      useClass: PrismaPermissionRepository,
+    },
+
+    // 2. Decorated Repository (Cached) - Implementation of RoleRepositoryPort
+    {
+      provide: RBAC_TOKENS.ROLE_REPOSITORY,
+      useClass: CachedRoleRepository,
+    },
+    // Dependency for CachedRoleRepository (The Delegate)
+    {
+      provide: RBAC_TOKENS.ROLE_REPOSITORY_DELEGATE,
+      useExisting: PrismaRoleRepository,
+    },
+
+    // 3. Application Services
+    {
+      provide: EffectivePermissionsService,
+      useFactory: (
+        roleRepo: RoleRepositoryPort,
+        grantsRepo: GrantsRepositoryPort,
+        redis: RedisService,
+      ) => {
+        const logger = new Logger(EffectivePermissionsService.name);
+        return new EffectivePermissionsService(
+          roleRepo,
+          grantsRepo,
+          redis,
+          logger,
+        );
+      },
+      inject: [
+        RBAC_TOKENS.ROLE_REPOSITORY,
+        RBAC_TOKENS.GRANTS_REPOSITORY,
+        RedisService,
+      ],
+    },
+
+    // 4. Use Cases
+    {
+      provide: CreateRoleUseCase,
+      useFactory: (repo: RoleRepositoryPort) => new CreateRoleUseCase(repo),
+      inject: [RBAC_TOKENS.ROLE_REPOSITORY],
     },
     {
-      provide: 'RBAC_GRANTS_REPO',
-      useExisting: RBAC_TOKENS.GRANTS_REPOSITORY,
+      provide: ListRolesUseCase,
+      useFactory: (repo: RoleRepositoryPort) => new ListRolesUseCase(repo),
+      inject: [RBAC_TOKENS.ROLE_REPOSITORY],
+    },
+    {
+      provide: CreatePermissionUseCase,
+      useFactory: (repo: PermissionRepositoryPort) =>
+        new CreatePermissionUseCase(repo),
+      inject: [RBAC_TOKENS.PERMISSION_REPOSITORY],
+    },
+    {
+      provide: ListPermissionsUseCase,
+      useFactory: (repo: PermissionRepositoryPort) =>
+        new ListPermissionsUseCase(repo),
+      inject: [RBAC_TOKENS.PERMISSION_REPOSITORY],
+    },
+    {
+      provide: AssignPermissionToRoleUseCase,
+      useFactory: (repo: GrantsRepositoryPort) =>
+        new AssignPermissionToRoleUseCase(repo),
+      inject: [RBAC_TOKENS.GRANTS_REPOSITORY],
+    },
+    {
+      provide: RemovePermissionFromRoleUseCase,
+      useFactory: (repo: GrantsRepositoryPort) =>
+        new RemovePermissionFromRoleUseCase(repo),
+      inject: [RBAC_TOKENS.GRANTS_REPOSITORY],
+    },
+    {
+      provide: GetRolePermissionsUseCase,
+      useFactory: (repo: GrantsRepositoryPort) =>
+        new GetRolePermissionsUseCase(repo),
+      inject: [RBAC_TOKENS.GRANTS_REPOSITORY],
+    },
+    {
+      provide: GetRoleByIdUseCase,
+      useFactory: (repo: RoleRepositoryPort) => new GetRoleByIdUseCase(repo),
+      inject: [RBAC_TOKENS.ROLE_REPOSITORY],
+    },
+    {
+      provide: UpdateRoleUseCase,
+      useFactory: (repo: RoleRepositoryPort) => new UpdateRoleUseCase(repo),
+      inject: [RBAC_TOKENS.ROLE_REPOSITORY],
+    },
+    {
+      provide: DeleteRoleUseCase,
+      useFactory: (repo: RoleRepositoryPort) => new DeleteRoleUseCase(repo),
+      inject: [RBAC_TOKENS.ROLE_REPOSITORY],
+    },
+    {
+      provide: GetPermissionByIdUseCase,
+      useFactory: (repo: PermissionRepositoryPort) =>
+        new GetPermissionByIdUseCase(repo),
+      inject: [RBAC_TOKENS.PERMISSION_REPOSITORY],
+    },
+    {
+      provide: UpdatePermissionUseCase,
+      useFactory: (repo: PermissionRepositoryPort) =>
+        new UpdatePermissionUseCase(repo),
+      inject: [RBAC_TOKENS.PERMISSION_REPOSITORY],
+    },
+    {
+      provide: DeletePermissionUseCase,
+      useFactory: (repo: PermissionRepositoryPort) =>
+        new DeletePermissionUseCase(repo),
+      inject: [RBAC_TOKENS.PERMISSION_REPOSITORY],
+    },
+    {
+      provide: ReplaceRolePermissionsUseCase,
+      useFactory: (
+        roleRepo: RoleRepositoryPort,
+        grantsRepo: GrantsRepositoryPort,
+      ) => new ReplaceRolePermissionsUseCase(roleRepo, grantsRepo),
+      inject: [RBAC_TOKENS.ROLE_REPOSITORY, RBAC_TOKENS.GRANTS_REPOSITORY],
     },
   ],
   exports: [
     EffectivePermissionsService,
-    RBAC_TOKENS.PERMISSION_REPOSITORY,
     RBAC_TOKENS.ROLE_REPOSITORY,
     RBAC_TOKENS.GRANTS_REPOSITORY,
+    RBAC_TOKENS.PERMISSION_REPOSITORY,
   ],
 })
 export class RbacModule {}

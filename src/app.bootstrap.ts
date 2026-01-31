@@ -1,4 +1,21 @@
+import { setupCors } from '#src/app.cors.js';
+import { setupApiDocs } from '#src/app.docs.js';
+import { AppModule } from '#src/app.module.js';
+import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { validateEnv } from '#src/infrastructure/config/env.schema.js';
+import { createRequestContextHook } from '#src/infrastructure/context/request-context.manager.js';
+import { GlobalExceptionFilter } from '#src/infrastructure/http/filters/global-exception.filter.js';
+import { RequestIdentityInterceptor } from '#src/infrastructure/http/interceptors/request-identity.interceptor.js';
+import { ResponseInterceptor } from '#src/infrastructure/http/interceptors/response.interceptor.js';
+import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { CsrfGuard } from '#src/infrastructure/security/csrf/csrf.guard.js';
+import { GlobalValidationPipe } from '#src/infrastructure/validation/global-validation-pipe.js';
 import fastifyCookie from '@fastify/cookie';
+import {
+  VersioningType,
+  type LogLevel,
+  type LoggerService,
+} from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -6,20 +23,9 @@ import {
 } from '@nestjs/platform-fastify';
 import { I18nService } from 'nestjs-i18n';
 import { Logger } from 'nestjs-pino';
-import { setupCors } from './app.cors.js';
-import { setupApiDocs } from './app.docs.js';
-import { AppModule } from './app.module.js';
-import { AppConfigService } from './infrastructure/config/app-config.service.js';
-import { validateEnv } from './infrastructure/config/env.schema.js';
-import { createRequestContextHook } from './infrastructure/context/request-context.manager.js';
-import { GlobalExceptionFilter } from './infrastructure/http/filters/global-exception.filter.js';
-import { RequestIdentityInterceptor } from './infrastructure/http/interceptors/request-identity.interceptor.js';
-import { ResponseInterceptor } from './infrastructure/http/interceptors/response.interceptor.js';
-import { CsrfGuard } from './infrastructure/security/csrf/csrf.guard.js';
-import { GlobalValidationPipe } from './infrastructure/validation/global-validation-pipe.js';
 
 export async function createApp(opts?: {
-  logger?: boolean | any;
+  logger?: false | LogLevel[] | LoggerService;
 }): Promise<NestFastifyApplication> {
   const env = validateEnv(process.env);
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -28,7 +34,11 @@ export async function createApp(opts?: {
       trustProxy: env.FASTIFY_TRUST_PROXY,
     }),
     //  { logger: opts?.logger === false ? false : ['error', 'warn'] },
-    { logger: opts?.logger ?? false },
+    // { logger: opts?.logger ?? false },
+    {
+      logger: opts?.logger ?? ['error', 'warn'],
+      bufferLogs: true,
+    },
   );
   return app;
 }
@@ -39,7 +49,7 @@ export function configureApp(app: NestFastifyApplication) {
 
   const config = app.get(AppConfigService);
   const reflector = app.get(Reflector);
-  const i18n = app.get(I18nService) as I18nService<Record<string, any>>;
+  const i18n = app.get<I18nService<Record<string, any>>>(I18nService);
 
   const adapter = app.getHttpAdapter().getInstance();
 
@@ -51,7 +61,15 @@ export function configureApp(app: NestFastifyApplication) {
 
   setupCors(app, config);
 
-  const requestContextHook = createRequestContextHook(config);
+  app.setGlobalPrefix('api');
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+
+  const redisService = app.get(RedisService);
+  const requestContextHook = createRequestContextHook(config, redisService);
   adapter.addHook('onRequest', requestContextHook);
 
   app.useGlobalPipes(new GlobalValidationPipe());

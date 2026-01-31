@@ -1,6 +1,6 @@
+import type { EnvVars } from '#src/infrastructure/config/env.schema.js';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { EnvVars } from './env.schema.js';
 
 @Injectable()
 export class AppConfigService {
@@ -12,6 +12,7 @@ export class AppConfigService {
       env: this.config.get('APP_ENV'),
       port: this.config.get('APP_PORT'),
       enableDocs: this.config.get('ENABLE_DOCS'),
+      frontendUrl: this.config.get('FRONTEND_URL'),
     };
   }
 
@@ -28,10 +29,26 @@ export class AppConfigService {
     };
   }
 
-  cookies() {
+  auth() {
     return {
-      accessName: this.config.get('COOKIE_ACCESS_NAME'),
-      refreshName: this.config.get('COOKIE_REFRESH_NAME'),
+      sessionTokenCookie: this.config.get('SESSION_TOKEN_COOKIE'),
+      sessionDataCookie: this.config.get('SESSION_DATA_COOKIE'),
+      betterAuthUrl: this.config.get('BETTER_AUTH_URL'),
+      betterAuthSecret: this.config.get('BETTER_AUTH_SECRET'),
+      google: {
+        clientId: this.config.get('GOOGLE_CLIENT_ID'),
+        clientSecret: this.config.get('GOOGLE_CLIENT_SECRET'),
+      },
+      github: {
+        clientId: this.config.get('GITHUB_CLIENT_ID'),
+        clientSecret: this.config.get('GITHUB_CLIENT_SECRET'),
+      },
+    };
+  }
+
+  frontend() {
+    return {
+      url: this.config.get('FRONTEND_URL'),
     };
   }
 
@@ -50,6 +67,8 @@ export class AppConfigService {
   resend() {
     return {
       apiKey: this.config.get('RESEND_API_KEY'),
+      fromEmail: this.config.get('RESEND_FROM_EMAIL'),
+      fromName: this.config.get('RESEND_FROM_NAME'),
     };
   }
 

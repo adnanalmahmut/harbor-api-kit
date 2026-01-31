@@ -1,7 +1,8 @@
 {
   "auth": {
     "unauthorized": "Unauthorized",
-    "forbidden": "Forbidden"
+    "forbidden": "Forbidden",
+    "invalid_credentials": "Invalid credentials"
   },
   "common": {
     "not_found": "Not found",
@@ -28,6 +29,7 @@
       "required": "This field is required",
       "invalid_type": "Invalid data type"
     },
+    "supported_locale": "Language not supported",
     "email": {
       "invalid": "Invalid email address"
     },
@@ -61,6 +63,13 @@
       "terms": {
         "required": "You must accept the terms and conditions"
       }
+    },
+    "token": {
+      "required": "Token is required",
+      "invalid": "Invalid token"
+    },
+    "url": {
+      "invalid": "Invalid URL"
     }
   }
 }

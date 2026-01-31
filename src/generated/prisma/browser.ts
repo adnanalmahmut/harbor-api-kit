@@ -28,6 +28,26 @@ export type User = Prisma.UserModel
  */
 export type Session = Prisma.SessionModel
 /**
+ * Model Account
+ * 
+ */
+export type Account = Prisma.AccountModel
+/**
+ * Model Verification
+ * 
+ */
+export type Verification = Prisma.VerificationModel
+/**
+ * Model UserRole
+ * 
+ */
+export type UserRole = Prisma.UserRoleModel
+/**
+ * Model UserPermission
+ * 
+ */
+export type UserPermission = Prisma.UserPermissionModel
+/**
  * Model Role
  * 
  */
@@ -38,17 +58,7 @@ export type Role = Prisma.RoleModel
  */
 export type Permission = Prisma.PermissionModel
 /**
- * Model UserRole
- * 
- */
-export type UserRole = Prisma.UserRoleModel
-/**
  * Model RolePermission
  * 
  */
 export type RolePermission = Prisma.RolePermissionModel
-/**
- * Model UserPermission
- * 
- */
-export type UserPermission = Prisma.UserPermissionModel

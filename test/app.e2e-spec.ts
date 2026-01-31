@@ -1,12 +1,12 @@
+import { configureApp, createApp } from '#src/app.bootstrap.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import { configureApp, createApp } from '../src/app.bootstrap.js';
 
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
-    app = await createApp({ logger: false });
+    app = (await createApp({ logger: false })) as NestFastifyApplication;
     configureApp(app);
 
     await app.init();
@@ -17,11 +17,12 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('/health (GET)', async () => {
+  it('/api/v1/health (GET)', async () => {
     const server = app.getHttpServer();
-    const res = await request(server).get('/health');
+    const res = await request(server).get('/api/v1/health');
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('status', 'ok');
+    // ResponseInterceptor wraps the result in "data"
+    expect(res.body.data).toHaveProperty('status', 'ok');
   });
 });

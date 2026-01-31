@@ -1,6 +1,6 @@
 import type { ApiSuccess } from '#src/core/types/api.types.js';
 import { getRequestContext } from '#src/infrastructure/context/request-context.manager.js';
-import { CONSTANTS_KEYS } from '#src/infrastructure/http/decorators/metadata-keys.constants.js';
+import { CONSTANTS_KEYS } from '#src/core/http/metadata-keys.constants.js';
 import { translateIfKey } from '#src/infrastructure/validation/validation.utils.js';
 import {
   Injectable,
@@ -41,20 +41,21 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     const locale = store?.locale;
 
     return next.handle().pipe(
-      mergeMap(
-        async (data: T | null | undefined): Promise<T | ApiSuccess<T>> => {
-          const message = messageKey
-            ? await translateIfKey(this.i18n, messageKey, locale)
-            : undefined;
+      mergeMap(async (data: T | null | undefined) => {
+        const message = messageKey
+          ? await translateIfKey(this.i18n, messageKey, locale)
+          : undefined;
 
-          const result: ApiSuccess<T> = {
-            message,
-            data: (data ?? null) as T,
-          };
-          if (!result.message) delete result.message;
-          return result;
-        },
-      ),
+        const result: ApiSuccess<T> = {};
+
+        if (message) result.message = message;
+
+        if (data !== null && data !== undefined) {
+          result.data = data;
+        }
+
+        return result;
+      }),
     );
   }
 }

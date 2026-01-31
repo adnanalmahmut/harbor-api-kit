@@ -1,6 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-
 import { createStrictZodDto } from '../strict-zod-dto.js';
 
 describe('createStrictZodDto', () => {
@@ -60,7 +59,7 @@ describe('createStrictZodDto', () => {
     expect(result.success).toBe(false);
 
     // Ensure the failure is due to "unrecognized_keys" and includes our key
-    const issues = (result as any).error?.issues ?? [];
+    const issues = result.error?.issues ?? [];
     const hasUnrecognized = issues.some(
       (i: any) =>
         i.code === 'unrecognized_keys' &&

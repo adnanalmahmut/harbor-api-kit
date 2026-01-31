@@ -22,7 +22,7 @@ import {
   type ExceptionFilter,
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { I18nService } from 'nestjs-i18n';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Logger } from 'nestjs-pino';
 
 function codeByStatus(status: number): AppErrorCode {
@@ -46,7 +46,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const req = http.getRequest<FastifyRequest>();
 
     const context = getRequestContext();
-    const locale = context?.locale;
+    // Fallback to I18nContext if RequestContext doesn't have locale (e.g. before auth/context middleware populated it)
+    const locale = context?.locale ?? I18nContext.current()?.lang;
 
     let status = ERROR_DEFINITIONS[AppErrorCode.INTERNAL_ERROR].status;
     let messageKey = ERROR_DEFINITIONS[AppErrorCode.INTERNAL_ERROR].messageKey;

@@ -8,6 +8,9 @@ export enum AppErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   INVALID_JSON = 'INVALID_JSON',
   NOT_ALLOWED_BY_CORS = 'NOT_ALLOWED_BY_CORS',
+  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
+  UNPROCESSABLE_ENTITY = 'UNPROCESSABLE_ENTITY',
+  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
 }
 
 export type ErrorDefinition = {
@@ -51,5 +54,17 @@ export const ERROR_DEFINITIONS: Record<AppErrorCode, ErrorDefinition> = {
   [AppErrorCode.NOT_ALLOWED_BY_CORS]: {
     status: 403,
     messageKey: 'errors.common.not_allowed_by_cors',
+  },
+  [AppErrorCode.TOO_MANY_REQUESTS]: {
+    status: 429,
+    messageKey: 'errors.common.too_many_requests',
+  },
+  [AppErrorCode.UNPROCESSABLE_ENTITY]: {
+    status: 422,
+    messageKey: 'errors.common.unprocessable_entity',
+  },
+  [AppErrorCode.INVALID_CREDENTIALS]: {
+    status: 401,
+    messageKey: 'errors.auth.invalid_credentials',
   },
 };

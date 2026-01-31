@@ -28,5 +28,5 @@
   "watchOptions": {
     "watchFile": "fixedPollingInterval"
   },
-  "include": ["src/**/*", "src/types/**/*.d.ts"]
+  "include": ["src/**/*", "src/types/**/*.d.ts", "prisma/**/*", "test/**/*"]
 }

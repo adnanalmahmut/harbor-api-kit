@@ -1,8 +1,8 @@
 // src/app.docs.ts
+import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
-import type { AppConfigService } from './infrastructure/config/app-config.service.js';
 
 // Node-only TS (no DOM lib)
 declare const window: any;
@@ -30,9 +30,13 @@ export function setupApiDocs(
 
   const docConfig = new DocumentBuilder()
     .setTitle(appCfg.name)
-    .setDescription('API documentation for the SaaS platform')
+    .setDescription(
+      `## API Reference
+      This API bulid for ${appCfg.name} application
+      
+      `,
+    )
     .setVersion('1.0')
-    .addBearerAuth()
     .addCookieAuth()
     .addGlobalParameters({
       name: 'Accept-Language',
@@ -83,6 +87,7 @@ export function setupApiDocs(
     '/documentation',
     apiReference({
       content: openApiDocument,
+      pageTitle: `${appCfg.name} Docs`,
       theme: 'purple',
       darkMode: true,
       withFastify: true,

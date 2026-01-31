@@ -1,0 +1,10 @@
+{
+  "messages": {
+    "user_fetch_success": "تم جلب بيانات المستخدم بنجاح",
+    "users_fetch_success": "تم جلب بيانات المستخدمين بنجاح"
+  },
+  "errors": {
+    "user_not_found": "لم يتم العثور على المستخدم",
+    "user_conflict": "البريد الالكتروني موجود بالفعل"
+  }
+}

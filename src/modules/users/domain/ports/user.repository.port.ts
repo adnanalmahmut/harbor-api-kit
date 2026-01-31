@@ -1,16 +1,9 @@
-import type { UserEntity } from '#src/modules/users/domain/entities/user.entity.js';
-
-export type CreateUserData = {
-  email: string;
-  passwordHash: string;
-  firstName: string;
-  lastName: string;
-  locale: string;
-};
+import type { User } from '../entities/user.entity.js';
 
 export interface UserRepositoryPort {
-  findById(id: string): Promise<UserEntity | null>;
-  findByEmail(email: string): Promise<UserEntity | null>;
-  existsByEmail(email: string): Promise<boolean>;
-  create(data: CreateUserData): Promise<UserEntity>;
+  create(user: User): Promise<User>;
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  findAll(): Promise<User[] | null>;
+  update(user: User): Promise<User>;
 }

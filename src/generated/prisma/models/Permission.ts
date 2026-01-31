@@ -370,6 +370,11 @@ export type PermissionUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type PermissionScalarRelationFilter = {
+  is?: Prisma.PermissionWhereInput
+  isNot?: Prisma.PermissionWhereInput
+}
+
 export type PermissionActionSubjectCompoundUniqueInput = {
   action: string
   subject: string
@@ -413,9 +418,18 @@ export type PermissionSumOrderByAggregateInput = {
   index?: Prisma.SortOrder
 }
 
-export type PermissionScalarRelationFilter = {
-  is?: Prisma.PermissionWhereInput
-  isNot?: Prisma.PermissionWhereInput
+export type PermissionCreateNestedOneWithoutUserPermsInput = {
+  create?: Prisma.XOR<Prisma.PermissionCreateWithoutUserPermsInput, Prisma.PermissionUncheckedCreateWithoutUserPermsInput>
+  connectOrCreate?: Prisma.PermissionCreateOrConnectWithoutUserPermsInput
+  connect?: Prisma.PermissionWhereUniqueInput
+}
+
+export type PermissionUpdateOneRequiredWithoutUserPermsNestedInput = {
+  create?: Prisma.XOR<Prisma.PermissionCreateWithoutUserPermsInput, Prisma.PermissionUncheckedCreateWithoutUserPermsInput>
+  connectOrCreate?: Prisma.PermissionCreateOrConnectWithoutUserPermsInput
+  upsert?: Prisma.PermissionUpsertWithoutUserPermsInput
+  connect?: Prisma.PermissionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PermissionUpdateToOneWithWhereWithoutUserPermsInput, Prisma.PermissionUpdateWithoutUserPermsInput>, Prisma.PermissionUncheckedUpdateWithoutUserPermsInput>
 }
 
 export type IntFieldUpdateOperationsInput = {
@@ -438,80 +452,6 @@ export type PermissionUpdateOneRequiredWithoutRolePermsNestedInput = {
   upsert?: Prisma.PermissionUpsertWithoutRolePermsInput
   connect?: Prisma.PermissionWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.PermissionUpdateToOneWithWhereWithoutRolePermsInput, Prisma.PermissionUpdateWithoutRolePermsInput>, Prisma.PermissionUncheckedUpdateWithoutRolePermsInput>
-}
-
-export type PermissionCreateNestedOneWithoutUserPermsInput = {
-  create?: Prisma.XOR<Prisma.PermissionCreateWithoutUserPermsInput, Prisma.PermissionUncheckedCreateWithoutUserPermsInput>
-  connectOrCreate?: Prisma.PermissionCreateOrConnectWithoutUserPermsInput
-  connect?: Prisma.PermissionWhereUniqueInput
-}
-
-export type PermissionUpdateOneRequiredWithoutUserPermsNestedInput = {
-  create?: Prisma.XOR<Prisma.PermissionCreateWithoutUserPermsInput, Prisma.PermissionUncheckedCreateWithoutUserPermsInput>
-  connectOrCreate?: Prisma.PermissionCreateOrConnectWithoutUserPermsInput
-  upsert?: Prisma.PermissionUpsertWithoutUserPermsInput
-  connect?: Prisma.PermissionWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.PermissionUpdateToOneWithWhereWithoutUserPermsInput, Prisma.PermissionUpdateWithoutUserPermsInput>, Prisma.PermissionUncheckedUpdateWithoutUserPermsInput>
-}
-
-export type PermissionCreateWithoutRolePermsInput = {
-  id?: string
-  action: string
-  subject: string
-  index: number
-  description?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  userPerms?: Prisma.UserPermissionCreateNestedManyWithoutPermissionInput
-}
-
-export type PermissionUncheckedCreateWithoutRolePermsInput = {
-  id?: string
-  action: string
-  subject: string
-  index: number
-  description?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutPermissionInput
-}
-
-export type PermissionCreateOrConnectWithoutRolePermsInput = {
-  where: Prisma.PermissionWhereUniqueInput
-  create: Prisma.XOR<Prisma.PermissionCreateWithoutRolePermsInput, Prisma.PermissionUncheckedCreateWithoutRolePermsInput>
-}
-
-export type PermissionUpsertWithoutRolePermsInput = {
-  update: Prisma.XOR<Prisma.PermissionUpdateWithoutRolePermsInput, Prisma.PermissionUncheckedUpdateWithoutRolePermsInput>
-  create: Prisma.XOR<Prisma.PermissionCreateWithoutRolePermsInput, Prisma.PermissionUncheckedCreateWithoutRolePermsInput>
-  where?: Prisma.PermissionWhereInput
-}
-
-export type PermissionUpdateToOneWithWhereWithoutRolePermsInput = {
-  where?: Prisma.PermissionWhereInput
-  data: Prisma.XOR<Prisma.PermissionUpdateWithoutRolePermsInput, Prisma.PermissionUncheckedUpdateWithoutRolePermsInput>
-}
-
-export type PermissionUpdateWithoutRolePermsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  action?: Prisma.StringFieldUpdateOperationsInput | string
-  subject?: Prisma.StringFieldUpdateOperationsInput | string
-  index?: Prisma.IntFieldUpdateOperationsInput | number
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  userPerms?: Prisma.UserPermissionUpdateManyWithoutPermissionNestedInput
-}
-
-export type PermissionUncheckedUpdateWithoutRolePermsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  action?: Prisma.StringFieldUpdateOperationsInput | string
-  subject?: Prisma.StringFieldUpdateOperationsInput | string
-  index?: Prisma.IntFieldUpdateOperationsInput | number
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutPermissionNestedInput
 }
 
 export type PermissionCreateWithoutUserPermsInput = {
@@ -572,6 +512,66 @@ export type PermissionUncheckedUpdateWithoutUserPermsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rolePerms?: Prisma.RolePermissionUncheckedUpdateManyWithoutPermissionNestedInput
+}
+
+export type PermissionCreateWithoutRolePermsInput = {
+  id?: string
+  action: string
+  subject: string
+  index: number
+  description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  userPerms?: Prisma.UserPermissionCreateNestedManyWithoutPermissionInput
+}
+
+export type PermissionUncheckedCreateWithoutRolePermsInput = {
+  id?: string
+  action: string
+  subject: string
+  index: number
+  description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutPermissionInput
+}
+
+export type PermissionCreateOrConnectWithoutRolePermsInput = {
+  where: Prisma.PermissionWhereUniqueInput
+  create: Prisma.XOR<Prisma.PermissionCreateWithoutRolePermsInput, Prisma.PermissionUncheckedCreateWithoutRolePermsInput>
+}
+
+export type PermissionUpsertWithoutRolePermsInput = {
+  update: Prisma.XOR<Prisma.PermissionUpdateWithoutRolePermsInput, Prisma.PermissionUncheckedUpdateWithoutRolePermsInput>
+  create: Prisma.XOR<Prisma.PermissionCreateWithoutRolePermsInput, Prisma.PermissionUncheckedCreateWithoutRolePermsInput>
+  where?: Prisma.PermissionWhereInput
+}
+
+export type PermissionUpdateToOneWithWhereWithoutRolePermsInput = {
+  where?: Prisma.PermissionWhereInput
+  data: Prisma.XOR<Prisma.PermissionUpdateWithoutRolePermsInput, Prisma.PermissionUncheckedUpdateWithoutRolePermsInput>
+}
+
+export type PermissionUpdateWithoutRolePermsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  index?: Prisma.IntFieldUpdateOperationsInput | number
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userPerms?: Prisma.UserPermissionUpdateManyWithoutPermissionNestedInput
+}
+
+export type PermissionUncheckedUpdateWithoutRolePermsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
+  subject?: Prisma.StringFieldUpdateOperationsInput | string
+  index?: Prisma.IntFieldUpdateOperationsInput | number
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutPermissionNestedInput
 }
 
 

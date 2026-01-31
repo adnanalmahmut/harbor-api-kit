@@ -1,14 +1,15 @@
 {
-  "preset": "ts-jest/presets/default-esm",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
   "testEnvironment": "node",
-  "rootDir": ".",
-  "testRegex": ".e2e-spec.ts$",
-  "moduleFileExtensions": ["ts", "js", "json"],
-  "extensionsToTreatAsEsm": [".ts"],
+  "testRegex": ".(e2e|contract)-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": ["ts-jest", { "useESM": true }]
   },
+  "extensionsToTreatAsEsm": [".ts"],
   "moduleNameMapper": {
+    "^#src/(.*)\\.js$": "<rootDir>/src/$1",
+    "^#src/(.*)$": "<rootDir>/src/$1",
     "^(\\.{1,2}/.*)\\.js$": "$1"
   }
 }

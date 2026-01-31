@@ -1,5 +1,5 @@
 import type { Prisma } from '#src/generated/prisma/client.js';
-import { PermissionEntity } from '#src/modules/rbac/domain/entities/permission.entity.js';
+import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 
 export const permissionSelect = {
   id: true,
@@ -20,7 +20,7 @@ export function mapPrismaPermissionToEntity(r: {
   createdAt: Date;
   updatedAt: Date;
 }) {
-  return new PermissionEntity(
+  return new Permission(
     r.id,
     r.action,
     r.subject,

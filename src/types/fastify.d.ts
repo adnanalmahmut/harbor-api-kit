@@ -13,5 +13,5 @@ interface RequestUser {
 }
 
 interface RequestSession {
-  sid: string;
+  id: string;
 }

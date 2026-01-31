@@ -1,21 +1,20 @@
+import { SecurityException } from '#src/core/exceptions/security.exception.js';
 import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import {
+  RATE_LIMIT_META_KEY,
+  RATE_LIMIT_SKIP_KEY,
+  type RateLimitRule,
+} from '#src/infrastructure/security/rate-limit/rate-limit.types.js';
+import { pickClientKey } from '#src/infrastructure/security/rate-limit/rate-limit.util.js';
+import {
   type CanActivate,
   type ExecutionContext,
-  HttpException,
-  HttpStatus,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'node:crypto';
-import {
-  RATE_LIMIT_META_KEY,
-  RATE_LIMIT_SKIP_KEY,
-  type RateLimitRule,
-} from './rate-limit.types.js';
-import { pickClientKey } from './rate-limit.util.js';
 
 function stripQuery(url: string) {
   const i = url.indexOf('?');
@@ -114,10 +113,7 @@ export class RateLimitGuard implements CanActivate {
     reply.header(`${rl.headerPrefix}-Reset`, String(Math.ceil(resetMs / 1000)));
 
     if (count > rule.points) {
-      throw new HttpException(
-        'Too Many Requests',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+      throw SecurityException.rateLimitExceeded();
     }
 
     return true;

@@ -1,7 +1,12 @@
 {
   "auth": {
     "unauthorized": "غير مصرح",
-    "forbidden": "غير مصرح"
+    "forbidden": "ممنوع",
+    "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    "email_already_exists": "البريد الإلكتروني مستخدم بالفعل.",
+    "email_not_verified": "لم يتم التحقق من البريد الإلكتروني.",
+    "session_expired": "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+    "invalid_token": "رمز غير صالح."
   },
   "common": {
     "not_found": "غير موجود",
@@ -12,7 +17,8 @@
     "invalid_json": "هيكلية البيانات المرسلة غير صحيحة (JSON غير صالح)",
     "not_allowed_by_cors": "الطلب غير مصرح به",
     "forbidden": "غير مصرح",
-    "unauthorized": "غير مصرح"
+    "unauthorized": "غير مصرح",
+    "too_many_requests": "عدد الطلبات كبير جدًا. يرجى المحاولة مرة أخرى لاحقًا."
   },
   "security": {
     "csrf": {
@@ -31,6 +37,7 @@
     "email": {
       "invalid": "عنوان بريد إلكتروني غير صحيح"
     },
+    "supported_locale": "اللغة غير مدعومة",
     "password": {
       "required": "كلمة المرور مطلوبة",
       "min_length": "كلمة المرور يجب أن تكون على الأقل 8 أحرف",
@@ -61,6 +68,13 @@
       "terms": {
         "required": "يجب الموافقة على الشروط والأحكام"
       }
+    },
+    "token": {
+      "required": "الرمز مطلوب",
+      "invalid": "رمز غير صالح"
+    },
+    "url": {
+      "invalid": "رابط غير صالح"
     }
   }
 }

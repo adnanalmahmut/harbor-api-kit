@@ -1,6 +1,7 @@
+import type { CacheManagerPort } from '#src/core/ports/cache-manager.port.js';
 import type { Redis } from 'ioredis';
 
-export class RedisService {
+export class RedisService implements CacheManagerPort {
   constructor(
     private readonly client: Redis,
     private readonly prefix: string,
@@ -22,13 +23,16 @@ export class RedisService {
     return this.client.get(this.key(key));
   }
 
-  async set(key: string, value: string, ttlSeconds?: number) {
+  async set(
+    key: string,
+    value: string,
+    ttlSeconds?: number,
+  ): Promise<'OK' | null> {
     const k = this.key(key);
     if (ttlSeconds && ttlSeconds > 0) {
-      await this.client.set(k, value, 'EX', ttlSeconds);
-      return;
+      return this.client.set(k, value, 'EX', ttlSeconds);
     }
-    await this.client.set(k, value);
+    return this.client.set(k, value);
   }
 
   async del(key: string) {
@@ -36,7 +40,7 @@ export class RedisService {
   }
 
   async setNxEx(key: string, value: string, ttlSeconds: number) {
-    const setWithNxEx = this.client.set as unknown as (
+    const setWithNxEx = this.client.set.bind(this.client) as unknown as (
       key: string,
       value: string,
       nx: 'NX',
@@ -49,5 +53,21 @@ export class RedisService {
 
   async ttl(key: string) {
     return this.client.ttl(this.key(key));
+  }
+
+  async incr(key: string): Promise<number> {
+    return this.client.incr(this.key(key));
+  }
+
+  async deleteByPattern(pattern: string): Promise<void> {
+    const stream = this.client.scanStream({
+      match: this.key(pattern),
+    });
+
+    for await (const keys of stream) {
+      if (keys.length > 0) {
+        await this.client.del(...keys);
+      }
+    }
   }
 }

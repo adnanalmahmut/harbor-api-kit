@@ -1,6 +1,6 @@
 import { PermissionKeyVO } from '#src/modules/rbac/domain/value-objects/permission-key.vo.js';
 
-export class PermissionEntity {
+export class Permission {
   constructor(
     readonly id: string,
     readonly action: string,

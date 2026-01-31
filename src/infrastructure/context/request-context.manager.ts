@@ -1,24 +1,11 @@
+import type { RequestContext } from '#src/core/context/request-context.type.js';
+import type { CacheManagerPort } from '#src/core/ports/cache-manager.port.js';
 import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { normalizeHeader } from '#src/infrastructure/i18n/i18n-helpers.js';
 import { stripQuery } from '#src/infrastructure/validation/http.utils.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { randomUUID } from 'node:crypto';
-
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { normalizeHeader } from '../i18n/i18n-helpers.js';
-
-type RequestContext = {
-  requestId: string;
-  method?: string;
-  path?: string;
-  ip?: string;
-  userId?: string;
-  sessionId?: string;
-  userAgent?: string;
-  locale?: string;
-  startTimeMs?: number;
-
-  tenantId?: string;
-};
+import { randomUUID } from 'node:crypto';
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
@@ -35,9 +22,17 @@ export function getTenantId(): string | undefined {
   return requestContext.getStore()?.tenantId;
 }
 
+import { AppException } from '#src/core/exceptions/app-exception.js';
+import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
+
 export function requireTenantId(): string {
   const t = getTenantId();
-  if (!t) throw new Error('Missing tenantId in RequestContext');
+  if (!t)
+    throw new AppException({
+      code: AppErrorCode.BAD_REQUEST,
+      messageKey: 'errors.common.validation',
+      details: { reason: 'Missing tenantId in context' },
+    });
   return t;
 }
 
@@ -48,7 +43,15 @@ export function runWithRequestContext<T>(
   return requestContext.run(initial, fn);
 }
 
-export function createRequestContextHook(config: AppConfigService) {
+export type CacheScope = 'request' | 'redis' | 'both';
+
+// getOrLoad migrated to AppCacheService (SharedModule)
+
+// Update hook creator to accept RedisService
+export function createRequestContextHook(
+  config: AppConfigService,
+  redisService?: CacheManagerPort,
+) {
   return function onRequest(
     req: FastifyRequest,
     reply: FastifyReply,
@@ -67,10 +70,12 @@ export function createRequestContextHook(config: AppConfigService) {
         requestId,
         tenantId,
         ip: req.ip,
-        userAgent: req.headers['user-agent'] as string | undefined,
+        userAgent: req.headers['user-agent'],
         method: req.method,
         path: stripQuery(req.url),
         startTimeMs: Date.now(),
+        cache: new Map(),
+        redis: redisService, // Inject redis service
       },
       () => done(),
     );

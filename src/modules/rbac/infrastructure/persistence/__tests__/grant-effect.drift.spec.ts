@@ -1,8 +1,8 @@
 import {
   Prisma,
   GrantEffect as PrismaGrantEffect,
-} from '../../../../../generated/prisma/client.js';
-import { GrantEffect as DomainGrantEffect } from '../../../domain/entities/user-permission.entity.js';
+} from '#src/generated/prisma/client.js';
+import { GrantEffect as DomainGrantEffect } from '#src/modules/rbac/domain/entities/user-permission.entity.js';
 
 type StringEnumLike = Record<string, string>;
 

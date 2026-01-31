@@ -192,7 +192,7 @@ export type UserPermissionWhereInput = {
   OR?: Prisma.UserPermissionWhereInput[]
   NOT?: Prisma.UserPermissionWhereInput | Prisma.UserPermissionWhereInput[]
   id?: Prisma.UuidFilter<"UserPermission"> | string
-  userId?: Prisma.UuidFilter<"UserPermission"> | string
+  userId?: Prisma.StringFilter<"UserPermission"> | string
   permissionId?: Prisma.UuidFilter<"UserPermission"> | string
   effect?: Prisma.EnumGrantEffectFilter<"UserPermission"> | $Enums.GrantEffect
   sourceRoleId?: Prisma.UuidNullableFilter<"UserPermission"> | string | null
@@ -220,7 +220,7 @@ export type UserPermissionWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.UserPermissionWhereInput | Prisma.UserPermissionWhereInput[]
   OR?: Prisma.UserPermissionWhereInput[]
   NOT?: Prisma.UserPermissionWhereInput | Prisma.UserPermissionWhereInput[]
-  userId?: Prisma.UuidFilter<"UserPermission"> | string
+  userId?: Prisma.StringFilter<"UserPermission"> | string
   permissionId?: Prisma.UuidFilter<"UserPermission"> | string
   effect?: Prisma.EnumGrantEffectFilter<"UserPermission"> | $Enums.GrantEffect
   sourceRoleId?: Prisma.UuidNullableFilter<"UserPermission"> | string | null
@@ -248,7 +248,7 @@ export type UserPermissionScalarWhereWithAggregatesInput = {
   OR?: Prisma.UserPermissionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.UserPermissionScalarWhereWithAggregatesInput | Prisma.UserPermissionScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"UserPermission"> | string
-  userId?: Prisma.UuidWithAggregatesFilter<"UserPermission"> | string
+  userId?: Prisma.StringWithAggregatesFilter<"UserPermission"> | string
   permissionId?: Prisma.UuidWithAggregatesFilter<"UserPermission"> | string
   effect?: Prisma.EnumGrantEffectWithAggregatesFilter<"UserPermission"> | $Enums.GrantEffect
   sourceRoleId?: Prisma.UuidNullableWithAggregatesFilter<"UserPermission"> | string | null
@@ -411,6 +411,10 @@ export type UserPermissionUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.UserPermissionScalarWhereInput | Prisma.UserPermissionScalarWhereInput[]
 }
 
+export type EnumGrantEffectFieldUpdateOperationsInput = {
+  set?: $Enums.GrantEffect
+}
+
 export type UserPermissionCreateNestedManyWithoutPermissionInput = {
   create?: Prisma.XOR<Prisma.UserPermissionCreateWithoutPermissionInput, Prisma.UserPermissionUncheckedCreateWithoutPermissionInput> | Prisma.UserPermissionCreateWithoutPermissionInput[] | Prisma.UserPermissionUncheckedCreateWithoutPermissionInput[]
   connectOrCreate?: Prisma.UserPermissionCreateOrConnectWithoutPermissionInput | Prisma.UserPermissionCreateOrConnectWithoutPermissionInput[]
@@ -451,10 +455,6 @@ export type UserPermissionUncheckedUpdateManyWithoutPermissionNestedInput = {
   update?: Prisma.UserPermissionUpdateWithWhereUniqueWithoutPermissionInput | Prisma.UserPermissionUpdateWithWhereUniqueWithoutPermissionInput[]
   updateMany?: Prisma.UserPermissionUpdateManyWithWhereWithoutPermissionInput | Prisma.UserPermissionUpdateManyWithWhereWithoutPermissionInput[]
   deleteMany?: Prisma.UserPermissionScalarWhereInput | Prisma.UserPermissionScalarWhereInput[]
-}
-
-export type EnumGrantEffectFieldUpdateOperationsInput = {
-  set?: $Enums.GrantEffect
 }
 
 export type UserPermissionCreateWithoutUserInput = {
@@ -506,7 +506,7 @@ export type UserPermissionScalarWhereInput = {
   OR?: Prisma.UserPermissionScalarWhereInput[]
   NOT?: Prisma.UserPermissionScalarWhereInput | Prisma.UserPermissionScalarWhereInput[]
   id?: Prisma.UuidFilter<"UserPermission"> | string
-  userId?: Prisma.UuidFilter<"UserPermission"> | string
+  userId?: Prisma.StringFilter<"UserPermission"> | string
   permissionId?: Prisma.UuidFilter<"UserPermission"> | string
   effect?: Prisma.EnumGrantEffectFilter<"UserPermission"> | $Enums.GrantEffect
   sourceRoleId?: Prisma.UuidNullableFilter<"UserPermission"> | string | null

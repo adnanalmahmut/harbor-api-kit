@@ -1,8 +1,11 @@
-import type { PermissionEntity } from '#src/modules/rbac/domain/entities/permission.entity.js';
+import type { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 
 export interface PermissionRepositoryPort {
-  listAll(): Promise<PermissionEntity[]>;
-  findById(id: string): Promise<PermissionEntity | null>;
-  findByKey(action: string, subject: string): Promise<PermissionEntity | null>;
-  findManyByIds(ids: string[]): Promise<PermissionEntity[]>;
+  listAll(): Promise<Permission[]>;
+  findById(id: string): Promise<Permission | null>;
+  findByKey(action: string, subject: string): Promise<Permission | null>;
+  findManyByIds(ids: string[]): Promise<Permission[]>;
+  create(permission: Permission): Promise<Permission>;
+  update(id: string, diff: Partial<Permission>): Promise<Permission>;
+  delete(id: string): Promise<void>;
 }

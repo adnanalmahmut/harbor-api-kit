@@ -54,9 +54,17 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  FRONTEND_URL: z.url().min(1),
 
-  COOKIE_ACCESS_NAME: z.string().min(1).default('__Host-access'),
-  COOKIE_REFRESH_NAME: z.string().min(1).default('__Host-refresh'),
+  SESSION_TOKEN_COOKIE: z.string().min(1).default('__Host-session'),
+  SESSION_DATA_COOKIE: z.string().min(1).default('__Host-session-data'),
+  BETTER_AUTH_SECRET: z.string().min(1),
+  BETTER_AUTH_URL: z.string().min(1),
+
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
 
   REQUEST_ID_HEADER_NAME: z.string().min(1).default('x-request-id'),
 
@@ -77,6 +85,8 @@ export const envSchema = z.object({
     }),
 
   RESEND_API_KEY: z.string().min(1),
+  RESEND_FROM_EMAIL: z.string().min(1),
+  RESEND_FROM_NAME: z.string().min(1),
 
   I18N_DEFAULT_LOCALE: supported.default(DEFAULT_LOCALE),
 

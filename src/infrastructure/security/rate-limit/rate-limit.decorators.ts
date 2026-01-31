@@ -1,9 +1,9 @@
-import { SetMetadata } from '@nestjs/common';
 import {
   RATE_LIMIT_META_KEY,
   RATE_LIMIT_SKIP_KEY,
   type RateLimitRule,
-} from './rate-limit.types.js';
+} from '#src/infrastructure/security/rate-limit/rate-limit.types.js';
+import { SetMetadata } from '@nestjs/common';
 
 export const RateLimit = (rule: RateLimitRule) =>
   SetMetadata(RATE_LIMIT_META_KEY, rule);

@@ -15,13 +15,13 @@ export class PermissionKeyVO {
   }
 
   static parse(key: string) {
-    const [action, subject] = key.split(':');
+    const [subject, action] = key.split(':');
     if (!action || !subject)
       throw AppException.validationError({ field: 'permissionKeyFormat' });
     return PermissionKeyVO.fromParts(action, subject);
   }
 
   toString() {
-    return `${this.action}:${this.subject}`;
+    return `${this.subject}:${this.action}`;
   }
 }
