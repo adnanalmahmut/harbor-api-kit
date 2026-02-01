@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import type {
   FileMetadata,
   IStorageDriver,
@@ -6,7 +6,7 @@ import type {
   SignedUrlOptions,
   UploadResult,
 } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { FilesException } from '#src/modules/files/domain/exceptions/files.exception.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import {
   DeleteObjectCommand,
   GetObjectCommand,

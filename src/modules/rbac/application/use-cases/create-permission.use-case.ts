@@ -1,7 +1,5 @@
 import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 import type { PermissionRepositoryPort } from '#src/modules/rbac/domain/ports/permission.repository.port.js';
-import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
-import { Inject } from '@nestjs/common';
 import { z } from 'zod';
 
 export const CreatePermissionSchema = z.object({
@@ -13,10 +11,7 @@ export const CreatePermissionSchema = z.object({
 export type CreatePermissionCommand = z.infer<typeof CreatePermissionSchema>;
 
 export class CreatePermissionUseCase {
-  constructor(
-    @Inject(RBAC_TOKENS.PERMISSION_REPOSITORY)
-    private readonly permissionRepo: PermissionRepositoryPort,
-  ) {}
+  constructor(private readonly permissionRepo: PermissionRepositoryPort) {}
 
   async execute(command: CreatePermissionCommand): Promise<Permission> {
     const permission = new Permission(

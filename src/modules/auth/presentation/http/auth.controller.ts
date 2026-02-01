@@ -1,11 +1,5 @@
 import type { RequestContext } from '#src/core/context/request-context.type.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
-import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
-import {
-  AuthRedirectInterceptor,
-  RedirectOnResult,
-} from '#src/infrastructure/http/interceptors/auth-redirect.interceptor.js';
+import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
 import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
 import type { RequestContextStorePort } from '#src/modules/auth/application/ports/request-context.store.port.js';
 import {
@@ -34,7 +28,6 @@ import {
   VerifyPasswordUseCase,
 } from '#src/modules/auth/application/use-cases/index.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import { AuthException } from '#src/modules/auth/domain/exceptions/auth.exception.js';
 import { AUTH_RESPONSES } from '#src/modules/auth/presentation/http/api-responses.examples.js';
 import { applyCookies } from '#src/modules/auth/presentation/http/cookie.serializer.js';
 import {
@@ -58,6 +51,13 @@ import {
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
+import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
+import {
+  AuthRedirectInterceptor,
+  RedirectOnResult,
+} from '#src/shared/http/interceptors/auth-redirect.interceptor.js';
 import {
   Body,
   Controller,
@@ -120,7 +120,7 @@ export class AuthController {
   @ApiResponses(AUTH_RESPONSES.signOut)
   @ApiBody({ required: false, schema: { type: 'object', properties: {} } })
   @Post('/sign-out')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async signOut(@Res({ passthrough: true }) reply: FastifyReply) {
     const context = this.requireContext();
     const result = await this.signOutUseCase.execute({ context });

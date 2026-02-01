@@ -1,5 +1,5 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { resolveLocaleFromSource } from '#src/infrastructure/i18n/i18n-helpers.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Injectable, type ExecutionContext } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { type I18nResolver } from 'nestjs-i18n';

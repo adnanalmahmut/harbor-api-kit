@@ -50,7 +50,7 @@ describe('Security Module (E2E)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-out')
       .set('Cookie', cookies)
-      .set('Origin', 'http://localhost:5000') // Make request browser-like
+      .set('Origin', 'http://localhost:5001') // Make request browser-like
       .expect(403);
   });
 
@@ -59,7 +59,7 @@ describe('Security Module (E2E)', () => {
     const getRes = await request(app.getHttpServer())
       .get('/api/v1/auth/me')
       .set('Cookie', cookies)
-      .set('Origin', 'http://localhost:5000')
+      .set('Origin', 'http://localhost:5001')
       .expect(200);
 
     // Extract CSRF cookie from response
@@ -77,9 +77,9 @@ describe('Security Module (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/sign-out')
         .set('Cookie', [...cookies, csrfCookie])
-        .set('Origin', 'http://localhost:5000')
+        .set('Origin', 'http://localhost:5001')
         .set('X-CSRF-Token', csrfToken)
-        .expect(204);
+        .expect(200);
     }
   });
 
@@ -89,6 +89,6 @@ describe('Security Module (E2E)', () => {
       .post('/api/v1/auth/sign-out')
       .set('Cookie', cookies)
       // No Origin/Referer/sec-fetch-* headers = non-browser client
-      .expect(204);
+      .expect(200);
   });
 });

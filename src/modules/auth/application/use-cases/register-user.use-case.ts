@@ -45,7 +45,7 @@ export class RegisterUserUseCase {
       if (role) {
         await this.roleRepo.assignRoleToUser(userId, role.id);
       }
-    } catch (err) {
+    } catch {
       this.logger.error('auth.role_assignment.failed', { roleSlug: slug });
     }
   }

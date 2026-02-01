@@ -1,6 +1,6 @@
 import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Global, Module } from '@nestjs/common';
 import type { Redis as RedisClient } from 'ioredis';
 

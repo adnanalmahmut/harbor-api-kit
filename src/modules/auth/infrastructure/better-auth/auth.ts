@@ -1,7 +1,7 @@
-import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { getRequestContext } from '#src/infrastructure/context/request-context.manager.js';
 import type { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
 import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
+import type { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Logger } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -12,6 +12,7 @@ export function createBetterAuth(
   prisma: PrismaService,
   config: AppConfigService,
   emailHooks: AuthEmailHooks,
+  socialConfig?: { socialProviders?: any },
 ): BetterAuthInstance {
   const logger = new Logger('BetterAuth');
   const {
@@ -41,12 +42,16 @@ export function createBetterAuth(
           return query(args);
         },
         async delete({ args, query }) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _query = query;
           return prisma.user.update({
             ...args,
             data: { deletedAt: new Date() },
           });
         },
         async deleteMany({ args, query }) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _query = query;
           return prisma.user.updateMany({
             ...args,
             data: { deletedAt: new Date() },
@@ -68,12 +73,16 @@ export function createBetterAuth(
           return query(args);
         },
         async delete({ args, query }) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _query = query;
           return prisma.account.update({
             ...args,
             data: { deletedAt: new Date() },
           });
         },
         async deleteMany({ args, query }) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _query = query;
           return prisma.account.updateMany({
             ...args,
             data: { deletedAt: new Date() },
@@ -185,6 +194,7 @@ export function createBetterAuth(
         clientSecret: config.auth().github.clientSecret || '',
         enabled: !!config.auth().github.clientId,
       },
+      ...socialConfig?.socialProviders,
     },
 
     databaseHooks: {

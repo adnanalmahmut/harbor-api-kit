@@ -1,5 +1,5 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { validateEnv } from '#src/infrastructure/config/env.schema.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 

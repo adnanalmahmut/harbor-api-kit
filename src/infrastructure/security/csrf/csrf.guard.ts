@@ -1,11 +1,11 @@
 import { AppException } from '#src/core/exceptions/app-exception.js';
 import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
-import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { CSRF_METHODS } from '#src/infrastructure/security/csrf/csrf.constants.js';
 import {
   isAllowedByOriginOrReferer,
   makeCsrfToken,
 } from '#src/infrastructure/security/csrf/csrf.util.js';
+import type { AppConfigService } from '#src/shared/config/app-config.service.js';
 import {
   Injectable,
   type CanActivate,

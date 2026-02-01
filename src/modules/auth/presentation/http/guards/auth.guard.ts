@@ -1,11 +1,13 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
-import { CacheTTL } from '#src/infrastructure/redis/redis.keys.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
-import { AuthCacheKeys } from '#src/modules/auth/application/cache/auth-cache.keys.js';
+import {
+  AuthCacheKeys,
+  CacheTTL,
+} from '#src/modules/auth/application/cache/auth-cache.keys.js';
+import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
+import { AuthConfigPort } from '#src/modules/auth/application/ports/auth-config.port.js';
 import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
 import type { RequestContextStorePort } from '#src/modules/auth/application/ports/request-context.store.port.js';
+import { SessionTrackerPort } from '#src/modules/auth/application/ports/session-tracker.port.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import { AuthException } from '#src/modules/auth/domain/exceptions/auth.exception.js';
 import {
   type CanActivate,
   type ExecutionContext, // ...
@@ -24,8 +26,10 @@ export class AuthGuard implements CanActivate {
     private readonly authProvider: AuthProviderPort,
     @Inject(AUTH_TOKENS.REQUEST_CONTEXT_STORE)
     private readonly contextStore: RequestContextStorePort,
-    private readonly config: AppConfigService,
-    private readonly redisService: RedisService,
+    @Inject(AUTH_TOKENS.AUTH_CONFIG)
+    private readonly config: AuthConfigPort,
+    @Inject(AUTH_TOKENS.SESSION_TRACKER)
+    private readonly sessionTracker: SessionTrackerPort,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -69,27 +73,10 @@ export class AuthGuard implements CanActivate {
       session: sessionResult.session,
     });
 
-    // Track session key for invalidation using injected RedisService
+    // Track session key for invalidation using injected SessionTrackerPort
     if (token && sessionResult.user.id) {
-      const userId = sessionResult.user.id;
-      const userSessionsKey = this.redisService.key(
-        AuthCacheKeys.userSessions(userId),
-      );
-      const prefixedCacheKey = this.redisService.key(cacheKey);
-
-      this.logger.debug(
-        `Tracking session key: ${prefixedCacheKey} in set: ${userSessionsKey}`,
-      );
-
-      this.redisService
-        .raw()
-        .sadd(userSessionsKey, prefixedCacheKey)
-        .catch((err) => {
-          this.logger.error('Failed to track session key', err);
-        });
-      this.redisService
-        .raw()
-        .expire(userSessionsKey, 60 * 60 * 24 * 7)
+      this.sessionTracker
+        .trackSession(sessionResult.user.id, cacheKey)
         .catch(() => {});
     }
 
@@ -107,7 +94,7 @@ export class AuthGuard implements CanActivate {
     }
 
     // 2. Cookie
-    const cookieName = this.config.auth().sessionTokenCookie;
+    const cookieName = this.config.sessionTokenCookie;
     if (req.cookies && req.cookies[cookieName]) {
       return req.cookies[cookieName];
     }

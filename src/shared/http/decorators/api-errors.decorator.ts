@@ -94,8 +94,8 @@ export function ApiResponses(
 
     // Handle NO_CONTENT (204) and FOUND (302) differently - no body
     if (
-      successConfig.status === HttpStatus.NO_CONTENT ||
-      successConfig.status === HttpStatus.FOUND
+      successConfig.status === (HttpStatus.NO_CONTENT as number) ||
+      successConfig.status === (HttpStatus.FOUND as number)
     ) {
       decorators.push(
         ApiResponse({
@@ -179,9 +179,7 @@ export function ApiResponses(
     decorators.push(...buildErrorDecorators(config.errors));
   } else {
     // Legacy format - only errors
-    decorators.push(
-      ...buildErrorDecorators(config as (ApiErrorType | ApiErrorExample)[]),
-    );
+    decorators.push(...buildErrorDecorators(config));
   }
 
   return applyDecorators(...decorators);
@@ -211,7 +209,7 @@ function buildErrorDecorators(
 
     if (typeof error === 'string') {
       // Legacy format: 'UNAUTHORIZED' or AppErrorCode.UNAUTHORIZED
-      const errorCode = AppErrorCode[error as ApiErrorType];
+      const errorCode = AppErrorCode[error];
       const errorDef = ERROR_DEFINITIONS[errorCode];
       status = errorDef.status;
       code = error;

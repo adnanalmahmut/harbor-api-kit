@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/core/validation/strict-zod-dto.js';
 import { z } from 'zod';
 
 export const ReplaceUserPermissionsSchema = z.object({

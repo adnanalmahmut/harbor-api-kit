@@ -40,7 +40,17 @@ export class ResponseInterceptor<T>
     const locale = store?.locale;
 
     return next.handle().pipe(
-      mergeMap(async (data: T | null | undefined) => {
+      mergeMap(async (data: any) => {
+        // Automatically skip envelope for Streams or Response objects
+        if (
+          data &&
+          (typeof data.pipe === 'function' || // Stream
+            data.constructor?.name === 'FastifyReply' || // Fastify Reply
+            data.raw?.writeHead) // Generic Response
+        ) {
+          return data;
+        }
+
         const message = messageKey
           ? await translateIfKey(this.i18n, messageKey, locale)
           : undefined;

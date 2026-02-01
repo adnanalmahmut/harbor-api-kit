@@ -3,7 +3,7 @@ import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.re
 import { EmailVO } from '#src/modules/users/domain/value-objects/email.vo.js';
 import { LocaleVO } from '#src/modules/users/domain/value-objects/locale.vo.js';
 import { randomUUID } from 'crypto';
-import { UsersException } from '../../domain/exceptions/users.exception.js';
+import { UsersException } from '../exceptions/users.exception.js';
 
 export interface CreateUserCommand {
   email: string;

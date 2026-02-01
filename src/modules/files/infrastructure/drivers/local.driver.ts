@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import type {
   FileMetadata,
   IStorageDriver,
@@ -6,7 +6,7 @@ import type {
   SignedUrlOptions,
   UploadResult,
 } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { FilesException } from '#src/modules/files/domain/exceptions/files.exception.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,6 +33,8 @@ export class LocalDriver implements IStorageDriver {
     stream: Readable,
     meta: FileMetadata,
   ): Promise<UploadResult> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _meta = meta;
     const filePath = this.getFilePath(key);
     const writeStream = fs.createWriteStream(filePath);
 
@@ -45,6 +47,7 @@ export class LocalDriver implements IStorageDriver {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getReadStream(
     key: string,
     range?: ReadStreamOptions,
@@ -63,7 +66,10 @@ export class LocalDriver implements IStorageDriver {
     return fs.createReadStream(filePath, options);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _options = options;
     // Local driver doesn't support real signed URLs.
     // We return a proxy URL that requires authentication via the main API.
     // Format: /api/v1/files/:id/stream (The controller handles this redirection/proxying)
@@ -82,6 +88,7 @@ export class LocalDriver implements IStorageDriver {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async exists(key: string): Promise<boolean> {
     const filePath = this.getFilePath(key);
     return fs.existsSync(filePath);

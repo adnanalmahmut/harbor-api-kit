@@ -59,7 +59,7 @@ describe('Auth Module (E2E)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-out')
       .set('Cookie', loginCookies)
-      .expect(204);
+      .expect(200);
 
     // After logout, session should be invalidated
     await request(app.getHttpServer())

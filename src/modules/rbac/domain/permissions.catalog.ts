@@ -2,6 +2,7 @@ export const RBAC_SUBJECTS = {
   USER: 'user',
   ROLE: 'role',
   PERMISSION: 'permission',
+  FILES: 'files',
 } as const;
 
 export const RBAC_ACTIONS = {
@@ -32,6 +33,13 @@ export const PERMISSION_CATALOG = {
   [RBAC_SUBJECTS.PERMISSION]: [
     RBAC_ACTIONS.READ,
     RBAC_ACTIONS.CREATE,
+    RBAC_ACTIONS.MANAGE,
+  ],
+  [RBAC_SUBJECTS.FILES]: [
+    RBAC_ACTIONS.READ,
+    RBAC_ACTIONS.CREATE,
+    RBAC_ACTIONS.UPDATE,
+    RBAC_ACTIONS.DELETE,
     RBAC_ACTIONS.MANAGE,
   ],
 } as const;

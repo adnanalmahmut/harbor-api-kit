@@ -1,13 +1,11 @@
+import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import type { IFileRepository } from '#src/modules/files/application/ports/file.repository.port.js';
 import type { IStorageDriver } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { FilesException } from '#src/modules/files/domain/exceptions/files.exception.js';
-import { Inject, Injectable } from '@nestjs/common';
 
-@Injectable()
 export class GetDownloadUrlUseCase {
   constructor(
-    @Inject('IStorageDriver') private readonly storage: IStorageDriver,
-    @Inject('IFileRepository') private readonly repository: IFileRepository,
+    private readonly storage: IStorageDriver,
+    private readonly repository: IFileRepository,
   ) {}
 
   async execute(id: string, userId?: string) {
@@ -26,6 +24,15 @@ export class GetDownloadUrlUseCase {
       expiresIn: 900, // 15 minutes
       contentType: file.mimeType || undefined,
     });
+
+    if (url.startsWith('/')) {
+      const stream = await this.storage.getReadStream(file.filePath);
+      return {
+        stream,
+        mimeType: file.mimeType || 'application/octet-stream',
+        isPublic: file.isPublic,
+      };
+    }
 
     return {
       url,

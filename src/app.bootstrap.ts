@@ -1,7 +1,6 @@
 import { setupCors } from '#src/app.cors.js';
 import { setupApiDocs } from '#src/app.docs.js';
 import { AppModule } from '#src/app.module.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { validateEnv } from '#src/infrastructure/config/env.schema.js';
 import { createRequestContextHook } from '#src/infrastructure/context/request-context.manager.js';
 import { GlobalExceptionFilter } from '#src/infrastructure/http/filters/global-exception.filter.js';
@@ -10,6 +9,7 @@ import { ResponseInterceptor } from '#src/infrastructure/http/interceptors/respo
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import { CsrfGuard } from '#src/infrastructure/security/csrf/csrf.guard.js';
 import { GlobalValidationPipe } from '#src/infrastructure/validation/global-validation-pipe.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import {

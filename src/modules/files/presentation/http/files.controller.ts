@@ -1,8 +1,7 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
-import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
+import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
 import {
   Body,
   Controller,
@@ -24,12 +23,12 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
+import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
+import { FileResponseMapper } from '#src/modules/files/application/mappers/file-response.mapper.js';
 import { GetDownloadUrlUseCase } from '#src/modules/files/application/use-cases/get-download-url.use-case.js';
 import { GetFileMetaUseCase } from '#src/modules/files/application/use-cases/get-file-meta.use-case.js';
 import { SetVisibilityUseCase } from '#src/modules/files/application/use-cases/set-visibility.use-case.js';
 import { UploadFileUseCase } from '#src/modules/files/application/use-cases/upload-file.use-case.js';
-import { FilesException } from '#src/modules/files/domain/exceptions/files.exception.js';
-import { FileResponseMapper } from '../mappers/file-response.mapper.js';
 import { FILES_RESPONSES } from './api-responses.examples.js';
 import {
   FileResponseDto,
@@ -54,7 +53,6 @@ export class FilesController {
     private readonly getDownloadUrlUseCase: GetDownloadUrlUseCase,
     private readonly getFileMetaUseCase: GetFileMetaUseCase,
     private readonly setVisibilityUseCase: SetVisibilityUseCase,
-    private readonly configService: AppConfigService,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -97,7 +95,7 @@ export class FilesController {
       isPublic,
     });
 
-    return FileResponseMapper.map(file, this.configService);
+    return FileResponseMapper.map(file);
   }
 
   @Post('upload/multiple')
@@ -140,9 +138,7 @@ export class FilesController {
       throw FilesException.invalidType('No files uploaded');
     }
 
-    return files.map((file) =>
-      FileResponseMapper.map(file, this.configService),
-    );
+    return files.map((file) => FileResponseMapper.map(file));
   }
 
   @Get(':id')
@@ -153,7 +149,7 @@ export class FilesController {
   @ApiResponses(FILES_RESPONSES.getMeta)
   async getMeta(@Param('id') id: string): Promise<FileResponseDto> {
     const file = await this.getFileMetaUseCase.execute(id);
-    return FileResponseMapper.map(file, this.configService);
+    return FileResponseMapper.map(file);
   }
 
   @Get(':id/download')
@@ -165,9 +161,14 @@ export class FilesController {
     @Param('id') id: string,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
-  ): Promise<void> {
+  ) {
     const result = await this.getDownloadUrlUseCase.execute(id, req.user?.id);
-    return res.status(HttpStatus.FOUND).redirect(result.url);
+
+    if ((result as any).stream) {
+      res.header('Content-Type', (result as any).mimeType);
+      return res.send((result as any).stream);
+    }
+    return res.status(HttpStatus.FOUND).redirect(result.url!);
   }
 
   @Get(':id/stream')
@@ -179,9 +180,15 @@ export class FilesController {
     @Param('id') id: string,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
-  ): Promise<void> {
+  ) {
     const result = await this.getDownloadUrlUseCase.execute(id, req.user?.id);
-    return res.status(HttpStatus.FOUND).redirect(result.url);
+
+    if ((result as any).stream) {
+      res.header('Content-Type', (result as any).mimeType);
+      return res.send((result as any).stream);
+    }
+
+    return res.status(HttpStatus.FOUND).redirect(result.url!);
   }
 
   @Patch(':id/visibility')
@@ -195,6 +202,6 @@ export class FilesController {
     @Body() body: SetVisibilityDto,
   ): Promise<FileResponseDto> {
     const file = await this.setVisibilityUseCase.execute(id, body.isPublic);
-    return FileResponseMapper.map(file, this.configService);
+    return FileResponseMapper.map(file);
   }
 }

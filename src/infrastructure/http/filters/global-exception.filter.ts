@@ -8,13 +8,13 @@ import type {
   ApiErrorResponse,
   ValidationIssue,
 } from '#src/core/types/api.types.js';
-import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { getRequestContext } from '#src/infrastructure/context/request-context.manager.js';
 import { isMalformedJsonError } from '#src/infrastructure/validation/json-error.util.js';
 import {
   mapValidationIssuesToApi,
   translateIfKey,
 } from '#src/infrastructure/validation/validation.utils.js';
+import type { AppConfigService } from '#src/shared/config/app-config.service.js';
 import {
   Catch,
   HttpException,

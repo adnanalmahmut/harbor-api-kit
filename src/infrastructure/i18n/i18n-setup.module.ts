@@ -3,8 +3,8 @@ import {
   SUPPORTED_LOCALES,
 } from '#src/core/constants/locales.js';
 import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { ConfigLocaleResolver } from '#src/infrastructure/i18n/config-locale.resolver.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Module } from '@nestjs/common';
 import {
   AcceptLanguageResolver,

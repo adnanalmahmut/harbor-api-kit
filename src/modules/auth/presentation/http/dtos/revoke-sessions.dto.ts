@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/infrastructure/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/core/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
@@ -22,4 +22,3 @@ export class RevokeSessionsDto extends createStrictZodDto(
   })
   tokens!: string[];
 }
-

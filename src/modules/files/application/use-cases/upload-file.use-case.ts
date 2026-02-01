@@ -1,8 +1,8 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import type { IFileRepository } from '#src/modules/files/application/ports/file.repository.port.js';
+import type { IFilesConfig } from '#src/modules/files/application/ports/files-config.port.js';
 import type { IStorageDriver } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { FilesException } from '#src/modules/files/domain/exceptions/files.exception.js';
-import { Inject, Injectable } from '@nestjs/common';
+import { StorageDriver } from '#src/modules/files/domain/enums/storage-driver.enum.js';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -16,12 +16,14 @@ interface UploadFileCommand {
   isPublic?: boolean;
 }
 
-@Injectable()
+import { FileValidatorPort } from '#src/modules/files/application/ports/file-validator.port.js';
+
 export class UploadFileUseCase {
   constructor(
-    @Inject('IStorageDriver') private readonly storage: IStorageDriver,
-    @Inject('IFileRepository') private readonly repository: IFileRepository,
-    private readonly configService: AppConfigService,
+    private readonly storage: IStorageDriver,
+    private readonly repository: IFileRepository,
+    private readonly config: IFilesConfig,
+    private readonly validator: FileValidatorPort,
   ) {}
 
   async execute(command: UploadFileCommand) {
@@ -32,6 +34,13 @@ export class UploadFileUseCase {
     const key = `files/${date.getFullYear()}/${date.getMonth() + 1}/${fileId}${extension}`;
 
     try {
+      // 0. Validate File Signature (Magic Bytes)
+      await this.validator.validate(
+        command.file,
+        command.fileName,
+        command.mimeType,
+      );
+
       // 1. Upload to storage (Streaming)
       const uploadResult = await this.storage.uploadStream(key, command.file, {
         contentType: command.mimeType,
@@ -39,20 +48,15 @@ export class UploadFileUseCase {
       });
 
       // 2. Persist metadata
-      const storageConfig = this.configService.storage();
-
       const file = await this.repository.create({
-        id: fileId,
         fileName: command.fileName,
         originalName: command.fileName,
         filePath: uploadResult.key,
         mimeType: command.mimeType,
         size: BigInt(uploadResult.size),
-        driver: this.mapDriverEnum(storageConfig.driver),
-        bucket: this.getBucketName(storageConfig),
-        uploadedBy: command.uploadedById
-          ? { connect: { id: command.uploadedById } }
-          : undefined,
+        driver: this.mapDriverEnum(this.config.driver) as StorageDriver,
+        bucket: this.config.bucket ?? undefined,
+        uploadedById: command.uploadedById,
         isPublic: command.isPublic ?? false,
         publicToken: crypto.randomUUID(), // Generate public token by default for easier sharing later
       });
@@ -73,11 +77,5 @@ export class UploadFileUseCase {
       default:
         return 'S3_COMPAT';
     }
-  }
-
-  private getBucketName(config: any): string | null {
-    if (config.driver === 'gcs') return config.gcs.bucket;
-    if (['s3', 'r2', 'spaces'].includes(config.driver)) return config.s3.bucket;
-    return null;
   }
 }

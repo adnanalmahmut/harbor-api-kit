@@ -1,5 +1,4 @@
 import type { RequestContext } from '#src/core/context/request-context.type.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
 import { resolveLocaleFromSource } from '#src/infrastructure/i18n/i18n-helpers.js';
 import type { CookieDirective } from '#src/modules/auth/application/common/cookie-directive.js';
@@ -28,6 +27,7 @@ import {
 import { createBetterAuth } from '#src/modules/auth/infrastructure/better-auth/auth.js';
 import { mapBetterAuthError } from '#src/modules/auth/infrastructure/better-auth/better-auth-error.mapper.js';
 import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Injectable, Logger } from '@nestjs/common';
 
 function toHeadersFromContext(ctx: RequestContext): Record<string, string> {
@@ -110,8 +110,8 @@ function buildFullName(firstName: string, lastName: string): string {
 
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import { AuthCacheKeys } from '#src/modules/auth/application/cache/auth-cache.keys.js';
+import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
 import { toNodeHandler } from 'better-auth/node';
-import { AuthException } from '../../domain/exceptions/auth.exception.js';
 
 @Injectable()
 export class BetterAuthProvider implements AuthProviderPort {
@@ -125,7 +125,19 @@ export class BetterAuthProvider implements AuthProviderPort {
     private readonly authEmailHooks: AuthEmailHooks,
     private readonly redisService: RedisService,
   ) {
-    this.auth = createBetterAuth(this.prisma, this.config, this.authEmailHooks);
+    this.auth = createBetterAuth(
+      this.prisma,
+      this.config,
+      this.authEmailHooks,
+      {
+        socialProviders: {
+          google: {
+            clientId: this.config.auth().google.clientId,
+            clientSecret: this.config.auth().google.clientSecret,
+          },
+        },
+      },
+    );
     this.nodeHandler = toNodeHandler(this.auth);
   }
 
@@ -396,6 +408,10 @@ export class BetterAuthProvider implements AuthProviderPort {
       // Invalidate cache for the session's user
       await this.invalidateUserSessions(session.userId);
 
+      // Invalidate session cache explicit key
+      const sessionKey = this.redisService.key(AuthCacheKeys.session(token));
+      await this.redisService.raw().del(sessionKey);
+
       return { data: undefined, cookies: [] };
     } catch (e) {
       this.rethrowAsAppException(e);
@@ -432,6 +448,14 @@ export class BetterAuthProvider implements AuthProviderPort {
       await Promise.all(
         uniqueUserIds.map((uid) => this.invalidateUserSessions(uid)),
       );
+
+      // Invalidate session keys explicit
+      const keysToDelete = tokens.map((t) =>
+        this.redisService.key(AuthCacheKeys.session(t)),
+      );
+      if (keysToDelete.length > 0) {
+        await this.redisService.raw().del(...keysToDelete);
+      }
 
       return { data: undefined, cookies: [] };
     } catch (e) {
@@ -559,7 +583,9 @@ export class BetterAuthProvider implements AuthProviderPort {
           expiresAt: { gt: new Date() },
         },
       });
-      this.logger.debug(`Verification result: ${verification}`);
+      this.logger.debug(
+        `Verification result: ${JSON.stringify(verification, null, 2)}`,
+      );
       return { data: !!verification, cookies: [] };
     } catch (e) {
       this.rethrowAsAppException(e);
@@ -646,7 +672,7 @@ export class BetterAuthProvider implements AuthProviderPort {
         returnHeaders: true,
       });
 
-      const { headers, response } = res as any;
+      const { headers, response } = res;
 
       return {
         data: {
@@ -675,7 +701,7 @@ export class BetterAuthProvider implements AuthProviderPort {
         returnHeaders: true,
       });
 
-      const { headers, response } = res as any;
+      const { headers, response } = res;
 
       return {
         data: {
@@ -704,10 +730,9 @@ export class BetterAuthProvider implements AuthProviderPort {
             token: '',
             url: serialized.url || serialized.response?.url || '',
             user: null as any,
-          },
-          cookies: readCookiesFromHeaders(
-            serialized.headers || (e as any).headers,
-          ),
+            708: readCookiesFromHeaders(serialized.headers || e.headers),
+          } as any, // Cast to any to assume shape valid
+          cookies: readCookiesFromHeaders(serialized.headers || e.headers),
         };
       }
 
@@ -719,21 +744,21 @@ export class BetterAuthProvider implements AuthProviderPort {
     context: RequestContext,
   ): Promise<AuthResult<LinkedAccount[]>> {
     try {
-      const res = await (this.auth.api as any).listAccounts({
-        headers: toHeadersFromContext(context),
+      const accounts = await this.prisma.account.findMany({
+        where: { userId: context.userId },
       });
-      // res is Array<Account> (better-auth type)
-      // Map to our LinkedAccount interface
-      const accounts = (res as any[]).map((acc) => ({
+
+      const linkedAccounts = accounts.map((acc) => ({
         id: acc.id,
-        provider: acc.providerId, // better-auth uses providerId as 'google', 'github'
+        provider: acc.providerId,
         providerId: acc.providerId,
         accountId: acc.accountId,
-        createdAt: new Date(acc.createdAt),
+        createdAt: acc.createdAt,
       }));
 
-      return { data: accounts, cookies: [] };
+      return { data: linkedAccounts, cookies: [] };
     } catch (e) {
+      console.error('ListLinkedAccounts Error:', e);
       this.rethrowAsAppException(e);
     }
   }

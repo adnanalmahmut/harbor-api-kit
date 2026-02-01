@@ -1,10 +1,10 @@
 import { SecurityException } from '#src/core/exceptions/security.exception.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import {
   SESSION_RATE_LIMIT_META_KEY,
   type RateLimitRule,
 } from '#src/infrastructure/security/rate-limit/rate-limit.types.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import {
   Injectable,
   type CallHandler,

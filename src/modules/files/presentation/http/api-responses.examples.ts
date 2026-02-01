@@ -4,9 +4,9 @@ import {
   createApiError,
   createApiResponseConfig,
   createApiSuccess,
-} from '#src/infrastructure/http/decorators/api-errors.decorator.js';
-import { FileResponseDto } from '#src/modules/files/presentation/http/dtos/files.dto.js';
+} from '#src/shared/http/decorators/api-errors.decorator.js';
 import { HttpStatus } from '@nestjs/common';
+import { FileResponseDto } from './dtos/files.dto.js';
 
 export const FILES_RESPONSES = {
   upload: createApiResponseConfig(

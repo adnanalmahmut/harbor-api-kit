@@ -1,5 +1,3 @@
-import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
 import { CreatePermissionUseCase } from '#src/modules/rbac/application/use-cases/create-permission.use-case.js';
@@ -23,6 +21,8 @@ import { ReplaceRolePermissionsDto } from '#src/modules/rbac/presentation/http/d
 import { UpdatePermissionDto } from '#src/modules/rbac/presentation/http/dtos/update-permission.dto.js';
 import { UpdateRoleDto } from '#src/modules/rbac/presentation/http/dtos/update-role.dto.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
 import {
   Body,
   Controller,

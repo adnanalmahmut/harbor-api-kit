@@ -1,12 +1,8 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { FileEntity } from '#src/modules/files/domain/entities/file.entity.js';
-import { FileResponseDto } from '#src/modules/files/presentation/http/dtos/files.dto.js';
+import type { FileResponse } from '../dtos/file.response.js';
 
 export class FileResponseMapper {
-  static map(
-    file: FileEntity,
-    configService: AppConfigService,
-  ): FileResponseDto {
+  static map(file: FileEntity): FileResponse {
     return {
       id: file.id,
       fileName: file.fileName,

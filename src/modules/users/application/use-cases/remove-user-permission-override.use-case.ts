@@ -1,21 +1,15 @@
 import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import type { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
-import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
-import { Inject } from '@nestjs/common';
 
 export type RemoveUserPermissionOverrideCommand = {
   userId: string;
   permissionId: string;
 };
 
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-
 export class RemoveUserPermissionOverrideUseCase {
   constructor(
-    @Inject(RBAC_TOKENS.GRANTS_REPOSITORY)
     private readonly grantsRepo: GrantsRepositoryPort,
-    @Inject(AUTH_TOKENS.AUTH_PROVIDER)
     private readonly authProvider: AuthProviderPort,
     private readonly effectivePermissions: EffectivePermissionsService,
   ) {}

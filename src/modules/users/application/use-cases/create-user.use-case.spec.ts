@@ -2,10 +2,11 @@ import { AppException } from '#src/core/exceptions/app-exception.js';
 import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
 import { User } from '#src/modules/users/domain/entities/user.entity.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
+import { jest } from '@jest/globals';
 
 describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase;
-  let mockUserRepo: UserRepositoryPort;
+  let mockUserRepo: jest.Mocked<UserRepositoryPort>;
 
   beforeEach(() => {
     mockUserRepo = {
@@ -14,16 +15,14 @@ describe('CreateUserUseCase', () => {
       findByEmail: jest.fn(),
       findAll: jest.fn(),
       update: jest.fn(),
-    };
+    } as unknown as jest.Mocked<UserRepositoryPort>;
     useCase = new CreateUserUseCase(mockUserRepo);
   });
 
   it('should create a user successfully', async () => {
     const command = { email: 'test@example.com', name: 'Test User' };
-    (mockUserRepo.findByEmail as jest.Mock).mockResolvedValue(null);
-    (mockUserRepo.create as jest.Mock).mockImplementation((u) =>
-      Promise.resolve(u),
-    );
+    mockUserRepo.findByEmail.mockResolvedValue(null);
+    mockUserRepo.create.mockImplementation((u) => Promise.resolve(u));
 
     const result = await useCase.execute(command);
 
@@ -34,7 +33,7 @@ describe('CreateUserUseCase', () => {
 
   it('should throw if user exists', async () => {
     const command = { email: 'test@example.com', name: 'Test User' };
-    (mockUserRepo.findByEmail as jest.Mock).mockResolvedValue({
+    mockUserRepo.findByEmail.mockResolvedValue({
       id: '1',
     } as User);
 

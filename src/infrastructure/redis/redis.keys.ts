@@ -1,5 +1,3 @@
-export const CachePrefix = 'scp';
-
 export const CacheTTL = {
   ONE_MINUTE: 60,
   FIVE_MINUTES: 300,
@@ -20,8 +18,8 @@ export const redisKeys = {
   ...rbacCacheKeys,
 
   // Rate Limit (Prefix Only, usually handled by library logic but defined here for consistency)
-  rateLimit: (key: string) => `${CachePrefix}:rl:${key}`,
+  rateLimit: (key: string) => `rl:${key}`,
 
   // Locks
-  lock: (resource: string) => `${CachePrefix}:lock:${resource}`,
+  lock: (resource: string) => `lock:${resource}`,
 } as const;

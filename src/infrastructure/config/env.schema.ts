@@ -108,7 +108,7 @@ export const envSchema = z
         message: 'REDIS_URL must start with redis:// or rediss://',
       }),
 
-    REDIS_PREFIX: z.string().default('saas-core-platform-api:'),
+    REDIS_PREFIX: z.string().default('scp:'),
     REDIS_DEFAULT_TTL_SEC: z.coerce.number().int().min(1).default(900),
 
     CSRF_ENABLED: z

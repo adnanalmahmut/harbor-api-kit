@@ -4,7 +4,7 @@ import {
   createApiResponseConfig,
   createApiSuccess,
   type ApiResponseConfig,
-} from '#src/infrastructure/http/decorators/api-errors.decorator.js';
+} from '#src/shared/http/decorators/api-errors.decorator.js';
 import { HttpStatus } from '@nestjs/common';
 import {
   GetSessionResponseDto,
@@ -21,7 +21,7 @@ import {
  */
 export const AUTH_RESPONSES = {
   signOut: createApiResponseConfig(
-    createApiSuccess(' ', HttpStatus.NO_CONTENT),
+    createApiSuccess('Sign out successful', HttpStatus.OK, undefined),
     [createApiError(AppErrorCode.UNAUTHORIZED, 'Session expired or invalid')],
   ),
 

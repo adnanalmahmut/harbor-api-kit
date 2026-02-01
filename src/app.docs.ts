@@ -1,5 +1,5 @@
 // src/app.docs.ts
-import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import type { AppConfigService } from '#src/shared/config/app-config.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';

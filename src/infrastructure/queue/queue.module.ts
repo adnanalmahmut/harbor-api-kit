@@ -1,5 +1,5 @@
 import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

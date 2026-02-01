@@ -1,4 +1,4 @@
-import { UsersException } from '#src/modules/users/domain/exceptions/users.exception.js';
+import { UsersException } from '#src/modules/users/application/exceptions/users.exception.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
 import { z } from 'zod';
 

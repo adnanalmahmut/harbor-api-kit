@@ -28,6 +28,8 @@ import { UpdateUserUseCase } from '#src/modules/auth/application/use-cases/updat
 import { VerifyEmailUseCase } from '#src/modules/auth/application/use-cases/verify-email.use-case.js';
 import { VerifyPasswordUseCase } from '#src/modules/auth/application/use-cases/verify-password.use-case.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import { AuthConfigAdapter } from '#src/modules/auth/infrastructure/adapters/auth-config.adapter.js';
+import { RedisSessionTrackerAdapter } from '#src/modules/auth/infrastructure/adapters/redis-session-tracker.adapter.js';
 import { RequestContextStoreAdapter } from '#src/modules/auth/infrastructure/adapters/request-context.store.adapter.js';
 import { BetterAuthProvider } from '#src/modules/auth/infrastructure/better-auth/better-auth.provider.adapter.js';
 import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
@@ -67,6 +69,14 @@ import { Module } from '@nestjs/common';
     {
       provide: AUTH_TOKENS.REQUEST_CONTEXT_STORE,
       useClass: RequestContextStoreAdapter,
+    },
+    {
+      provide: AUTH_TOKENS.AUTH_CONFIG,
+      useClass: AuthConfigAdapter,
+    },
+    {
+      provide: AUTH_TOKENS.SESSION_TRACKER,
+      useClass: RedisSessionTrackerAdapter,
     },
     {
       provide: RegisterUserUseCase,
@@ -282,6 +292,8 @@ import { Module } from '@nestjs/common';
     AuthGuard,
     AUTH_TOKENS.AUTH_PROVIDER,
     AUTH_TOKENS.REQUEST_CONTEXT_STORE,
+    AUTH_TOKENS.AUTH_CONFIG,
+    AUTH_TOKENS.SESSION_TRACKER,
     RegisterUserUseCase,
     LoginUserUseCase,
     GetSessionUseCase,

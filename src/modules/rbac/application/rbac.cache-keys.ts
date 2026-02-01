@@ -1,9 +1,6 @@
-export const CachePrefix = 'scp';
-
 export const rbacCacheKeys = {
-  rbacRoles: (userId: string) => `${CachePrefix}:rbac:user:${userId}:roles`,
-  rbacPermissions: (userId: string) =>
-    `${CachePrefix}:rbac:user:${userId}:permissions`,
-  rbacVersion: () => `${CachePrefix}:rbac:version`,
-  rbacRoleSlug: (slug: string) => `${CachePrefix}:rbac:role:slug:${slug}`,
+  rbacRoles: (userId: string) => `rbac:user:${userId}:roles`,
+  rbacPermissions: (userId: string) => `rbac:user:${userId}:permissions`,
+  rbacVersion: () => `rbac:version`,
+  rbacRoleSlug: (slug: string) => `rbac:role:slug:${slug}`,
 } as const;

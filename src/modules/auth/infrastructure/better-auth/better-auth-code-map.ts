@@ -1,5 +1,5 @@
 // better-auth-code-map.ts
-import { AuthException } from '#src/modules/auth/domain/exceptions/auth.exception.js';
+import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
 
 export const BETTER_AUTH_CODE_MAP: Record<string, () => AuthException> = {
   INVALID_EMAIL_OR_PASSWORD: () => AuthException.invalidCredentials(),

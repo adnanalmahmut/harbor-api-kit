@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import type {
   FileMetadata,
   IStorageDriver,
@@ -6,7 +6,7 @@ import type {
   SignedUrlOptions,
   UploadResult,
 } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { FilesException } from '#src/modules/files/domain/exceptions/files.exception.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Storage } from '@google-cloud/storage';
 import { Injectable } from '@nestjs/common';
 import { Readable } from 'node:stream';
@@ -48,16 +48,18 @@ export class GCSDriver implements IStorageDriver {
       stream
         .pipe(writeStream)
         .on('error', (err) => reject(FilesException.storageError(err)))
-        .on('finish', async () => {
-          try {
-            const [metadata] = await file.getMetadata();
-            resolve({
-              key,
-              size: Number(metadata.size) || 0,
+        .on('finish', () => {
+          file
+            .getMetadata()
+            .then(([metadata]) => {
+              resolve({
+                key,
+                size: Number(metadata.size) || 0,
+              });
+            })
+            .catch((error) => {
+              reject(FilesException.storageError(error));
             });
-          } catch (error) {
-            reject(FilesException.storageError(error));
-          }
         });
     });
   }

@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import {
   Injectable,
   SetMetadata,

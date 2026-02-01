@@ -1,5 +1,6 @@
 import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { HttpStatus } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AuthHelper } from './helpers/auth.helper.js';
@@ -141,7 +142,7 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/sign-out')
         .set('Cookie', cookies)
-        .expect(204); // No Content
+        .expect(HttpStatus.OK); // OK (Success Envelope)
 
       // Verify validation (should be 401 now)
       await request(app.getHttpServer())
@@ -488,7 +489,7 @@ describe('Auth API Contract (E2E)', () => {
     });
 
     // SKIP: BetterAuth API client requires running server for network calls, fails with 401 in supertest
-    it.skip('should return redirect URL for social link', async () => {
+    it('should return redirect URL for social link', async () => {
       const { cookies } = await authHelper.registerAndLogin({
         email: 'linkaccount@example.com',
         password: 'Password123!',
@@ -508,7 +509,7 @@ describe('Auth API Contract (E2E)', () => {
     });
 
     // SKIP: Implementation bug - better-auth returns 500 instead of 401
-    it.skip('should fail social link when unauthorized', async () => {
+    it('should fail social link when unauthorized', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/link-social')
         .send({ provider: 'google' })
@@ -516,7 +517,7 @@ describe('Auth API Contract (E2E)', () => {
     });
 
     // SKIP: Implementation bug - better-auth returns unhandled error
-    it.skip('should list linked accounts successfully', async () => {
+    it('should list linked accounts successfully', async () => {
       const { cookies } = await authHelper.registerAndLogin({
         email: 'listaccounts@example.com',
         password: 'Password123!',
@@ -535,7 +536,7 @@ describe('Auth API Contract (E2E)', () => {
     });
 
     // SKIP: Implementation bug - better-auth returns 500 instead of 401
-    it.skip('should fail list accounts when unauthorized', async () => {
+    it('should fail list accounts when unauthorized', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/auth/list-accounts')
         .expect(401);

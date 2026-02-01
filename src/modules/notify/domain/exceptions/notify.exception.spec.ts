@@ -6,7 +6,7 @@ describe('NotifyException', () => {
       const exception = NotifyException.providerError('test detail');
 
       expect(exception).toBeInstanceOf(NotifyException);
-      expect(exception.messageKey).toBe('errors.notify.provider_error');
+      expect(exception.messageKey).toBe('notify.errors.provider_error');
     });
 
     it('should include detail as cause', () => {
@@ -19,7 +19,7 @@ describe('NotifyException', () => {
     it('should work without detail', () => {
       const exception = NotifyException.providerError();
 
-      expect(exception.messageKey).toBe('errors.notify.provider_error');
+      expect(exception.messageKey).toBe('notify.errors.provider_error');
       expect(exception.cause).toBeUndefined();
     });
   });
@@ -29,7 +29,7 @@ describe('NotifyException', () => {
       const exception = NotifyException.templateNotFound('verify-email');
 
       expect(exception).toBeInstanceOf(NotifyException);
-      expect(exception.messageKey).toBe('errors.notify.template_not_found');
+      expect(exception.messageKey).toBe('notify.errors.template_not_found');
     });
 
     it('should include template name in cause', () => {

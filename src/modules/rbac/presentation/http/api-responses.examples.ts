@@ -4,7 +4,7 @@ import {
   createApiResponseConfig,
   createApiSuccess,
   type ApiResponseConfig,
-} from '#src/infrastructure/http/decorators/api-errors.decorator.js';
+} from '#src/shared/http/decorators/api-errors.decorator.js';
 import { HttpStatus } from '@nestjs/common';
 import {
   PermissionResponseDto,

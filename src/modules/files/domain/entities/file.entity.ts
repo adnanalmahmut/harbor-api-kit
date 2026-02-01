@@ -1,4 +1,4 @@
-import type { StorageDriver } from '#src/generated/prisma/enums.js';
+import { StorageDriver } from '#src/modules/files/domain/enums/storage-driver.enum.js';
 
 export class FileEntity {
   constructor(

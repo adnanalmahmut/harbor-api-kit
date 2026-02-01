@@ -1,13 +1,14 @@
 import type { EffectivePermissions } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
 import { PERMISSIONS_KEY } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { ROLES_KEY } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import {
   type CanActivate,
   type ExecutionContext,
+  ForbiddenException,
   Injectable,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
@@ -43,7 +44,7 @@ export class RbacGuard implements CanActivate {
       this.logger.warn(
         '[rbac.check.failed] reason=no_user route=' + req.routeOptions?.url,
       );
-      throw RbacException.unauthorizedAccess();
+      throw new UnauthorizedException('Unauthorized access');
     }
 
     // Always use EffectivePermissionsService to ensure correct application of:
@@ -66,7 +67,7 @@ export class RbacGuard implements CanActivate {
         this.logger.warn(
           `[rbac.check.failed] reason=missing_role userId=${user.id} required=${roles.join(',')} mode=${mode}`,
         );
-        throw RbacException.missingRole(roles.join(', '));
+        throw new ForbiddenException(`Missing roles: ${roles.join(', ')}`);
       }
     }
 
@@ -82,7 +83,9 @@ export class RbacGuard implements CanActivate {
         this.logger.warn(
           `[rbac.check.failed] reason=missing_permission userId=${user.id} required=${permissions.join(',')} mode=${mode}`,
         );
-        throw RbacException.missingPermission(permissions.join(', '));
+        throw new ForbiddenException(
+          `Missing permissions: ${permissions.join(', ')}`,
+        );
       }
     }
 

@@ -1,8 +1,7 @@
-import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+import { UsersException } from '#src/modules/users/application/exceptions/users.exception.js';
 import { AddRoleToUserUseCase } from '#src/modules/users/application/use-cases/add-role-to-user.use-case.js';
 import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
 import { GetAllUserUseCase } from '#src/modules/users/application/use-cases/get-all-users.use-case.js';
@@ -16,14 +15,14 @@ import { ReplaceUserPermissionsUseCase } from '#src/modules/users/application/us
 import { ReplaceUserRolesUseCase } from '#src/modules/users/application/use-cases/replace-user-roles.use-case.js';
 import { SetUserPermissionOverrideUseCase } from '#src/modules/users/application/use-cases/set-user-permission-override.use-case.js';
 import { UpdateUserByIdUseCase } from '#src/modules/users/application/use-cases/update-user-by-id.use-case.js';
-import { UsersException } from '#src/modules/users/domain/exceptions/users.exception.js';
 import { AddRoleToUserDto } from '#src/modules/users/presentation/http/dtos/add-role-to-user.dto.js';
 import { CreateUserDto } from '#src/modules/users/presentation/http/dtos/create-user.dto.js';
 import { ReplaceUserPermissionsDto } from '#src/modules/users/presentation/http/dtos/replace-user-permissions.dto.js';
 import { ReplaceUserRolesDto } from '#src/modules/users/presentation/http/dtos/replace-user-roles.dto.js';
 import { SetPermissionOverrideDto } from '#src/modules/users/presentation/http/dtos/set-permission-override.dto.js';
 import { UpdateUserAdminDto } from '#src/modules/users/presentation/http/dtos/update-user-admin.dto.js';
-import { UserResponseMapper } from '#src/modules/users/presentation/mappers/user-response.mapper.js';
+import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
 import {
   Body,
   Controller,
@@ -35,6 +34,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
+import { UserResponseMapper } from '../../application/mappers/user-response.mapper.js';
 
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { USERS_RESPONSES } from './api-responses.examples.js';

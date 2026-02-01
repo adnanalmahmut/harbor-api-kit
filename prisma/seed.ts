@@ -144,30 +144,39 @@ async function assignPermissionsToRoles(prisma: PrismaClient) {
   }
 
   if (userRole) {
-    const readUserPerm = await prisma.permission.findUnique({
-      where: {
-        action_subject: {
-          action: RBAC_ACTIONS.READ,
-          subject: RBAC_SUBJECTS.USER,
-        },
-      },
-      select: { id: true },
-    });
+    // Define base permissions for the User role
+    const userPermissions = [
+      { action: RBAC_ACTIONS.READ, subject: RBAC_SUBJECTS.USER },
+      { action: RBAC_ACTIONS.READ, subject: RBAC_SUBJECTS.FILES },
+      { action: RBAC_ACTIONS.CREATE, subject: RBAC_SUBJECTS.FILES },
+    ];
 
-    if (readUserPerm) {
-      await prisma.rolePermission.upsert({
+    for (const permDef of userPermissions) {
+      const perm = await prisma.permission.findUnique({
         where: {
-          roleId_permissionId: {
-            roleId: userRole.id,
-            permissionId: readUserPerm.id,
+          action_subject: {
+            action: permDef.action,
+            subject: permDef.subject,
           },
         },
-        update: {},
-        create: {
-          roleId: userRole.id,
-          permissionId: readUserPerm.id,
-        },
+        select: { id: true },
       });
+
+      if (perm) {
+        await prisma.rolePermission.upsert({
+          where: {
+            roleId_permissionId: {
+              roleId: userRole.id,
+              permissionId: perm.id,
+            },
+          },
+          update: {},
+          create: {
+            roleId: userRole.id,
+            permissionId: perm.id,
+          },
+        });
+      }
     }
   }
 }

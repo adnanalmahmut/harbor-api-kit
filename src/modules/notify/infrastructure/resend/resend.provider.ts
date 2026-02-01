@@ -1,8 +1,8 @@
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
 } from '#src/modules/notify/domain/ports/email.provider.port.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';

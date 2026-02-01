@@ -1,11 +1,11 @@
 import type { RequestContext } from '#src/core/context/request-context.type.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { resolveLocaleFromSource } from '#src/infrastructure/i18n/i18n-helpers.js';
 import type {
   AuthEmailSenderPort,
   ChangeEmailVerificationParams,
 } from '#src/modules/auth/application/ports/auth-email.sender.port.js';
 import type { EmailProviderPort } from '#src/modules/notify/domain/ports/email.provider.port.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 

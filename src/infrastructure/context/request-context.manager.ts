@@ -1,8 +1,8 @@
 import type { RequestContext } from '#src/core/context/request-context.type.js';
 import type { CacheManagerPort } from '#src/core/ports/cache-manager.port.js';
-import type { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { normalizeHeader } from '#src/infrastructure/i18n/i18n-helpers.js';
 import { stripQuery } from '#src/infrastructure/validation/http.utils.js';
+import type { AppConfigService } from '#src/shared/config/app-config.service.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';

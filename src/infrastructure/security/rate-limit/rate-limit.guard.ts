@@ -1,5 +1,4 @@
 import { SecurityException } from '#src/core/exceptions/security.exception.js';
-import { AppConfigService } from '#src/infrastructure/config/app-config.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import {
   RATE_LIMIT_META_KEY,
@@ -7,6 +6,7 @@ import {
   type RateLimitRule,
 } from '#src/infrastructure/security/rate-limit/rate-limit.types.js';
 import { getRealIp } from '#src/infrastructure/security/rate-limit/rate-limit.util.js';
+import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import {
   type CanActivate,
   type ExecutionContext,

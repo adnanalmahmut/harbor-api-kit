@@ -1,6 +1,4 @@
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
-import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
-import { Inject } from '@nestjs/common';
 import { z } from 'zod';
 
 export const RemovePermissionFromRoleSchema = z.object({
@@ -13,10 +11,7 @@ export type RemovePermissionFromRoleCommand = z.infer<
 >;
 
 export class RemovePermissionFromRoleUseCase {
-  constructor(
-    @Inject(RBAC_TOKENS.GRANTS_REPOSITORY)
-    private readonly grantsRepo: GrantsRepositoryPort,
-  ) {}
+  constructor(private readonly grantsRepo: GrantsRepositoryPort) {}
 
   async execute(command: RemovePermissionFromRoleCommand): Promise<void> {
     await this.grantsRepo.removePermissionFromRole(
