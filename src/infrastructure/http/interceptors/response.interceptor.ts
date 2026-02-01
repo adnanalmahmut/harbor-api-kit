@@ -1,6 +1,6 @@
+import { CONSTANTS_KEYS } from '#src/core/http/metadata-keys.constants.js';
 import type { ApiSuccess } from '#src/core/types/api.types.js';
 import { getRequestContext } from '#src/infrastructure/context/request-context.manager.js';
-import { CONSTANTS_KEYS } from '#src/core/http/metadata-keys.constants.js';
 import { translateIfKey } from '#src/infrastructure/validation/validation.utils.js';
 import {
   Injectable,
@@ -13,10 +13,9 @@ import { I18nService } from 'nestjs-i18n';
 import { Observable, mergeMap } from 'rxjs';
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<
-  T,
-  T | ApiSuccess<T>
-> {
+export class ResponseInterceptor<T>
+  implements NestInterceptor<T, T | ApiSuccess<T>>
+{
   constructor(
     private readonly reflector: Reflector,
     private readonly i18n: I18nService<Record<string, any>>,
@@ -46,7 +45,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<
           ? await translateIfKey(this.i18n, messageKey, locale)
           : undefined;
 
-        const result: ApiSuccess<T> = {};
+        const result: ApiSuccess<T> = { success: true };
 
         if (message) result.message = message;
 

@@ -51,12 +51,13 @@ Layers:
 ## 4) Global API contract
 
 Success envelope (default, via ResponseInterceptor):
-`ApiSuccess<T> = { message?: string; data?: T }`
+`ApiSuccess<T> = { success: true; message?: string; data?: T }`
 Error envelope (default, via GlobalExceptionFilter):
 
-- `{ message: string }`
-- Validation: `{ message: string, errors: [{ path: string, message: string }] }`
+- `{ success: false; message: string }`
+- Validation: `{ success: false; message: string; errors: [{ path: string, message: string }] }`
   Rules:
+- All responses MUST include `success: true` (for 2xx) or `success: false` (for errors).
 - Never expose provider/framework error shapes.
 - Validation always uses the standardized `errors[]` (no Zod/raw pipes output).
 - `message` should be an i18n key when possible; avoid leaking internal details.
@@ -174,6 +175,16 @@ Cover:
   Rules:
 - Tests must match bootstrap (global prefix/versioning/envelope and docs config).
 - Prefer contract-level assertions; avoid brittle internals.
+
+### Dedicated Test Environment (Mandatory)
+
+All tests (E2E/Integration) MUST use the dedicated test infrastructure:
+
+- **Config**: Load configuration ONLY from `.env.test` file.
+- **Database**: Use the dedicated test database instance (port 5435), NEVER the development database.
+- **Redis**: Use the dedicated test Redis instance (port 6380).
+- **Seeding**: Tests MUST run against a seeded database. Ensure `prisma/seed.ts` is executed with `APP_ENV=test` to populate required system roles/permissions.
+- **Isolation**: Each test run should handle its own data cleanup; do not rely on seed data from dev.
 
 ## 17) AI contribution protocol
 

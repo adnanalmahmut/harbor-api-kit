@@ -1,9 +1,11 @@
 export type ApiSuccess<T = unknown> = {
+  success: true;
   message?: string;
   data?: T;
 };
 
 export type ApiErrorBody = {
+  success: false;
   message: string;
 };
 
@@ -13,6 +15,7 @@ export type ValidationIssue = {
 };
 
 export type ApiValidationErrorBody = {
+  success: false;
   message: string;
   errors: ValidationIssue[];
 };

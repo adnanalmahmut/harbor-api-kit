@@ -1,0 +1,192 @@
+
+> saas-core-platform-api@0.0.1 test:e2e
+> node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand --testPathPattern=auth.contract-spec.ts
+
+(node:50520) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.error
+    [2m2026-01-31T21:08:38.679Z[0m [31mERROR[0m [1m[Better Auth]:[0m User not found { email: 'nonexistent@example.com' }
+
+    [0m [90m 204 |[39m       }
+     [90m 205 |[39m
+    [31m[1m>[22m[39m[90m 206 |[39m       [36mconst[39m { headers[33m,[39m response } [33m=[39m [36mawait[39m [36mthis[39m[33m.[39mauth[33m.[39mapi[33m.[39msignInEmail({
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 207 |[39m         returnHeaders[33m:[39m [36mtrue[39m[33m,[39m
+     [90m 208 |[39m         body[33m:[39m { email[33m,[39m password[33m,[39m rememberMe[33m,[39m callbackURL }[33m,[39m
+     [90m 209 |[39m         headers[33m:[39m toHeadersFromContext(context)[33m,[39m[0m
+
+      at LogFunc (node_modules/@better-auth/core/dist/env/logger.mjs:64:35)
+      at Object.error (node_modules/@better-auth/core/dist/env/logger.mjs:72:82)
+      at node_modules/better-auth/src/api/routes/sign-in.ts:469:24
+      at internalHandler (node_modules/better-call/src/endpoint.ts:507:20)
+      at node_modules/better-auth/src/api/to-auth-endpoints.ts:119:22
+      at BetterAuthProvider.signInEmail (src/modules/auth/infrastructure/better-auth/better-auth.provider.adapter.ts:206:37)
+      at LoginUserUseCase.execute (src/modules/auth/application/use-cases/login-user.use-case.ts:14:20)
+      at AuthController.login (src/modules/auth/interfaces/http/auth.controller.ts:161:20)
+
+  console.error
+    [2m2026-01-31T21:08:43.802Z[0m [31mERROR[0m [1m[Better Auth]:[0m Invalid password
+
+    [0m [90m 492 |[39m       [90m// 2. Attempt "login" to verify password[39m
+     [90m 493 |[39m       [90m// signInEmail creates a session if successful[39m
+    [31m[1m>[22m[39m[90m 494 |[39m       [36mconst[39m res [33m=[39m [36mawait[39m [36mthis[39m[33m.[39mauth[33m.[39mapi[33m.[39msignInEmail({
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 495 |[39m         body[33m:[39m { email[33m:[39m user[33m.[39memail[33m,[39m password }[33m,[39m
+     [90m 496 |[39m         headers[33m:[39m toHeadersFromContext(context)[33m,[39m
+     [90m 497 |[39m       })[33m;[39m[0m
+
+      at LogFunc (node_modules/@better-auth/core/dist/env/logger.mjs:64:35)
+      at Object.error (node_modules/@better-auth/core/dist/env/logger.mjs:72:82)
+      at node_modules/better-auth/src/api/routes/sign-in.ts:498:24
+      at internalHandler (node_modules/better-call/src/endpoint.ts:507:20)
+      at node_modules/better-auth/src/api/to-auth-endpoints.ts:119:22
+      at BetterAuthProvider.checkPassword (src/modules/auth/infrastructure/better-auth/better-auth.provider.adapter.ts:494:19)
+      at AuthController.verifyPassword (src/modules/auth/interfaces/http/auth.controller.ts:270:20)
+
+[2026-02-01 00:08:49.747 +0300] [31mERROR[39m (50520): [36mno elements in sequence[39m [90m{"req":{},"statusCode":500,"method":"GET","path":"/api/v1/auth/verify-email","isError":false,"isClientError":false,"requestId":"7fab184c-6bb3-452a-8a57-51ce28ba9d4b","locale":"ar-SY","context":"core.errors.common.internal","ip":"::ffff:127.0.0.1","startTimeMs":1769893729733,"cache":{},"redis":{"client":{"options":{"host":"localhost","port":6380,"maxRetriesPerRequest":2,"enableReadyCheck":true,"family":0,"connectTimeout":10000,"disconnectTimeout":2000,"keepAlive":0,"noDelay":true,"connectionName":null,"disableClientInfo":false,"sentinels":null,"name":null,"role":"master","natMap":null,"enableTLSForSentinelMode":false,"updateSentinels":true,"failoverDetector":false,"username":null,"password":null,"db":0,"enableOfflineQueue":true,"autoResubscribe":true,"autoResendUnfulfilledCommands":true,"lazyConnect":false,"keyPrefix":"","reconnectOnError":null,"readOnly":false,"stringNumbers":false,"maxLoadingRetryTime":10000,"enableAutoPipelining":false,"autoPipeliningIgnoredCommands":[],"sentinelMaxConnections":10,"blockingTimeoutGrace":100},"scriptsSet":{},"addedBuiltinSet":{},"status":"ready","isCluster":false,"reconnectTimeout":null,"connectionEpoch":1,"retryAttempts":0,"manuallyClosing":false,"_autoPipelines":{},"_runningAutoPipelines":{},"_events":{},"_eventsCount":0,"commandQueue":{"_head":3,"_tail":3,"_capacityMask":3,"_list":[null,null,null,null]},"offlineQueue":{"_head":0,"_tail":0,"_capacityMask":3,"_list":[null,null,null,null]},"connector":{"connecting":true,"disconnectTimeout":2000,"options":{"host":"localhost","port":6380,"maxRetriesPerRequest":2,"enableReadyCheck":true,"family":0,"connectTimeout":10000,"disconnectTimeout":2000,"keepAlive":0,"noDelay":true,"connectionName":null,"disableClientInfo":false,"sentinels":null,"name":null,"role":"master","natMap":null,"enableTLSForSentinelMode":false,"updateSentinels":true,"failoverDetector":false,"username":null,"password":null,"db":0,"enableOfflineQueue":true,"autoResubscribe":true,"autoResendUnfulfilledCommands":true,"lazyConnect":false,"keyPrefix":"","reconnectOnError":null,"readOnly":false,"stringNumbers":false,"maxLoadingRetryTime":10000,"enableAutoPipelining":false,"autoPipeliningIgnoredCommands":[],"sentinelMaxConnections":10,"blockingTimeoutGrace":100},"stream":{"connecting":false,"_hadError":false,"_parent":null,"_host":"localhost","_closeAfterHandlingError":false,"_events":{"error":[null,null]},"_readableState":{"highWaterMark":16384,"buffer":[],"bufferIndex":0,"length":0,"pipes":[],"awaitDrainWriters":null},"_writableState":{"highWaterMark":16384,"length":0,"corked":0,"writelen":0,"bufferedIndex":0,"pendingcb":0},"allowHalfOpen":false,"_eventsCount":5,"_sockname":null,"_pendingData":null,"_pendingEncoding":"","server":null,"_server":null,"timeout":0,"autoSelectFamilyAttemptedAddresses":["::1:6380"]}},"condition":{"select":0,"auth":null,"subscriber":false},"stream":{"connecting":false,"_hadError":false,"_parent":null,"_host":"localhost","_closeAfterHandlingError":false,"_events":{"error":[null,null]},"_readableState":{"highWaterMark":16384,"buffer":[],"bufferIndex":0,"length":0,"pipes":[],"awaitDrainWriters":null},"_writableState":{"highWaterMark":16384,"length":0,"corked":0,"writelen":0,"bufferedIndex":0,"pendingcb":0},"allowHalfOpen":false,"_eventsCount":5,"_sockname":null,"_pendingData":null,"_pendingEncoding":"","server":null,"_server":null,"timeout":0,"autoSelectFamilyAttemptedAddresses":["::1:6380"]}},"prefix":"test-api:"}}[39m
+    err: {
+      "type": "Object",
+      "message": "no elements in sequence",
+      "stack":
+          Error: 
+              at _super (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\util\createErrorClass.ts:13:22)
+              at new EmptyErrorImpl (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\util\EmptyError.ts:26:3)
+              at Object.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\lastValueFrom.ts:71:18)
+              at ConsumerObserver.Object.<anonymous>.ConsumerObserver.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:185:25)
+              at SafeSubscriber.Object.<anonymous>.Subscriber._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:132:24)
+              at SafeSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at OperatorSubscriber.onFinalize (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:125:15)
+              at OperatorSubscriber.Object.<anonymous>.OperatorSubscriber.unsubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:109:33)
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:98:18)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at OperatorSubscriber.onFinalize (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:125:15)
+              at OperatorSubscriber.Object.<anonymous>.OperatorSubscriber.unsubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:109:33)
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:98:18)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at OperatorSubscriber.onFinalize (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:125:15)
+              at OperatorSubscriber.Object.<anonymous>.OperatorSubscriber.unsubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:109:33)
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:98:18)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at OperatorSubscriber.onFinalize (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:125:15)
+              at OperatorSubscriber.Object.<anonymous>.OperatorSubscriber.unsubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:109:33)
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:98:18)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at OperatorSubscriber.onFinalize (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:125:15)
+              at OperatorSubscriber.Object.<anonymous>.OperatorSubscriber.unsubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:109:33)
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:98:18)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:140:7
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:92:13)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at checkComplete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:48:18)
+              at OperatorSubscriber.onFinalize (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\mergeInternals.ts:125:15)
+              at OperatorSubscriber.Object.<anonymous>.OperatorSubscriber.unsubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:109:33)
+              at OperatorSubscriber._this._complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:98:18)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.complete (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:106:12)
+              at Observable._subscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\observable\empty.ts:66:71)
+              at Observable.Object.<anonymous>.Observable._trySubscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Observable.ts:244:19)
+              at D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Observable.ts:234:18
+              at Object.errorContext (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\util\errorContext.ts:29:5)
+              at Observable.Object.<anonymous>.Observable.subscribe (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Observable.ts:220:5)
+              at D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\catchError.ts:121:25
+              at OperatorSubscriber._this._error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\operators\OperatorSubscriber.ts:79:13)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:91:12)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber._error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:124:24)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:91:12)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber._error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:124:24)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:91:12)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber._error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:124:24)
+              at OperatorSubscriber.Object.<anonymous>.Subscriber.error (D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\Subscriber.ts:91:12)
+              at D:\nestjs\core-platform-api\node_modules\rxjs\src\internal\observable\innerFrom.ts:94:34
+              at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      "name": "EmptyError"
+    }
+FAIL test/auth.contract-spec.ts (22.797 s)
+  Auth API Contract (E2E)
+    POST /auth/register
+      √ should register a new user successfully (712 ms)
+      √ should fail with validation error for invalid email (87 ms)
+      √ should fail if email already exists (624 ms)
+    POST /auth/login
+      √ should login successfully with valid credentials (781 ms)
+      × should fail with 401 for invalid credentials (336 ms)
+    POST /auth/sign-out
+      √ should sign out successfully (576 ms)
+    GET /auth/me
+      √ should return current user session (534 ms)
+      √ should return 401 if unauthenticated (94 ms)
+    Password Management
+      √ should change password successfully (1073 ms)
+    User Lifecycle
+      √ should update user profile (548 ms)
+      √ should fail to update user when unauthorized (73 ms)
+      √ should delete user account (593 ms)
+      √ should fail to delete user when unauthorized (73 ms)
+    Password Verification
+      √ should verify password successfully (712 ms)
+      √ should return valid: false with wrong password (779 ms)
+      √ should fail when unauthorized (90 ms)
+      √ should fail change password with wrong current password (946 ms)
+    Forget/Reset Password
+      √ should send forget password email successfully (581 ms)
+      √ should fail forget password with validation error (71 ms)
+      √ should fail check reset token with invalid token (79 ms)
+      √ should fail reset password with invalid token (85 ms)
+    Session Management
+      √ should list sessions successfully (568 ms)
+      √ should fail list sessions when unauthorized (81 ms)
+      √ should revoke single session successfully (609 ms)
+      √ should fail revoke session with invalid token (598 ms)
+      √ should revoke other sessions successfully (522 ms)
+      √ should fail revoke other sessions when unauthorized (83 ms)
+    Social Authentication
+      √ should return redirect URL for social sign-in (90 ms)
+      √ should fail social sign-in with invalid provider (76 ms)
+      √ should fail unlink account with validation error (637 ms)
+      √ should fail unlink account when unauthorized (75 ms)
+      ○ skipped should return redirect URL for social link
+      ○ skipped should fail social link when unauthorized
+      ○ skipped should list linked accounts successfully
+      ○ skipped should fail list accounts when unauthorized
+    Email Verification
+      √ should send verification email successfully (574 ms)
+      √ should fail send verification with validation error (76 ms)
+      √ should redirect to error page with invalid token (90 ms)
+    Change Email
+      √ should fail change email when unauthorized (69 ms)
+      √ should initiate change email successfully (494 ms)
+    User Reactivation (Admin)
+      √ should fail reactivate user when unauthorized (86 ms)
+      √ should fail reactivate user when not admin (523 ms)
+
+  ● Auth API Contract (E2E) › POST /auth/login › should fail with 401 for invalid credentials
+
+    expected 400 "Bad Request", got 401 "Unauthorized"
+
+    [0m [90m 123 |[39m           password[33m:[39m [32m'Password123!'[39m[33m,[39m
+     [90m 124 |[39m         })
+    [31m[1m>[22m[39m[90m 125 |[39m         [33m.[39mexpect([35m400[39m)[33m;[39m [90m// Bad Request (User not found / Invalid credentials)[39m
+     [90m     |[39m          [31m[1m^[22m[39m
+     [90m 126 |[39m
+     [90m 127 |[39m       expect(res[33m.[39mbody[33m.[39mmessage)[33m.[39mtoBeDefined()[33m;[39m
+     [90m 128 |[39m     })[33m;[39m[0m
+
+      at Object.<anonymous> (test/auth.contract-spec.ts:125:10)
+      ----
+      at Test._assertStatus (node_modules/supertest/lib/test.js:252:14)
+      at node_modules/supertest/lib/test.js:308:13
+      at Test._assertFunction (node_modules/supertest/lib/test.js:285:13)
+      at Test.assert (node_modules/supertest/lib/test.js:164:23)
+      at Server.localAssert (node_modules/supertest/lib/test.js:120:14)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 skipped, 37 passed, 42 total
+Snapshots:   0 total
+Time:        22.937 s
+Ran all test suites matching /auth.contract-spec.ts/i.

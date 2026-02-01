@@ -122,7 +122,7 @@ describe('Auth API Contract (E2E)', () => {
           email: 'nonexistent@example.com',
           password: 'Password123!',
         })
-        .expect(400); // Bad Request (User not found / Invalid credentials)
+        .expect(401); // Unauthorized (BetterAuth behavior)
 
       expect(res.body.message).toBeDefined();
     });

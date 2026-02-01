@@ -18,5 +18,6 @@
     "^#src/(.*)\\.js$": "<rootDir>/src/$1",
     "^#src/(.*)$": "<rootDir>/src/$1",
     "^#src$": "<rootDir>/src"
-  }
+  },
+  "setupFiles": ["<rootDir>/test/jest-setup.ts"]
 }

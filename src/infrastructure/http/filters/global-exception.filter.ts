@@ -105,11 +105,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const apiErrors = await mapValidationIssuesToApi(errors, (v) =>
         translateIfKey(this.i18n, v, locale),
       );
-      const body: ApiErrorResponse = { message, errors: apiErrors };
+      const body: ApiErrorResponse = {
+        success: false,
+        message,
+        errors: apiErrors,
+      };
       return res.status(status).send(body);
     }
 
-    const body: ApiErrorResponse = { message };
+    const body: ApiErrorResponse = { success: false, message };
     return res.status(status).send(body);
   }
 }
