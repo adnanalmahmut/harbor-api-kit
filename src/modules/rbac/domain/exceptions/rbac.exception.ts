@@ -5,7 +5,7 @@ export class RbacException extends AppException {
   static forbidden() {
     return new RbacException({
       code: AppErrorCode.FORBIDDEN,
-      messageKey: 'errors.common.forbidden',
+      messageKey: 'rbac.errors.forbidden',
     });
   }
 
@@ -54,6 +54,37 @@ export class RbacException extends AppException {
       code: AppErrorCode.CONFLICT,
       messageKey: 'rbac.errors.permission_in_use',
       details: { id },
+    });
+  }
+
+  static missingPermission(permission: string) {
+    return new RbacException({
+      code: AppErrorCode.FORBIDDEN,
+      messageKey: 'rbac.errors.missing_permission',
+      details: { permission },
+    });
+  }
+
+  static missingRole(role: string) {
+    return new RbacException({
+      code: AppErrorCode.FORBIDDEN,
+      messageKey: 'rbac.errors.missing_role',
+      details: { role },
+    });
+  }
+
+  static invalidPermissionKey(key: string) {
+    return new RbacException({
+      code: AppErrorCode.BAD_REQUEST,
+      messageKey: 'rbac.errors.invalid_permission_key',
+      details: { key },
+    });
+  }
+
+  static unauthorizedAccess() {
+    return new RbacException({
+      code: AppErrorCode.UNAUTHORIZED,
+      messageKey: 'rbac.errors.unauthorized',
     });
   }
 }

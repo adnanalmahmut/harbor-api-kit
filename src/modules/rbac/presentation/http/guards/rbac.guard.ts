@@ -40,8 +40,10 @@ export class RbacGuard implements CanActivate {
     const user = (req as any).user;
 
     if (!user || !user.id) {
-      this.logger.warn('RbacGuard ran but no userId found. Did AuthGuard run?');
-      throw RbacException.forbidden();
+      this.logger.warn(
+        '[rbac.check.failed] reason=no_user route=' + req.routeOptions?.url,
+      );
+      throw RbacException.unauthorizedAccess();
     }
 
     // Always use EffectivePermissionsService to ensure correct application of:
@@ -60,7 +62,12 @@ export class RbacGuard implements CanActivate {
           ? roles.every((r) => userRoles.has(r))
           : roles.some((r) => userRoles.has(r));
 
-      if (!pass) throw RbacException.forbidden();
+      if (!pass) {
+        this.logger.warn(
+          `[rbac.check.failed] reason=missing_role userId=${user.id} required=${roles.join(',')} mode=${mode}`,
+        );
+        throw RbacException.missingRole(roles.join(', '));
+      }
     }
 
     // Check Permissions
@@ -71,7 +78,12 @@ export class RbacGuard implements CanActivate {
       const pass =
         mode === 'AND' ? permissions.every(checker) : permissions.some(checker);
 
-      if (!pass) throw RbacException.forbidden();
+      if (!pass) {
+        this.logger.warn(
+          `[rbac.check.failed] reason=missing_permission userId=${user.id} required=${permissions.join(',')} mode=${mode}`,
+        );
+        throw RbacException.missingPermission(permissions.join(', '));
+      }
     }
 
     return true;

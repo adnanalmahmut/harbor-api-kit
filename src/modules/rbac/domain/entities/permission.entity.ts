@@ -12,6 +12,6 @@ export class Permission {
   ) {}
 
   get key(): PermissionKeyVO {
-    return PermissionKeyVO.fromParts(this.action, this.subject);
+    return PermissionKeyVO.fromParts(this.subject, this.action);
   }
 }

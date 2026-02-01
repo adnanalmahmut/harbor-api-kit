@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "forbidden": "Access denied",
+    "missing_permission": "Missing required permission: {permission}",
+    "missing_role": "Missing required role: {role}",
+    "invalid_permission_key": "Invalid permission key format: {key}",
+    "unauthorized": "Authentication required to access this resource",
+    "role_not_found": "Role not found",
+    "role_already_exists": "Role already exists",
+    "permission_not_found": "Permission not found",
+    "permission_already_exists": "Permission already exists",
+    "role_in_use": "Role is in use and cannot be deleted",
+    "permission_in_use": "Permission is in use and cannot be deleted"
+  },
+  "messages": {
+    "role_created": "Role created successfully",
+    "role_updated": "Role updated successfully",
+    "role_deleted": "Role deleted successfully",
+    "permission_created": "Permission created successfully",
+    "permission_updated": "Permission updated successfully",
+    "permission_deleted": "Permission deleted successfully",
+    "permission_assigned": "Permission assigned to role",
+    "permission_removed": "Permission removed from role"
+  }
+}

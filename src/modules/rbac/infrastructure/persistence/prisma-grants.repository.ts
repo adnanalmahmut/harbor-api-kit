@@ -38,7 +38,7 @@ export class PrismaGrantsRepository implements GrantsRepositoryPort {
 
     for (const up of userPerms) {
       const vo = new UserPermissionOverride(
-        PermissionKeyVO.fromParts(up.permission.action, up.permission.subject),
+        PermissionKeyVO.fromParts(up.permission.subject, up.permission.action),
         up.effect === GrantEffect.ALLOW ? 'ALLOW' : 'DENY',
         up.note ?? undefined,
       );

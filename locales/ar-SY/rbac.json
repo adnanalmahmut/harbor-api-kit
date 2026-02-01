@@ -1,0 +1,25 @@
+{
+  "errors": {
+    "forbidden": "تم رفض الوصول",
+    "missing_permission": "الصلاحية المطلوبة غير متوفرة: {permission}",
+    "missing_role": "الدور المطلوب غير متوفر: {role}",
+    "invalid_permission_key": "صيغة مفتاح الصلاحية غير صالحة: {key}",
+    "unauthorized": "يجب تسجيل الدخول للوصول إلى هذا المورد",
+    "role_not_found": "الدور غير موجود",
+    "role_already_exists": "الدور موجود مسبقاً",
+    "permission_not_found": "الصلاحية غير موجودة",
+    "permission_already_exists": "الصلاحية موجودة مسبقاً",
+    "role_in_use": "لا يمكن حذف الدور لأنه قيد الاستخدام",
+    "permission_in_use": "لا يمكن حذف الصلاحية لأنها قيد الاستخدام"
+  },
+  "messages": {
+    "role_created": "تم إنشاء الدور بنجاح",
+    "role_updated": "تم تحديث الدور بنجاح",
+    "role_deleted": "تم حذف الدور بنجاح",
+    "permission_created": "تم إنشاء الصلاحية بنجاح",
+    "permission_updated": "تم تحديث الصلاحية بنجاح",
+    "permission_deleted": "تم حذف الصلاحية بنجاح",
+    "permission_assigned": "تم تعيين الصلاحية للدور",
+    "permission_removed": "تم إزالة الصلاحية من الدور"
+  }
+}

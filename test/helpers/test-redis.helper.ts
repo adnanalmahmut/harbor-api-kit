@@ -12,6 +12,7 @@ export async function clearRedisCache(redis: RedisService): Promise<void> {
     'scp:rl:*',
     'scp:lock:*',
     'core-platform-api:*', // Also clear the prefix-based keys
+    'test-api:*', // Test environment prefix from .env.test
   ];
 
   for (const pattern of patterns) {

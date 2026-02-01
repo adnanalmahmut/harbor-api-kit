@@ -57,16 +57,11 @@ export class EffectivePermissionsService {
       deny: Array.from(result.deny),
     };
     await this.cache.set(cacheKey, JSON.stringify(cacheData), 3600);
-    this.logger.debug?.(`Cache SET for user ${userId}`);
 
-    // Debug logging for troubleshooting tests
-    if (result.permissions.size === 0) {
-      this.logger.warn(`User ${userId} has NO permissions`);
-    } else {
-      this.logger.log(
-        `User ${userId} permissions: ${Array.from(result.permissions).join(', ')}`,
-      );
-    }
+    // Safe event-based logging (no permission sets exposed)
+    this.logger.debug?.(
+      `[rbac.cache.set] userId=${userId} permissionCount=${result.permissions.size} roleCount=${result.roles.size}`,
+    );
 
     return this.createEffective(result.roles, result.permissions, result.deny);
   }

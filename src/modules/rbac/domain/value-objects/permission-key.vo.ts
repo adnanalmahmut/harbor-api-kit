@@ -1,27 +1,39 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
+import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
+
+/**
+ * Permission key format: subject:action (e.g., user:read, role:manage)
+ * Only lowercase letters and underscores allowed in each part.
+ */
+export const PERMISSION_KEY_PATTERN = /^[a-z_]+:[a-z_]+$/;
 
 export class PermissionKeyVO {
   private constructor(
-    readonly action: string,
     readonly subject: string,
+    readonly action: string,
   ) {}
 
-  static fromParts(action: string, subject: string) {
-    const a = action.trim();
-    const s = subject.trim();
-    if (!a || !s)
-      throw AppException.validationError({ field: 'permissionKey' });
-    return new PermissionKeyVO(a, s);
+  static fromParts(subject: string, action: string): PermissionKeyVO {
+    const s = subject.trim().toLowerCase();
+    const a = action.trim().toLowerCase();
+    if (!s || !a || !PERMISSION_KEY_PATTERN.test(`${s}:${a}`)) {
+      throw RbacException.invalidPermissionKey(`${s}:${a}`);
+    }
+    return new PermissionKeyVO(s, a);
   }
 
-  static parse(key: string) {
+  static parse(key: string): PermissionKeyVO {
+    if (!PermissionKeyVO.isValid(key)) {
+      throw RbacException.invalidPermissionKey(key);
+    }
     const [subject, action] = key.split(':');
-    if (!action || !subject)
-      throw AppException.validationError({ field: 'permissionKeyFormat' });
-    return PermissionKeyVO.fromParts(action, subject);
+    return new PermissionKeyVO(subject, action);
   }
 
-  toString() {
+  static isValid(key: string): boolean {
+    return PERMISSION_KEY_PATTERN.test(key);
+  }
+
+  toString(): string {
     return `${this.subject}:${this.action}`;
   }
 }
