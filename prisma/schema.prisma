@@ -26,6 +26,7 @@ model User {
   roles         UserRole[]
   userPerms     UserPermission[]
   assignedRoles UserRole[] @relation("AssignedByUser")
+  uploadedFiles File[]     @relation("FileUploader")
 
   @@map("user")
 }
@@ -179,3 +180,34 @@ model RolePermission {
 }
 
  
+enum StorageDriver {
+  S3_COMPAT
+  GCS
+  LOCAL
+}
+
+model File {
+  id           String        @id @default(uuid())
+  fileName     String        @db.VarChar(255)
+  filePath     String        @unique @db.VarChar(500)
+  originalName String        @db.VarChar(255)
+  mimeType     String?       @db.VarChar(100)
+  size         BigInt?
+  bucket       String?       @db.VarChar(100)
+  driver       StorageDriver
+  isPublic     Boolean       @default(false)
+  publicToken  String?       @unique 
+  uploadedById String?       @map("uploaded_by_id")
+
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  deletedAt    DateTime?     @map("deleted_at")
+
+  uploadedBy   User?     @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([uploadedById])
+  @@index([mimeType])
+  @@index([isPublic])
+  @@map("files")
+}
+

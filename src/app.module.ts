@@ -9,6 +9,7 @@ import { HealthModule } from '#src/modules/health/health.module.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 import { UsersModule } from '#src/modules/users/users.module.js';
 import { Module } from '@nestjs/common';
+import { FilesModule } from './modules/files/files.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
     UsersModule,
     RedisModule,
     RateLimitModule,
+    FilesModule,
   ],
 })
 export class AppModule {}

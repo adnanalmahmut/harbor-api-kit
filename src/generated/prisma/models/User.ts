@@ -235,6 +235,7 @@ export type UserWhereInput = {
   roles?: Prisma.UserRoleListRelationFilter
   userPerms?: Prisma.UserPermissionListRelationFilter
   assignedRoles?: Prisma.UserRoleListRelationFilter
+  uploadedFiles?: Prisma.FileListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -254,6 +255,7 @@ export type UserOrderByWithRelationInput = {
   roles?: Prisma.UserRoleOrderByRelationAggregateInput
   userPerms?: Prisma.UserPermissionOrderByRelationAggregateInput
   assignedRoles?: Prisma.UserRoleOrderByRelationAggregateInput
+  uploadedFiles?: Prisma.FileOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -276,6 +278,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   roles?: Prisma.UserRoleListRelationFilter
   userPerms?: Prisma.UserPermissionListRelationFilter
   assignedRoles?: Prisma.UserRoleListRelationFilter
+  uploadedFiles?: Prisma.FileListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -329,6 +332,7 @@ export type UserCreateInput = {
   roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -348,6 +352,7 @@ export type UserUncheckedCreateInput = {
   roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUpdateInput = {
@@ -367,6 +372,7 @@ export type UserUpdateInput = {
   roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -386,6 +392,7 @@ export type UserUncheckedUpdateInput = {
   roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -574,6 +581,22 @@ export type UserUpdateOneRequiredWithoutUserPermsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutUserPermsInput, Prisma.UserUpdateWithoutUserPermsInput>, Prisma.UserUncheckedUpdateWithoutUserPermsInput>
 }
 
+export type UserCreateNestedOneWithoutUploadedFilesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUploadedFilesInput, Prisma.UserUncheckedCreateWithoutUploadedFilesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUploadedFilesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutUploadedFilesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUploadedFilesInput, Prisma.UserUncheckedCreateWithoutUploadedFilesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUploadedFilesInput
+  upsert?: Prisma.UserUpsertWithoutUploadedFilesInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutUploadedFilesInput, Prisma.UserUpdateWithoutUploadedFilesInput>, Prisma.UserUncheckedUpdateWithoutUploadedFilesInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id: string
   name: string
@@ -590,6 +613,7 @@ export type UserCreateWithoutSessionsInput = {
   roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -608,6 +632,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -642,6 +667,7 @@ export type UserUpdateWithoutSessionsInput = {
   roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -660,6 +686,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -678,6 +705,7 @@ export type UserCreateWithoutAccountsInput = {
   roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -696,6 +724,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -730,6 +759,7 @@ export type UserUpdateWithoutAccountsInput = {
   roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -748,6 +778,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutRolesInput = {
@@ -766,6 +797,7 @@ export type UserCreateWithoutRolesInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutRolesInput = {
@@ -784,6 +816,7 @@ export type UserUncheckedCreateWithoutRolesInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutRolesInput = {
@@ -807,6 +840,7 @@ export type UserCreateWithoutAssignedRolesInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionCreateNestedManyWithoutUserInput
+  uploadedFiles?: Prisma.FileCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutAssignedRolesInput = {
@@ -825,6 +859,7 @@ export type UserUncheckedCreateWithoutAssignedRolesInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
   userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutUserInput
+  uploadedFiles?: Prisma.FileUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutAssignedRolesInput = {
@@ -859,6 +894,7 @@ export type UserUpdateWithoutRolesInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRolesInput = {
@@ -877,6 +913,7 @@ export type UserUncheckedUpdateWithoutRolesInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUpsertWithoutAssignedRolesInput = {
@@ -906,6 +943,7 @@ export type UserUpdateWithoutAssignedRolesInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUpdateManyWithoutUserNestedInput
+  uploadedFiles?: Prisma.FileUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedRolesInput = {
@@ -924,6 +962,7 @@ export type UserUncheckedUpdateWithoutAssignedRolesInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
   userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutUserNestedInput
+  uploadedFiles?: Prisma.FileUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutUserPermsInput = {
@@ -942,6 +981,7 @@ export type UserCreateWithoutUserPermsInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutUserPermsInput = {
@@ -960,6 +1000,7 @@ export type UserUncheckedCreateWithoutUserPermsInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
   assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+  uploadedFiles?: Prisma.FileUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutUserPermsInput = {
@@ -994,6 +1035,7 @@ export type UserUpdateWithoutUserPermsInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUserPermsInput = {
@@ -1012,6 +1054,99 @@ export type UserUncheckedUpdateWithoutUserPermsInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
   assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
+  uploadedFiles?: Prisma.FileUncheckedUpdateManyWithoutUploadedByNestedInput
+}
+
+export type UserCreateWithoutUploadedFilesInput = {
+  id: string
+  name: string
+  firstName?: string | null
+  lastName?: string | null
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  locale?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
+  userPerms?: Prisma.UserPermissionCreateNestedManyWithoutUserInput
+  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignedByUserInput
+}
+
+export type UserUncheckedCreateWithoutUploadedFilesInput = {
+  id: string
+  name: string
+  firstName?: string | null
+  lastName?: string | null
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  locale?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
+  userPerms?: Prisma.UserPermissionUncheckedCreateNestedManyWithoutUserInput
+  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignedByUserInput
+}
+
+export type UserCreateOrConnectWithoutUploadedFilesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutUploadedFilesInput, Prisma.UserUncheckedCreateWithoutUploadedFilesInput>
+}
+
+export type UserUpsertWithoutUploadedFilesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutUploadedFilesInput, Prisma.UserUncheckedUpdateWithoutUploadedFilesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutUploadedFilesInput, Prisma.UserUncheckedCreateWithoutUploadedFilesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutUploadedFilesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutUploadedFilesInput, Prisma.UserUncheckedUpdateWithoutUploadedFilesInput>
+}
+
+export type UserUpdateWithoutUploadedFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
+  userPerms?: Prisma.UserPermissionUpdateManyWithoutUserNestedInput
+  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignedByUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutUploadedFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
+  userPerms?: Prisma.UserPermissionUncheckedUpdateManyWithoutUserNestedInput
+  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignedByUserNestedInput
 }
 
 
@@ -1025,6 +1160,7 @@ export type UserCountOutputType = {
   roles: number
   userPerms: number
   assignedRoles: number
+  uploadedFiles: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1033,6 +1169,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   roles?: boolean | UserCountOutputTypeCountRolesArgs
   userPerms?: boolean | UserCountOutputTypeCountUserPermsArgs
   assignedRoles?: boolean | UserCountOutputTypeCountAssignedRolesArgs
+  uploadedFiles?: boolean | UserCountOutputTypeCountUploadedFilesArgs
 }
 
 /**
@@ -1080,6 +1217,13 @@ export type UserCountOutputTypeCountAssignedRolesArgs<ExtArgs extends runtime.Ty
   where?: Prisma.UserRoleWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountUploadedFilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FileWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1098,6 +1242,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   roles?: boolean | Prisma.User$rolesArgs<ExtArgs>
   userPerms?: boolean | Prisma.User$userPermsArgs<ExtArgs>
   assignedRoles?: boolean | Prisma.User$assignedRolesArgs<ExtArgs>
+  uploadedFiles?: boolean | Prisma.User$uploadedFilesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1150,6 +1295,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   roles?: boolean | Prisma.User$rolesArgs<ExtArgs>
   userPerms?: boolean | Prisma.User$userPermsArgs<ExtArgs>
   assignedRoles?: boolean | Prisma.User$assignedRolesArgs<ExtArgs>
+  uploadedFiles?: boolean | Prisma.User$uploadedFilesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1163,6 +1309,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     roles: Prisma.$UserRolePayload<ExtArgs>[]
     userPerms: Prisma.$UserPermissionPayload<ExtArgs>[]
     assignedRoles: Prisma.$UserRolePayload<ExtArgs>[]
+    uploadedFiles: Prisma.$FilePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1575,6 +1722,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   roles<T extends Prisma.User$rolesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$rolesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserRolePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   userPerms<T extends Prisma.User$userPermsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$userPermsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPermissionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignedRoles<T extends Prisma.User$assignedRolesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedRolesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserRolePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  uploadedFiles<T extends Prisma.User$uploadedFilesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$uploadedFilesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2120,6 +2268,30 @@ export type User$assignedRolesArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.UserRoleScalarFieldEnum | Prisma.UserRoleScalarFieldEnum[]
+}
+
+/**
+ * User.uploadedFiles
+ */
+export type User$uploadedFilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the File
+   */
+  select?: Prisma.FileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the File
+   */
+  omit?: Prisma.FileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FileInclude<ExtArgs> | null
+  where?: Prisma.FileWhereInput
+  orderBy?: Prisma.FileOrderByWithRelationInput | Prisma.FileOrderByWithRelationInput[]
+  cursor?: Prisma.FileWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FileScalarFieldEnum | Prisma.FileScalarFieldEnum[]
 }
 
 /**

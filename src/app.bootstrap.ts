@@ -11,6 +11,7 @@ import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 import { CsrfGuard } from '#src/infrastructure/security/csrf/csrf.guard.js';
 import { GlobalValidationPipe } from '#src/infrastructure/validation/global-validation-pipe.js';
 import fastifyCookie from '@fastify/cookie';
+import fastifyMultipart from '@fastify/multipart';
 import {
   VersioningType,
   type LogLevel,
@@ -55,6 +56,12 @@ export function configureApp(app: NestFastifyApplication) {
 
   adapter.register(fastifyCookie, {
     // optional: secret: '...' لو تريد signed cookies لاحقاً
+  });
+
+  adapter.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
   });
 
   app.useGlobalGuards(new CsrfGuard(config));

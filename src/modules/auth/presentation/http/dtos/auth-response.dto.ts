@@ -7,43 +7,9 @@ import type {
 } from '#src/modules/auth/application/ports/auth-dtos.js';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class UserResponseDto implements User {
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
-  id!: string;
+import { UserResponseDto } from '#src/modules/users/presentation/http/dtos/users-response.dto.js';
 
-  @ApiProperty({ example: 'user@example.com' })
-  email!: string;
-
-  @ApiProperty({ example: true })
-  emailVerified!: boolean;
-
-  @ApiProperty({ example: 'John Doe' })
-  name!: string;
-
-  @ApiProperty({ required: false, nullable: true, example: null })
-  image?: string | null;
-
-  @ApiProperty({ required: false, nullable: true, example: 'John' })
-  firstName?: string | null;
-
-  @ApiProperty({ required: false, nullable: true, example: 'Doe' })
-  lastName?: string | null;
-
-  @ApiProperty({ required: false, nullable: true, example: 'en-US' })
-  locale?: string | null;
-
-  @ApiProperty({ required: false, type: [String], example: ['user'] })
-  roles?: string[];
-
-  @ApiProperty({ required: false, type: [String], example: ['read:profile'] })
-  permissions?: string[];
-
-  @ApiProperty()
-  createdAt!: Date;
-
-  @ApiProperty()
-  updatedAt!: Date;
-}
+export { UserResponseDto };
 
 export class SessionResponseDto implements Session {
   @ApiProperty({ example: 'sess_123' })

@@ -84,3 +84,8 @@ export type Permission = Prisma.PermissionModel
  * 
  */
 export type RolePermission = Prisma.RolePermissionModel
+/**
+ * Model File
+ * 
+ */
+export type File = Prisma.FileModel

@@ -1,0 +1,18 @@
+{
+  "messages": {
+    "upload_success": "File uploaded successfully",
+    "delete_success": "File deleted successfully",
+    "restore_success": "File restored successfully",
+    "visibility_updated": "File visibility updated",
+    "download_link_generated": "Download link generated",
+    "meta_retrieved": "File metadata retrieved successfully"
+  },
+  "errors": {
+    "not_found": "File not found",
+    "invalid_type": "Invalid file type: {mimeType}",
+    "file_too_large": "File is too large (max: {limit} bytes)",
+    "storage_error": "Storage operation failed",
+    "access_denied": "Access denied to this file",
+    "upload_failed": "File upload failed"
+  }
+}

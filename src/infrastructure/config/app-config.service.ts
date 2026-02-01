@@ -130,4 +130,25 @@ export class AppConfigService {
       headerName: this.config.get('TENANT_HEADER_NAME').toLowerCase(),
     };
   }
+
+  storage() {
+    return {
+      driver: this.config.get('STORAGE_DRIVER'),
+      s3: {
+        endpoint: this.config.get('S3_ENDPOINT'),
+        region: this.config.get('S3_REGION'),
+        accessKeyId: this.config.get('S3_ACCESS_KEY_ID'),
+        secretAccessKey: this.config.get('S3_SECRET_ACCESS_KEY'),
+        bucket: this.config.get('S3_BUCKET'),
+      },
+      gcs: {
+        projectId: this.config.get('GCS_PROJECT_ID'),
+        keyFile: this.config.get('GCS_KEY_FILE'),
+        bucket: this.config.get('GCS_BUCKET'),
+      },
+      local: {
+        path: this.config.get('LOCAL_STORAGE_PATH'),
+      },
+    };
+  }
 }

@@ -50,22 +50,9 @@ export class ListUsersResponseDto {
 }
 
 // Role Response (for user roles)
-export class RoleResponseDto {
-  @ApiProperty({ example: 'role_123e4567-e89b-12d3-a456-426614174000' })
-  id!: string;
+import { RoleResponseDto } from '#src/modules/rbac/presentation/http/dtos/rbac-response.dto.js';
 
-  @ApiProperty({ example: 'Admin' })
-  name!: string;
-
-  @ApiProperty({ example: 'admin' })
-  slug!: string;
-
-  @ApiProperty({
-    required: false,
-    example: 'Administrator role with full access',
-  })
-  description?: string;
-}
+export { RoleResponseDto };
 
 // User Roles Response
 export class UserRolesResponseDto {

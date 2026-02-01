@@ -9,6 +9,7 @@ import { ConfigModule as NestConfigModule } from '@nestjs/config';
       isGlobal: true,
       cache: true,
       validate: validateEnv,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
   ],
   providers: [AppConfigService],

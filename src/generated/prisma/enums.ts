@@ -15,3 +15,12 @@ export const GrantEffect = {
 } as const
 
 export type GrantEffect = (typeof GrantEffect)[keyof typeof GrantEffect]
+
+
+export const StorageDriver = {
+  S3_COMPAT: 'S3_COMPAT',
+  GCS: 'GCS',
+  LOCAL: 'LOCAL'
+} as const
+
+export type StorageDriver = (typeof StorageDriver)[keyof typeof StorageDriver]
