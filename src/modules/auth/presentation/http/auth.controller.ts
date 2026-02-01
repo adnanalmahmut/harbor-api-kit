@@ -35,8 +35,8 @@ import {
 } from '#src/modules/auth/application/use-cases/index.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
 import { AuthException } from '#src/modules/auth/domain/exceptions/auth.exception.js';
-import { AUTH_RESPONSES } from '#src/modules/auth/interfaces/http/api-responses.examples.js';
-import { applyCookies } from '#src/modules/auth/interfaces/http/cookie.serializer.js';
+import { AUTH_RESPONSES } from '#src/modules/auth/presentation/http/api-responses.examples.js';
+import { applyCookies } from '#src/modules/auth/presentation/http/cookie.serializer.js';
 import {
   ChangeEmailDto,
   ChangePasswordDto,
@@ -54,8 +54,8 @@ import {
   UpdateUserDto,
   VerifyEmailDto,
   VerifyPasswordDto,
-} from '#src/modules/auth/interfaces/http/dtos/index.js';
-import { AuthGuard } from '#src/modules/auth/interfaces/http/guards/auth.guard.js';
+} from '#src/modules/auth/presentation/http/dtos/index.js';
+import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import {

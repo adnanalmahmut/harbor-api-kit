@@ -1,6 +1,6 @@
-﻿import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
+import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
-import { RegisterDto } from '#src/modules/auth/interfaces/http/dtos/register.dto.js';
+import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { TestAppFactory, clearRedisCache, resetDb } from './test-utils.js';

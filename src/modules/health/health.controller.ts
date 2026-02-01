@@ -1,4 +1,4 @@
-﻿import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
+import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
 import { RateLimit } from '#src/infrastructure/security/rate-limit/rate-limit.decorators.js';
 import { Controller, Get } from '@nestjs/common';
 

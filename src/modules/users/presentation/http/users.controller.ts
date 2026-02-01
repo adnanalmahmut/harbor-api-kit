@@ -1,6 +1,6 @@
 import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
 import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
-import { AuthGuard } from '#src/modules/auth/interfaces/http/guards/auth.guard.js';
+import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import { AddRoleToUserUseCase } from '#src/modules/users/application/use-cases/add-role-to-user.use-case.js';

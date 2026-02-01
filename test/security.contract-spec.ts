@@ -2,7 +2,7 @@ import { configureApp } from '#src/app.bootstrap.js';
 import { AppModule } from '#src/app.module.js';
 import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
 import { RedisService } from '#src/infrastructure/redis/redis.service.js';
-import { AuthGuard } from '#src/modules/auth/interfaces/http/guards/auth.guard.js';
+import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';

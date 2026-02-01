@@ -32,8 +32,8 @@ import { RequestContextStoreAdapter } from '#src/modules/auth/infrastructure/ada
 import { BetterAuthProvider } from '#src/modules/auth/infrastructure/better-auth/better-auth.provider.adapter.js';
 import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
 import { InfraCurrentSessionProvider } from '#src/modules/auth/infrastructure/context/infra-current-session.provider.js';
-import { AuthController } from '#src/modules/auth/interfaces/http/auth.controller.js';
-import { AuthGuard } from '#src/modules/auth/interfaces/http/guards/auth.guard.js';
+import { AuthController } from '#src/modules/auth/presentation/http/auth.controller.js';
+import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { NotifyModule } from '#src/modules/notify/notify.module.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
