@@ -1,10 +1,25 @@
 {
   "messages": {
     "user_fetch_success": "تم جلب بيانات المستخدم بنجاح",
-    "users_fetch_success": "تم جلب بيانات المستخدمين بنجاح"
+    "users_fetch_success": "تم جلب بيانات المستخدمين بنجاح",
+    "user_created_success": "تم إنشاء المستخدم بنجاح",
+    "user_updated_success": "تم تحديث المستخدم بنجاح",
+    "role_added_success": "تمت إضافة الدور للمستخدم بنجاح",
+    "role_removed_success": "تمت إزالة الدور من المستخدم بنجاح",
+    "user_roles_fetch_success": "تم جلب أدوار المستخدم بنجاح",
+    "user_roles_replaced_success": "تم استبدال أدوار المستخدم بنجاح",
+    "permission_override_set_success": "تم تعيين تجاوز الصلاحية بنجاح",
+    "permission_override_removed_success": "تمت إزالة تجاوز الصلاحية بنجاح",
+    "user_permissions_fetch_success": "تم جلب صلاحيات المستخدم بنجاح",
+    "user_permissions_replaced_success": "تم استبدال صلاحيات المستخدم بنجاح",
+    "user_effective_permissions_fetch_success": "تم جلب الصلاحيات الفعلية بنجاح"
   },
   "errors": {
-    "user_not_found": "لم يتم العثور على المستخدم",
-    "user_conflict": "البريد الالكتروني موجود بالفعل"
+    "user_not_found": "المستخدم غير موجود",
+    "email_already_exists": "البريد الإلكتروني مستخدم مسبقاً",
+    "cannot_modify_self": "لا يمكنك تعديل حسابك الخاص",
+    "role_not_assigned": "الدور غير مُسند لهذا المستخدم",
+    "permission_override_not_found": "تجاوز الصلاحية غير موجود",
+    "invalid_user_data": "بيانات المستخدم غير صالحة"
   }
 }

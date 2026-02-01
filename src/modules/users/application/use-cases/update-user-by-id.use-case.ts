@@ -1,8 +1,4 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
-import {
-  AppErrorCode,
-  ERROR_DEFINITIONS,
-} from '#src/core/exceptions/error-definitions.js';
+import { UsersException } from '#src/modules/users/domain/exceptions/users.exception.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
 import { z } from 'zod';
 
@@ -25,11 +21,7 @@ export class UpdateUserByIdUseCase {
   async execute(command: AdminUpdateUserCommand): Promise<void> {
     const user = await this.userRepo.findById(command.userId);
     if (!user) {
-      throw new AppException({
-        code: AppErrorCode.NOT_FOUND,
-        messageKey: ERROR_DEFINITIONS.NOT_FOUND.messageKey,
-        details: { userId: command.userId },
-      });
+      throw UsersException.userNotFound(command.userId);
     }
 
     // Apply updates

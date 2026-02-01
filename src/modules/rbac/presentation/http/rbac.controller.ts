@@ -1,5 +1,4 @@
-import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
-import { ApiErrors } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
+import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
 import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/interfaces/http/guards/auth.guard.js';
 import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
@@ -36,6 +35,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
+import { RBAC_RESPONSES } from './api-responses.examples.js';
 
 @ApiTags('Admin / RBAC')
 @ApiBearerAuth()
@@ -60,33 +60,35 @@ export class RbacController {
     private readonly replaceRolePermissionsUseCase: ReplaceRolePermissionsUseCase,
   ) {}
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.CONFLICT])
+  @ApiResponses(RBAC_RESPONSES.createRole)
   @ResponseMessage('rbac.messages.role_created_success')
   @Post('roles')
   async createRole(@Body() dto: CreateRoleDto) {
     return this.createRoleUseCase.execute(dto as any);
   }
 
+  @ApiResponses(RBAC_RESPONSES.listRoles)
   @ResponseMessage('rbac.messages.roles_fetch_success')
   @Get('roles')
   async listRoles() {
     return this.listRolesUseCase.execute();
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.CONFLICT])
+  @ApiResponses(RBAC_RESPONSES.createPermission)
   @ResponseMessage('rbac.messages.permission_created_success')
   @Post('permissions')
   async createPermission(@Body() dto: CreatePermissionDto) {
     return this.createPermissionUseCase.execute(dto as any);
   }
 
+  @ApiResponses(RBAC_RESPONSES.listPermissions)
   @ResponseMessage('rbac.messages.permissions_fetch_success')
   @Get('permissions')
   async listPermissions() {
     return this.listPermissionsUseCase.execute();
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.NOT_FOUND])
+  @ApiResponses(RBAC_RESPONSES.addPermissionToRole)
   @ResponseMessage('rbac.messages.permission_assigned_success')
   @ApiParam({ name: 'roleId', description: 'Role ID' })
   @Post('roles/:roleId/permissions')
@@ -101,7 +103,7 @@ export class RbacController {
     return { message: 'Permission assigned to role' };
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(RBAC_RESPONSES.removePermissionFromRole)
   @ResponseMessage('rbac.messages.permission_removed_success')
   @ApiParam({ name: 'roleId', description: 'Role ID' })
   @ApiParam({ name: 'permissionId', description: 'Permission ID' })
@@ -114,6 +116,7 @@ export class RbacController {
     return { message: 'Permission removed from role' };
   }
 
+  @ApiResponses(RBAC_RESPONSES.getRolePermissions)
   @ResponseMessage('rbac.messages.role_permissions_fetch_success')
   @ApiParam({ name: 'roleId', description: 'Role ID' })
   @Get('roles/:roleId/permissions')
@@ -121,7 +124,7 @@ export class RbacController {
     return this.getRolePermissionsUseCase.execute(roleId);
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(RBAC_RESPONSES.getRole)
   @ResponseMessage('rbac.messages.role_fetch_success')
   @ApiParam({ name: 'id', description: 'Role ID' })
   @Get('roles/:id')
@@ -129,7 +132,7 @@ export class RbacController {
     return this.getRoleByIdUseCase.execute(id);
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND, AppErrorCode.CONFLICT])
+  @ApiResponses(RBAC_RESPONSES.updateRole)
   @ResponseMessage('rbac.messages.role_update_success')
   @ApiParam({ name: 'id', description: 'Role ID' })
   @Patch('roles/:id')
@@ -137,7 +140,7 @@ export class RbacController {
     return this.updateRoleUseCase.execute(id, dto);
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND, AppErrorCode.CONFLICT])
+  @ApiResponses(RBAC_RESPONSES.deleteRole)
   @ResponseMessage('rbac.messages.role_delete_success')
   @ApiParam({ name: 'id', description: 'Role ID' })
   @Delete('roles/:id')
@@ -146,7 +149,7 @@ export class RbacController {
     return { message: 'Role deleted' };
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(RBAC_RESPONSES.getPermission)
   @ResponseMessage('rbac.messages.permission_fetch_success')
   @ApiParam({ name: 'id', description: 'Permission ID' })
   @Get('permissions/:id')
@@ -154,7 +157,7 @@ export class RbacController {
     return this.getPermissionByIdUseCase.execute(id);
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND, AppErrorCode.CONFLICT])
+  @ApiResponses(RBAC_RESPONSES.updatePermission)
   @ResponseMessage('rbac.messages.permission_update_success')
   @ApiParam({ name: 'id', description: 'Permission ID' })
   @Patch('permissions/:id')
@@ -165,7 +168,7 @@ export class RbacController {
     return this.updatePermissionUseCase.execute(id, dto);
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND, AppErrorCode.CONFLICT])
+  @ApiResponses(RBAC_RESPONSES.deletePermission)
   @ResponseMessage('rbac.messages.permission_delete_success')
   @ApiParam({ name: 'id', description: 'Permission ID' })
   @Delete('permissions/:id')
@@ -174,7 +177,7 @@ export class RbacController {
     return { message: 'Permission deleted' };
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(RBAC_RESPONSES.replaceRolePermissions)
   @ResponseMessage('rbac.messages.role_permissions_replaced_success')
   @ApiParam({ name: 'roleId', description: 'Role ID' })
   @Put('roles/:roleId/permissions')

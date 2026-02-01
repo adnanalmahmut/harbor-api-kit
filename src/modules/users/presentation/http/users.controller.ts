@@ -1,9 +1,4 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
-import {
-  AppErrorCode,
-  ERROR_DEFINITIONS,
-} from '#src/core/exceptions/error-definitions.js';
-import { ApiErrors } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
+import { ApiResponses } from '#src/infrastructure/http/decorators/api-errors.decorator.js';
 import { ResponseMessage } from '#src/infrastructure/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/interfaces/http/guards/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
@@ -21,6 +16,7 @@ import { ReplaceUserPermissionsUseCase } from '#src/modules/users/application/us
 import { ReplaceUserRolesUseCase } from '#src/modules/users/application/use-cases/replace-user-roles.use-case.js';
 import { SetUserPermissionOverrideUseCase } from '#src/modules/users/application/use-cases/set-user-permission-override.use-case.js';
 import { UpdateUserByIdUseCase } from '#src/modules/users/application/use-cases/update-user-by-id.use-case.js';
+import { UsersException } from '#src/modules/users/domain/exceptions/users.exception.js';
 import { AddRoleToUserDto } from '#src/modules/users/presentation/http/dtos/add-role-to-user.dto.js';
 import { CreateUserDto } from '#src/modules/users/presentation/http/dtos/create-user.dto.js';
 import { ReplaceUserPermissionsDto } from '#src/modules/users/presentation/http/dtos/replace-user-permissions.dto.js';
@@ -41,6 +37,7 @@ import {
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
+import { USERS_RESPONSES } from './api-responses.examples.js';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -63,6 +60,7 @@ export class UsersController {
     private readonly getUserEffectivePermissionsUseCase: GetUserEffectivePermissionsUseCase,
   ) {}
 
+  @ApiResponses(USERS_RESPONSES.findAll)
   @ResponseMessage('users.messages.users_fetch_success')
   @Permissions(['users:read'])
   @Get()
@@ -70,7 +68,7 @@ export class UsersController {
     return this.getAllUserUseCase.execute();
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.CONFLICT])
+  @ApiResponses(USERS_RESPONSES.create)
   @ResponseMessage('users.messages.user_created_success')
   @Permissions(['users:create'])
   @Post()
@@ -85,22 +83,18 @@ export class UsersController {
     return UserResponseMapper.map(user);
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.findById)
   @ResponseMessage('users.messages.user_fetch_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @Permissions(['users:read'])
   @Get(':id')
   async findById(@Param('id') id: string) {
     const user = await this.getUserByIdUseCase.execute(id);
-    if (!user)
-      throw new AppException({
-        code: AppErrorCode.NOT_FOUND,
-        messageKey: ERROR_DEFINITIONS.NOT_FOUND.messageKey,
-      });
+    if (!user) throw UsersException.userNotFound(id);
     return UserResponseMapper.map(user);
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.addRoleToUser)
   @ResponseMessage('users.messages.role_added_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -111,7 +105,7 @@ export class UsersController {
     return { message: 'Role added to user' };
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.removeRoleFromUser)
   @ResponseMessage('users.messages.role_removed_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiParam({ name: 'roleId', description: 'Role ID' })
@@ -126,7 +120,7 @@ export class UsersController {
     return { message: 'Role removed from user' };
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.setPermissionOverride)
   @ResponseMessage('users.messages.permission_override_set_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -144,7 +138,7 @@ export class UsersController {
     return { message: 'Permission override set' };
   }
 
-  @ApiErrors([AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.removePermissionOverride)
   @ResponseMessage('users.messages.permission_override_removed_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiParam({ name: 'permissionId', description: 'Permission ID' })
@@ -162,7 +156,7 @@ export class UsersController {
     return { message: 'Permission override removed' };
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.update)
   @ResponseMessage('users.messages.user_updated_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -179,6 +173,7 @@ export class UsersController {
     return { message: 'User updated' };
   }
 
+  @ApiResponses(USERS_RESPONSES.getUserRoles)
   @ResponseMessage('users.messages.user_roles_fetch_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -188,7 +183,7 @@ export class UsersController {
     return this.getUserRolesUseCase.execute(userId);
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.replaceUserRoles)
   @ResponseMessage('users.messages.user_roles_replaced_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -202,6 +197,7 @@ export class UsersController {
     return { message: 'User roles replaced' };
   }
 
+  @ApiResponses(USERS_RESPONSES.getUserPermissions)
   @ResponseMessage('users.messages.user_permissions_fetch_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -211,7 +207,7 @@ export class UsersController {
     return this.getUserPermissionsUseCase.execute(userId);
   }
 
-  @ApiErrors([AppErrorCode.VALIDATION_ERROR, AppErrorCode.NOT_FOUND])
+  @ApiResponses(USERS_RESPONSES.replaceUserPermissions)
   @ResponseMessage('users.messages.user_permissions_replaced_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)
@@ -225,6 +221,7 @@ export class UsersController {
     return { message: 'User permissions replaced' };
   }
 
+  @ApiResponses(USERS_RESPONSES.getEffectivePermissions)
   @ResponseMessage('users.messages.user_effective_permissions_fetch_success')
   @ApiParam({ name: 'id', description: 'User ID' })
   @UseGuards(AuthGuard, RbacGuard)

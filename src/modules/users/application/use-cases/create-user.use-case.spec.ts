@@ -13,6 +13,7 @@ describe('CreateUserUseCase', () => {
       findById: jest.fn(),
       findByEmail: jest.fn(),
       findAll: jest.fn(),
+      update: jest.fn(),
     };
     useCase = new CreateUserUseCase(mockUserRepo);
   });

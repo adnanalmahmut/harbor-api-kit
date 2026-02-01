@@ -213,4 +213,215 @@ describe('Users API Contract (E2E)', () => {
       expect(res.body.data.permissions).toContain('s:a');
     });
   });
+
+  describe('Authentication & Authorization', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/users')
+        .expect(401);
+
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 403 for user without users:read permission', async () => {
+      // Create a user with no permissions
+      const { cookies } = await authHelper.registerAndLogin({
+        email: 'noperm@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'No',
+        lastName: 'Permission',
+      });
+      await clearRedisCache(redisService);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/users')
+        .set('Cookie', cookies)
+        .expect(403);
+
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 403 for non-admin accessing admin-only endpoint', async () => {
+      // Create a regular user (not admin)
+      const { cookies, userId } = await authHelper.registerAndLogin({
+        email: 'regular@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Regular',
+        lastName: 'User',
+      });
+      await clearRedisCache(redisService);
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/users/${userId}/roles`)
+        .set('Cookie', cookies)
+        .expect(403);
+
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should return 404 for non-existent user', async () => {
+      const fakeId = 'non-existent-user-id-123';
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/users/${fakeId}`)
+        .set('Cookie', adminCookies)
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 404 for update on non-existent user', async () => {
+      const fakeId = 'non-existent-user-id-456';
+
+      const res = await request(app.getHttpServer())
+        .put(`/api/v1/users/${fakeId}`)
+        .set('Cookie', adminCookies)
+        .send({ firstName: 'Test' })
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 409 for duplicate email on create', async () => {
+      // First create a user
+      await authHelper.registerAndLogin({
+        email: 'duplicate@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'First',
+        lastName: 'User',
+      });
+
+      // Try to create another user with same email
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookies)
+        .send({
+          email: 'duplicate@test.com',
+          firstName: 'Second',
+          lastName: 'User',
+          name: 'Second User',
+        })
+        .expect(409);
+
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid email format', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/users')
+        .set('Cookie', adminCookies)
+        .send({
+          email: 'invalid-email',
+          firstName: 'Test',
+          lastName: 'User',
+          name: 'Test User',
+        })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+    });
+  });
+
+  describe('Role & Permission Operations', () => {
+    it('should remove role from user', async () => {
+      const { userId } = await authHelper.registerAndLogin({
+        email: 'removerole@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Remove',
+        lastName: 'Role',
+      });
+      const roleId = await rbacHelper.createRole('ToRemove', 'toremove');
+      await rbacHelper.assignRoleToUser(userId, roleId);
+      await clearRedisCache(redisService);
+
+      // Verify role is assigned
+      const before = await request(app.getHttpServer())
+        .get(`/api/v1/users/${userId}/roles`)
+        .set('Cookie', adminCookies)
+        .expect(200);
+      expect(before.body.data).toHaveLength(1);
+
+      // Remove the role
+      await request(app.getHttpServer())
+        .delete(`/api/v1/users/${userId}/roles/${roleId}`)
+        .set('Cookie', adminCookies)
+        .expect(200);
+
+      // Verify role is removed
+      await clearRedisCache(redisService);
+      const after = await request(app.getHttpServer())
+        .get(`/api/v1/users/${userId}/roles`)
+        .set('Cookie', adminCookies)
+        .expect(200);
+      expect(after.body.data).toHaveLength(0);
+    });
+
+    it('should remove permission override from user', async () => {
+      const { userId } = await authHelper.registerAndLogin({
+        email: 'removeperm@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Remove',
+        lastName: 'Perm',
+      });
+      const permId = await rbacHelper.createPermission('remove', 'test');
+
+      // Add permission override
+      await request(app.getHttpServer())
+        .post(`/api/v1/users/${userId}/permissions`)
+        .set('Cookie', adminCookies)
+        .send({ permissionId: permId, effect: 'ALLOW' })
+        .expect(201);
+
+      // Remove it
+      await request(app.getHttpServer())
+        .delete(`/api/v1/users/${userId}/permissions/${permId}`)
+        .set('Cookie', adminCookies)
+        .expect(200);
+
+      // Verify it's removed
+      const perms = await request(app.getHttpServer())
+        .get(`/api/v1/users/${userId}/permissions`)
+        .set('Cookie', adminCookies)
+        .expect(200);
+      expect(perms.body.data.allow).toHaveLength(0);
+    });
+
+    it('should replace user permissions', async () => {
+      const { userId } = await authHelper.registerAndLogin({
+        email: 'replaceperm@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Replace',
+        lastName: 'Perm',
+      });
+      const p1 = await rbacHelper.createPermission('replace', 'one');
+      const p2 = await rbacHelper.createPermission('replace', 'two');
+
+      await request(app.getHttpServer())
+        .put(`/api/v1/users/${userId}/permissions`)
+        .set('Cookie', adminCookies)
+        .send({
+          overrides: [
+            { permissionId: p1, effect: 'ALLOW' },
+            { permissionId: p2, effect: 'DENY' },
+          ],
+        })
+        .expect(200);
+
+      const perms = await request(app.getHttpServer())
+        .get(`/api/v1/users/${userId}/permissions`)
+        .set('Cookie', adminCookies)
+        .expect(200);
+
+      expect(perms.body.data.allow).toHaveLength(1);
+      expect(perms.body.data.deny).toHaveLength(1);
+    });
+  });
 });

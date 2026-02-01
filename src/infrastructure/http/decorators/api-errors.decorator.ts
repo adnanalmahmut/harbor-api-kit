@@ -125,6 +125,10 @@ export function ApiResponses(
           description: 'Success',
           schema: {
             properties: {
+              success: {
+                type: 'boolean',
+                example: true,
+              },
               message: {
                 type: 'string',
                 example: successConfig.message || 'Success',
@@ -137,6 +141,10 @@ export function ApiResponses(
     } else {
       // Use manual example (Legacy/Simple)
       const successSchema: Record<string, any> = {
+        success: {
+          type: 'boolean',
+          example: true,
+        },
         message: {
           type: 'string',
           example: successConfig.message,
@@ -224,6 +232,10 @@ function buildErrorDecorators(
   return Array.from(errorsByStatus.entries()).map(
     ([status, errorsForStatus]) => {
       const schemaProperties: Record<string, any> = {
+        success: {
+          type: 'boolean',
+          example: false,
+        },
         message: {
           type: 'string',
           example: errorsForStatus[0].message,

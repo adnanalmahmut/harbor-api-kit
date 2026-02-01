@@ -1,10 +1,25 @@
 {
   "messages": {
     "user_fetch_success": "User data fetched successfully",
-    "users_fetch_success": "Users data fetched successfully"
+    "users_fetch_success": "Users data fetched successfully",
+    "user_created_success": "User created successfully",
+    "user_updated_success": "User updated successfully",
+    "role_added_success": "Role added to user successfully",
+    "role_removed_success": "Role removed from user successfully",
+    "user_roles_fetch_success": "User roles fetched successfully",
+    "user_roles_replaced_success": "User roles replaced successfully",
+    "permission_override_set_success": "Permission override set successfully",
+    "permission_override_removed_success": "Permission override removed successfully",
+    "user_permissions_fetch_success": "User permissions fetched successfully",
+    "user_permissions_replaced_success": "User permissions replaced successfully",
+    "user_effective_permissions_fetch_success": "Effective permissions fetched successfully"
   },
   "errors": {
     "user_not_found": "User not found",
-    "user_conflict": "Email already exists"
+    "email_already_exists": "Email already exists",
+    "cannot_modify_self": "Cannot modify your own account",
+    "role_not_assigned": "Role is not assigned to this user",
+    "permission_override_not_found": "Permission override not found",
+    "invalid_user_data": "Invalid user data"
   }
 }

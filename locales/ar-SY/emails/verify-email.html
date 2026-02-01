@@ -13,6 +13,7 @@
       padding: 0;
       background-color: #ebeced;
       font-family: Tahoma, Arial, sans-serif;
+      text-align: right;
     "
   >
     <!-- Preheader -->
@@ -27,7 +28,7 @@
         line-height: 0;
       "
     >
-      أكد بريدك الإلكتروني لإكمال إنشاء الحساب.
+      أكد بريدك الإلكتروني لإكمال إعداد حسابك.
     </div>
 
     <!-- Wrapper -->
@@ -58,9 +59,8 @@
           >
             <tr>
               <td align="center" style="padding: 10px 10px 20px 10px">
-                <!-- ضع رابط/صورة الشعار هنا -->
                 <img
-                  src="{{ logoUrl }}"
+                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Test_IT_Logo2.png/830px-Test_IT_Logo2.png?20240413190408"
                   width="140"
                   alt="{{ brandName }}"
                   style="
@@ -75,7 +75,7 @@
             </tr>
           </table>
 
-          <!-- Card container (مثل المثال: خلفية رمادية + بطاقة فاتحة مع حواف دائرية وبادينغ كبير) -->
+          <!-- Card container -->
           <table
             role="presentation"
             width="600"
@@ -87,12 +87,12 @@
               max-width: 600px;
               margin: 0 auto;
               background-color: #fcfcfc;
-              border-radius: 30px;
+              border-radius: 10px;
             "
           >
             <tr>
               <td style="padding: 28px 28px 8px 28px" align="right">
-                <!-- Eyebrow (اختياري) -->
+                <!-- Eyebrow (optional) -->
                 <div
                   style="
                     font-size: 12px;
@@ -127,8 +127,8 @@
                   "
                 >
                   مرحباً {{ firstName }}،<br />
-                  لتفعيل حسابك وإكمال عملية التسجيل، يرجى تأكيد بريدك الإلكتروني
-                  عبر الزر أدناه.
+                  لتفعيل حسابك وإكمال التسجيل، يرجى تأكيد بريدك الإلكتروني عبر
+                  الضغط على الزر أدناه.
                 </div>
 
                 <!-- Button -->
@@ -154,7 +154,7 @@
                           border-radius: 14px;
                         "
                       >
-                        تأكيد البريد الإلكتروني
+                        تأكيد البريد
                       </a>
                     </td>
                   </tr>
@@ -177,6 +177,8 @@
                     font-size: 12px;
                     line-height: 1.9;
                     word-break: break-all;
+                    direction: ltr;
+                    text-align: left;
                   "
                 >
                   <a
@@ -201,7 +203,7 @@
                   <div
                     style="color: #1e3a8a; font-size: 12px; line-height: 1.8"
                   >
-                    إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذا البريد بأمان.
+                    إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة بأمان.
                   </div>
                 </div>
 
@@ -254,7 +256,7 @@
             &nbsp;
           </div>
 
-          <!-- Tiny footer outside card (مثل كثير من القوالب) -->
+          <!-- Tiny footer outside card -->
           <table
             role="presentation"
             width="600"
@@ -273,7 +275,7 @@
                   line-height: 1.6;
                 "
               >
-                هذا البريد تم إرساله تلقائياً. يرجى عدم الرد عليه مباشرة.
+                تم إرسال هذه الرسالة تلقائياً. يرجى عدم الرد على هذه الرسالة.
               </td>
             </tr>
           </table>
