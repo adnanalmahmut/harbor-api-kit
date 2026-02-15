@@ -30,6 +30,14 @@ describe('RBAC Module (E2E)', () => {
     await clearRedisCache(redisService);
   });
 
+  const extractCsrf = (cookieList: string[] = []) => {
+    for (const c of cookieList) {
+      const match = c.match(/__Host-csrf=([^;]+)/);
+      if (match) return { cookie: c, token: match[1] };
+    }
+    return undefined;
+  };
+
   async function registerAndLogin(
     dto: RegisterDto,
   ): Promise<{ cookies: string[]; userId: string }> {
@@ -217,6 +225,7 @@ describe('RBAC Module (E2E)', () => {
       .send({ email: managerReg.email, password: managerReg.password })
       .expect(200);
     const cookies = freshLogin.get('Set-Cookie') || [];
+    const csrf = extractCsrf(cookies);
 
     // 5. Access route requiring 'users:read' - SHOULD ALLOW due to Management Escalation
     await request(app.getHttpServer())
@@ -227,7 +236,8 @@ describe('RBAC Module (E2E)', () => {
     // 6. Access route requiring 'users:create' - SHOULD ALLOW due to Management Escalation
     await request(app.getHttpServer())
       .post('/api/v1/users')
-      .set('Cookie', cookies)
+      .set('Cookie', csrf?.cookie ? [...cookies, csrf.cookie] : cookies)
+      .set('X-CSRF-Token', csrf?.token || '')
       .send({
         email: 'newuser@test.com',
         name: 'New User',
@@ -290,11 +300,13 @@ describe('RBAC Module (E2E)', () => {
       .send({ email: editorReg.email, password: editorReg.password })
       .expect(200);
     const cookies = freshLogin.get('Set-Cookie') || [];
+    const csrf = extractCsrf(cookies);
 
     // 5. Try to Create User - SHOULD FAIL (403) despite role
     await request(app.getHttpServer())
       .post('/api/v1/users')
-      .set('Cookie', cookies)
+      .set('Cookie', csrf?.cookie ? [...cookies, csrf.cookie] : cookies)
+      .set('X-CSRF-Token', csrf?.token || '')
       .send({
         email: 'blocked@test.com',
         name: 'Blocked User',

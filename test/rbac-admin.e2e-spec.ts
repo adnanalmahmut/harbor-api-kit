@@ -10,6 +10,8 @@ describe('RBAC Admin & User APIs (E2E)', () => {
   let prisma: PrismaService;
   let redisService: RedisService;
   let adminCookies: string[];
+  let adminCsrfCookie: string | undefined;
+  let adminCsrfToken: string | undefined;
 
   beforeAll(async () => {
     const factory = await TestAppFactory.create();
@@ -29,6 +31,25 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     await clearRedisCache(redisService);
     await setupAdmin();
   });
+
+  const extractCsrf = (cookieList: string[] = []) => {
+    for (const c of cookieList) {
+      const match = c.match(/__Host-csrf=([^;]+)/);
+      if (match) return { cookie: c, token: match[1] };
+    }
+    return undefined;
+  };
+
+  const csrfHeaders = (cookies: string[]) => {
+    const cookieHeader =
+      adminCsrfCookie && !cookies.includes(adminCsrfCookie)
+        ? [...cookies, adminCsrfCookie]
+        : cookies;
+    if (!adminCsrfToken) {
+      return { Cookie: cookieHeader };
+    }
+    return { Cookie: cookieHeader, 'X-CSRF-Token': adminCsrfToken };
+  };
 
   async function registerAndLogin(
     dto: RegisterDto,
@@ -98,13 +119,21 @@ describe('RBAC Admin & User APIs (E2E)', () => {
       .send({ email: adminReg.email, password: adminReg.password })
       .expect(200);
     adminCookies = loginRes.get('Set-Cookie') || [];
+
+    const meRes = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', adminCookies)
+      .expect(200);
+    const found = extractCsrf(meRes.get('Set-Cookie') || []) ?? extractCsrf(adminCookies);
+    adminCsrfCookie = found?.cookie ?? adminCsrfCookie;
+    adminCsrfToken = found?.token ?? adminCsrfToken;
   }
 
   it('should support Role CRUD', async () => {
     // CREATE
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/admin/roles')
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({
         name: 'Editor',
         slug: 'editor',
@@ -125,7 +154,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // UPDATE
     const updateRes = await request(app.getHttpServer())
       .patch(`/api/v1/admin/roles/${roleId}`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ description: 'Updated Editor Role' })
       .expect(200);
     expect(updateRes.body.data.description).toBe('Updated Editor Role');
@@ -133,7 +162,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // DELETE
     await request(app.getHttpServer())
       .delete(`/api/v1/admin/roles/${roleId}`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .expect(200);
 
     await request(app.getHttpServer())
@@ -146,7 +175,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // CREATE
     const createRes = await request(app.getHttpServer())
       .post('/api/v1/admin/permissions')
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({
         action: 'publish',
         subject: 'posts',
@@ -167,7 +196,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // UPDATE
     const updateRes = await request(app.getHttpServer())
       .patch(`/api/v1/admin/permissions/${permId}`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ description: 'Updated Publish' })
       .expect(200);
     expect(updateRes.body.data.description).toBe('Updated Publish');
@@ -175,7 +204,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // DELETE
     await request(app.getHttpServer())
       .delete(`/api/v1/admin/permissions/${permId}`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .expect(200);
 
     await request(app.getHttpServer())
@@ -199,7 +228,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // Replace with [p1, p2]
     await request(app.getHttpServer())
       .put(`/api/v1/admin/roles/${role.id}/permissions`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ permissionIds: [p1.id, p2.id] })
       .expect(200);
 
@@ -213,7 +242,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // Replace with empty
     await request(app.getHttpServer())
       .put(`/api/v1/admin/roles/${role.id}/permissions`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ permissionIds: [] })
       .expect(200);
 
@@ -244,7 +273,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // 1. Replace User Roles
     await request(app.getHttpServer())
       .put(`/api/v1/users/${targetId}/roles`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ roleIds: [r1.id] })
       .expect(200);
 
@@ -258,7 +287,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // 2. Replace User Permissions (Overrides)
     await request(app.getHttpServer())
       .put(`/api/v1/users/${targetId}/permissions`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ overrides: [{ permissionId: p1.id, effect: 'DENY' }] })
       .expect(200);
 
@@ -305,7 +334,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // Update
     const updateRes = await request(app.getHttpServer())
       .put(`/api/v1/users/${userId}`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ firstName: 'New', lastName: 'Updated' })
       .expect(200);
     expect(updateRes.body.message).toBeDefined();
@@ -321,7 +350,7 @@ describe('RBAC Admin & User APIs (E2E)', () => {
     // Not Found case
     await request(app.getHttpServer())
       .put(`/api/v1/users/00000000-0000-0000-0000-000000000000`)
-      .set('Cookie', adminCookies)
+      .set(csrfHeaders(adminCookies))
       .send({ firstName: 'Ghost' })
       .expect(404);
   });

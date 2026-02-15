@@ -35,8 +35,8 @@ describe('Rate Limit (contract)', () => {
       })
       .expect(201);
   });
-
-  it('ينبغي أن يعيد 429 بعد تجاوز حد /auth/login المحدد', async () => {
+// english msg
+  it('s supposed to return 429 after exceeding the specified /auth/login limit', async() => {
     const payload = { email: 'rate@test.com', password: 'WrongPass123!' };
 
     for (let i = 0; i < 5; i++) {

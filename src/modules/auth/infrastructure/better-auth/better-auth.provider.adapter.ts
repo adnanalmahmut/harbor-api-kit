@@ -717,7 +717,7 @@ export class BetterAuthProvider implements AuthProviderPort {
       });
 
       const { headers, response } = res;
-      const data = response as any;
+      const data = response;
       const cookies = readCookiesFromHeaders(headers);
 
       if (context.ip) {

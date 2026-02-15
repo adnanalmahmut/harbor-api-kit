@@ -34,6 +34,14 @@ describe('Auth Module (E2E)', () => {
     lastName: 'User',
   };
 
+  const extractCsrf = (cookieList: string[] = []) => {
+    for (const c of cookieList) {
+      const match = c.match(/__Host-csrf=([^;]+)/);
+      if (match) return { cookie: c, token: match[1] };
+    }
+    return undefined;
+  };
+
   it('should register, login, cache session, and logout', async () => {
     const registerRes = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
@@ -56,9 +64,14 @@ describe('Auth Module (E2E)', () => {
 
     expect(meRes1.body.data.user.email).toBe(registerDto.email);
 
+    const freshCookies = meRes1.get('Set-Cookie') || [];
+    const csrf = extractCsrf(freshCookies) ?? extractCsrf(loginCookies);
+    expect(csrf).toBeDefined();
+
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-out')
-      .set('Cookie', loginCookies)
+      .set('Cookie', [...loginCookies, csrf!.cookie])
+      .set('X-CSRF-Token', csrf!.token)
       .expect(200);
 
     // After logout, session should be invalidated
