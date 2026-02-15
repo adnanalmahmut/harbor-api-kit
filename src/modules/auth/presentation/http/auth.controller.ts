@@ -1,63 +1,64 @@
-import type { RequestContext } from '#src/core/context/request-context.type.js';
-import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
-import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
-import type { RequestContextStorePort } from '#src/modules/auth/application/ports/request-context.store.port.js';
-import {
-  ChangeEmailUseCase,
-  ChangePasswordUseCase,
-  CheckResetTokenUseCase,
-  DeleteUserUseCase,
-  ForgetPasswordUseCase,
-  GetSessionUseCase,
-  LinkSocialUseCase,
-  ListLinkedAccountsUseCase,
-  ListSessionsUseCase,
-  LoginUserUseCase,
-  ReactivateUserUseCase,
-  RegisterUserUseCase,
-  ResetPasswordUseCase,
-  RevokeOtherSessionsUseCase,
-  RevokeSessionUseCase,
-  RevokeSessionsUseCase,
-  SendVerificationEmailUseCase,
-  SignInSocialUseCase,
-  SignOutUseCase,
-  UnlinkAccountUseCase,
-  UpdateUserUseCase,
-  VerifyEmailUseCase,
-  VerifyPasswordUseCase,
-} from '#src/modules/auth/application/use-cases/index.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import { AUTH_RESPONSES } from '#src/modules/auth/presentation/http/api-responses.examples.js';
-import { applyCookies } from '#src/modules/auth/presentation/http/cookie.serializer.js';
-import {
-  ChangeEmailDto,
-  ChangePasswordDto,
-  ForgetPasswordDto,
-  LinkSocialDto,
-  LoginDto,
-  ReactivateUserDto,
-  RegisterDto,
-  ResetPasswordDto,
-  RevokeSessionDto,
-  RevokeSessionsDto,
-  SendVerificationEmailDto,
-  SignInSocialDto,
-  UnlinkAccountDto,
-  UpdateUserDto,
-  VerifyEmailDto,
-  VerifyPasswordDto,
-} from '#src/modules/auth/presentation/http/dtos/index.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
-import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
-import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
-import { AppConfigService } from '#src/shared/config/app-config.service.js';
-import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
+import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
+import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
 import {
   AuthRedirectInterceptor,
   RedirectOnResult,
-} from '#src/shared/http/interceptors/auth-redirect.interceptor.js';
+} from '#src/core/presentation/http/interceptors/auth-redirect.interceptor.js';
+import { makeCsrfToken } from '#src/core/presentation/http/security/csrf/csrf.util.js';
+import { RateLimit } from '#src/core/presentation/http/security/rate-limit/rate-limit.decorators.js';
+import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
+import { ChangeEmailUseCase } from '#src/modules/auth/application/use-cases/change-email.use-case.js';
+import { ChangePasswordUseCase } from '#src/modules/auth/application/use-cases/change-password.use-case.js';
+import { CheckResetTokenUseCase } from '#src/modules/auth/application/use-cases/check-reset-token.use-case.js';
+import { DeleteUserUseCase } from '#src/modules/auth/application/use-cases/delete-user.use-case.js';
+import { ForgetPasswordUseCase } from '#src/modules/auth/application/use-cases/forget-password.use-case.js';
+import { GetSessionUseCase } from '#src/modules/auth/application/use-cases/get-session.use-case.js';
+import { LinkSocialUseCase } from '#src/modules/auth/application/use-cases/link-social.use-case.js';
+import { ListLinkedAccountsUseCase } from '#src/modules/auth/application/use-cases/list-linked-accounts.use-case.js';
+import { ListSessionsUseCase } from '#src/modules/auth/application/use-cases/list-sessions.use-case.js';
+import { LoginUserUseCase } from '#src/modules/auth/application/use-cases/login-user.use-case.js';
+import { ReactivateUserUseCase } from '#src/modules/auth/application/use-cases/reactivate-user.use-case.js';
+import { RegisterUserUseCase } from '#src/modules/auth/application/use-cases/register-user.use-case.js';
+import { ResetPasswordUseCase } from '#src/modules/auth/application/use-cases/reset-password.use-case.js';
+import { RevokeOtherSessionsUseCase } from '#src/modules/auth/application/use-cases/revoke-other-sessions.use-case.js';
+import { RevokeSessionUseCase } from '#src/modules/auth/application/use-cases/revoke-session.use-case.js';
+import { RevokeSessionsUseCase } from '#src/modules/auth/application/use-cases/revoke-sessions.use-case.js';
+import { SendVerificationEmailUseCase } from '#src/modules/auth/application/use-cases/send-verification-email.use-case.js';
+import { SignInSocialUseCase } from '#src/modules/auth/application/use-cases/sign-in-social.use-case.js';
+import { SignOutUseCase } from '#src/modules/auth/application/use-cases/sign-out.use-case.js';
+import { UnlinkAccountUseCase } from '#src/modules/auth/application/use-cases/unlink-account.use-case.js';
+import { UpdateUserUseCase } from '#src/modules/auth/application/use-cases/update-user.use-case.js';
+import { VerifyEmailUseCase } from '#src/modules/auth/application/use-cases/verify-email.use-case.js';
+import { VerifyPasswordUseCase } from '#src/modules/auth/application/use-cases/verify-password.use-case.js';
+import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import { AUTH_RESPONSES } from '#src/modules/auth/presentation/http/api-responses.examples.js';
+import { applyCookies } from '#src/modules/auth/presentation/http/cookie.serializer.js';
+import { ChangeEmailDto } from '#src/modules/auth/presentation/http/dtos/change-email.dto.js';
+import { ChangePasswordDto } from '#src/modules/auth/presentation/http/dtos/change-password.dto.js';
+import { ForgetPasswordDto } from '#src/modules/auth/presentation/http/dtos/forget-password.dto.js';
+import { LoginDto } from '#src/modules/auth/presentation/http/dtos/login.dto.js';
+import { ReactivateUserDto } from '#src/modules/auth/presentation/http/dtos/reactivate-user.dto.js';
+import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
+import { ResetPasswordDto } from '#src/modules/auth/presentation/http/dtos/reset-password.dto.js';
+import { RevokeSessionDto } from '#src/modules/auth/presentation/http/dtos/revoke-session.dto.js';
+import { RevokeSessionsDto } from '#src/modules/auth/presentation/http/dtos/revoke-sessions.dto.js';
+import { SendVerificationEmailDto } from '#src/modules/auth/presentation/http/dtos/send-verification-email.dto.js';
+import {
+  LinkSocialDto,
+  SignInSocialDto,
+  UnlinkAccountDto,
+} from '#src/modules/auth/presentation/http/dtos/social-auth.dto.js';
+import { UpdateUserDto } from '#src/modules/auth/presentation/http/dtos/update-user.dto.js';
+import { VerifyEmailDto } from '#src/modules/auth/presentation/http/dtos/verify-email.dto.js';
+import { VerifyPasswordDto } from '#src/modules/auth/presentation/http/dtos/verify-password.dto.js';
+import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
+import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import {
   Body,
   Controller,
@@ -74,8 +75,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiExcludeEndpoint } from '@nestjs/swagger';
-import type { FastifyReply } from 'fastify';
-import { I18nContext } from 'nestjs-i18n';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 @Controller('auth')
 export class AuthController {
@@ -103,7 +103,7 @@ export class AuthController {
     private readonly linkSocialUseCase: LinkSocialUseCase,
     private readonly listLinkedAccountsUseCase: ListLinkedAccountsUseCase,
     private readonly unlinkAccountUseCase: UnlinkAccountUseCase,
-    @Inject(AUTH_TOKENS.REQUEST_CONTEXT_STORE)
+    @Inject(CORE_TOKENS.REQUEST_CONTEXT_STORE)
     private readonly contextStore: RequestContextStorePort,
     @Inject(AUTH_TOKENS.AUTH_PROVIDER)
     private readonly authProvider: AuthProviderPort,
@@ -114,6 +114,19 @@ export class AuthController {
     const ctx = this.contextStore.get();
     if (!ctx) throw AuthException.internalError();
     return ctx;
+  }
+
+  private issueCsrfCookie(reply: FastifyReply) {
+    const csrf = this.config.csrf();
+    if (!csrf.enabled) return;
+
+    const token = makeCsrfToken();
+    reply.setCookie(csrf.cookieName, token, {
+      httpOnly: false,
+      secure: csrf.cookieSecure,
+      sameSite: csrf.sameSite,
+      path: '/',
+    });
   }
 
   @UseGuards(AuthGuard)
@@ -142,17 +155,18 @@ export class AuthController {
       firstName: body.firstName,
       lastName: body.lastName,
       context,
-      locale: I18nContext.current()?.lang,
     });
 
     applyCookies(reply, result.cookies);
+    this.issueCsrfCookie(reply);
     return result.data;
   }
 
   @ApiResponses(AUTH_RESPONSES.login)
-  @ResponseMessage('auth.messages.login_success')
+  @RateLimit({ points: 5, durationSec: 60 })
   @Post('/login')
   @HttpCode(HttpStatus.OK)
+  @ResponseMessage('auth.messages.login_success')
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) reply: FastifyReply,
@@ -168,6 +182,7 @@ export class AuthController {
     });
 
     applyCookies(reply, result.cookies);
+    this.issueCsrfCookie(reply);
     return result.data;
   }
 
@@ -194,6 +209,7 @@ export class AuthController {
 
   @ApiResponses(AUTH_RESPONSES.sendVerificationEmail)
   @ResponseMessage('auth.messages.send_verification_email_success')
+  @RateLimit({ points: 5, durationSec: 300 })
   @Post('/send-verification-email')
   @HttpCode(HttpStatus.OK)
   async sendVerificationEmail(@Body() body: SendVerificationEmailDto) {
@@ -207,6 +223,7 @@ export class AuthController {
 
   @ApiResponses(AUTH_RESPONSES.forgotPassword)
   @ResponseMessage('auth.messages.forget_password_success')
+  @RateLimit({ points: 5, durationSec: 300 })
   @Post('/forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgetPassword(
@@ -216,7 +233,6 @@ export class AuthController {
     const context = this.requireContext();
     const result = await this.forgetPasswordUseCase.execute({
       email: body.email,
-      redirectTo: body.redirectTo,
       context,
     });
 
@@ -332,7 +348,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async revokeSession(@Body() body: RevokeSessionDto) {
     const context = this.requireContext();
-    const result = await this.revokeSessionUseCase.execute(body.token, context);
+    const result = await this.revokeSessionUseCase.execute(
+      body.sessionId,
+      context,
+    );
     return result.data;
   }
 
@@ -344,7 +363,7 @@ export class AuthController {
   async revokeSessions(@Body() body: RevokeSessionsDto) {
     const context = this.requireContext();
     const result = await this.revokeSessionsUseCase.execute(
-      body.tokens,
+      body.sessionIds,
       context,
     );
     return result.data;
@@ -410,6 +429,7 @@ export class AuthController {
       context,
     });
     applyCookies(reply, result.cookies);
+    this.issueCsrfCookie(reply);
     return result.data;
   }
 
@@ -428,6 +448,7 @@ export class AuthController {
       context,
     });
     applyCookies(reply, result.cookies);
+    this.issueCsrfCookie(reply);
     return result.data;
   }
 
@@ -464,7 +485,7 @@ export class AuthController {
   @ApiExcludeEndpoint()
   @Get('/callback/*')
   async handleOAuthCallback(
-    @Req() req: any,
+    @Req() req: FastifyRequest,
     @Res({ passthrough: false }) res: FastifyReply,
   ) {
     await this.authProvider.handleRequest(req, res);
@@ -473,7 +494,7 @@ export class AuthController {
   @ApiExcludeEndpoint()
   @Get('/error')
   async handleOAuthError(
-    @Req() req: any,
+    @Req() req: FastifyRequest,
     @Res({ passthrough: false }) res: FastifyReply,
   ) {
     await this.authProvider.handleRequest(req, res);

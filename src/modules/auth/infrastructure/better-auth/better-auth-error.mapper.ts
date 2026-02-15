@@ -1,6 +1,6 @@
 // better-auth-error.mapper.ts
-import { ValidationError } from '#src/core/exceptions/validation.exception.js';
-import type { ValidationIssue } from '#src/core/types/api.types.js';
+import { ValidationError } from '#src/core/domain/exceptions/validation.exception.js';
+import type { ValidationIssue } from '#src/core/domain/types/validation-issue.type.js';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
 import { BETTER_AUTH_CODE_MAP } from '#src/modules/auth/infrastructure/better-auth/better-auth-code-map.js';

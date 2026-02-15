@@ -1,4 +1,4 @@
-import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
+import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
 import type { PermissionRepositoryPort } from '#src/modules/rbac/domain/ports/permission.repository.port.js';
 import { z } from 'zod';
 

@@ -1,20 +1,10 @@
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { redisKeys } from '#src/core/infrastructure/redis/redis.keys.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
 import { Role } from '#src/modules/rbac/domain/entities/role.entity.js';
-import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
-// We use our infra/redis/redis.keys
-import { redisKeys } from '#src/infrastructure/redis/redis.keys.js';
 import { Injectable } from '@nestjs/common';
-// We need a token for CacheManager. Usually it's 'CACHE_MANAGER' or we define one.
-// Or we inject RedisService directly?
-// In SharedModule we might export a CacheManagerPort provider.
-// Let's assume we can inject RedisService from infrastructure/redis/redis.service.ts if we export it.
-// The user rule says: "Prisma repos ... No NestJS/Prisma/Redis/HTTP/i18n." -> Wait.
-// "Prohibited imports in Domain/Application".
-// "Infrastructure: Prisma repos, Redis adapters...".
-// So Infra CAN use Redis.
-
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
 
 @Injectable()
 export class PrismaRoleRepository implements RoleRepositoryPort {
@@ -24,71 +14,115 @@ export class PrismaRoleRepository implements RoleRepositoryPort {
   ) {}
 
   async findAll(): Promise<Role[]> {
-    const roles = await this.prisma.role.findMany();
-    return roles.map((role) => this.toDomain(role));
+    try {
+      const roles = await this.prisma.role.findMany();
+      return roles.map((role) => this.toDomain(role));
+    } catch (error) {
+      throw RbacException.databaseError({ originalError: error });
+    }
   }
 
   async findById(id: string): Promise<Role | null> {
-    const role = await this.prisma.role.findUnique({ where: { id } });
-    return role ? this.toDomain(role) : null;
+    try {
+      const role = await this.prisma.role.findUnique({ where: { id } });
+      return role ? this.toDomain(role) : null;
+    } catch (error) {
+      throw RbacException.databaseError({ id, originalError: error });
+    }
   }
 
   async findBySlug(slug: string): Promise<Role | null> {
-    const role = await this.prisma.role.findUnique({ where: { slug } });
-    return role ? this.toDomain(role) : null;
+    try {
+      const role = await this.prisma.role.findUnique({ where: { slug } });
+      return role ? this.toDomain(role) : null;
+    } catch (error) {
+      throw RbacException.databaseError({ slug, originalError: error });
+    }
   }
 
   async listUserRoleIds(userId: string): Promise<string[]> {
-    const roles = await this.prisma.role.findMany({
-      where: {
-        userRoles: { some: { userId } },
-      },
-      select: { id: true },
-    });
-    return roles.map((r) => r.id);
+    try {
+      const roles = await this.prisma.role.findMany({
+        where: {
+          userRoles: { some: { userId } },
+        },
+        select: { id: true },
+      });
+      return roles.map((r) => r.id);
+    } catch (error) {
+      throw RbacException.databaseError({ userId, originalError: error });
+    }
   }
 
   async listRolesForUser(userId: string): Promise<Role[]> {
-    const roles = await this.prisma.role.findMany({
-      where: {
-        userRoles: { some: { userId } },
-      },
-    });
-    return roles.map((role) => this.toDomain(role));
+    try {
+      const roles = await this.prisma.role.findMany({
+        where: {
+          userRoles: { some: { userId } },
+        },
+      });
+      return roles.map((role) => this.toDomain(role));
+    } catch (error) {
+      throw RbacException.databaseError({ userId, originalError: error });
+    }
   }
 
   async assignRoleToUser(userId: string, roleId: string): Promise<void> {
-    await this.prisma.userRole.create({
-      data: {
-        userId,
-        roleId,
-      },
-    });
-    await this.invalidateUserRoles(userId);
-  }
-
-  async removeRoleFromUser(userId: string, roleId: string): Promise<void> {
-    await this.prisma.userRole.delete({
-      where: {
-        userId_roleId: {
+    try {
+      await this.prisma.userRole.create({
+        data: {
           userId,
           roleId,
         },
-      },
-    });
-    await this.invalidateUserRoles(userId);
+      });
+      await this.invalidateUserRoles(userId);
+    } catch (error) {
+      throw RbacException.databaseError({
+        userId,
+        roleId,
+        originalError: error,
+      });
+    }
+  }
+
+  async removeRoleFromUser(userId: string, roleId: string): Promise<void> {
+    try {
+      await this.prisma.userRole.delete({
+        where: {
+          userId_roleId: {
+            userId,
+            roleId,
+          },
+        },
+      });
+      await this.invalidateUserRoles(userId);
+    } catch (error) {
+      throw RbacException.databaseError({
+        userId,
+        roleId,
+        originalError: error,
+      });
+    }
   }
 
   async replaceUserRoles(userId: string, roleIds: string[]): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.userRole.deleteMany({ where: { userId } });
-      if (roleIds.length > 0) {
-        await tx.userRole.createMany({
-          data: roleIds.map((roleId) => ({ userId, roleId })),
-        });
-      }
-    });
-    await this.invalidateUserRoles(userId);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.userRole.deleteMany({ where: { userId } });
+        if (roleIds.length > 0) {
+          await tx.userRole.createMany({
+            data: roleIds.map((roleId) => ({ userId, roleId })),
+          });
+        }
+      });
+      await this.invalidateUserRoles(userId);
+    } catch (error) {
+      throw RbacException.databaseError({
+        userId,
+        roleIds,
+        originalError: error,
+      });
+    }
   }
 
   async create(role: Role): Promise<Role> {
@@ -101,12 +135,13 @@ export class PrismaRoleRepository implements RoleRepositoryPort {
           isSystem: role.isSystem,
         },
       });
+      await this.invalidateGlobalRbac();
       return this.toDomain(record);
     } catch (error: any) {
       if (error.code === 'P2002') {
         throw RbacException.roleAlreadyExists(role.slug);
       }
-      throw error;
+      throw RbacException.databaseError({ originalError: error });
     }
   }
 
@@ -119,48 +154,55 @@ export class PrismaRoleRepository implements RoleRepositoryPort {
           updatedAt: new Date(),
         },
       });
-      return this.toDomain(record);
+      const updated = this.toDomain(record);
+      // Changing a role affects all users with that role -> Global Bump
+      await this.invalidateGlobalRbac();
+      return updated;
     } catch (error: any) {
       if (error.code === 'P2002') {
         throw RbacException.roleAlreadyExists(diff.slug || 'unknown');
       }
-      // Handle RecordNotFound by Prisma
-      throw error;
+      throw RbacException.databaseError({ id, originalError: error });
     }
   }
 
   async delete(id: string): Promise<void> {
-    // Check usage
-    const usage = await this.prisma.role.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { userRoles: true, rolePerms: true },
+    try {
+      // Check usage
+      const usage = await this.prisma.role.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: { userRoles: true, rolePerms: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!usage) {
-      throw RbacException.roleNotFound(id);
+      if (!usage) {
+        throw RbacException.roleNotFound(id);
+      }
+
+      if (usage._count.userRoles > 0 || usage._count.rolePerms > 0) {
+        throw RbacException.roleInUse(id);
+      }
+
+      await this.prisma.role.delete({ where: { id } });
+      await this.invalidateGlobalRbac();
+    } catch (error) {
+      if (error instanceof RbacException) throw error;
+      throw RbacException.databaseError({ id, originalError: error });
     }
-
-    if (usage._count.userRoles > 0 || usage._count.rolePerms > 0) {
-      throw RbacException.roleInUse(id);
-    }
-
-    await this.prisma.role.delete({ where: { id } });
   }
 
   private async invalidateUserRoles(userId: string) {
-    // Invalidate the specific user's roles cache
-    const key = redisKeys.rbacRoles(userId);
-    await this.redis.del(key);
-    // We need RedisService or access to cache.
-    // Since this is Repository (Infra), we can inject RedisService or use RequestContext.
-    // Ideally Repositories should use CacheManagerPort if we want to be clean, OR rely on a Cache Service.
-    // "Clean Architecture dependency direction: outer -> inner". Repo is outer.
-    // Redis is also outer. Can Repo depend on Redis? Yes (Infra -> Infra).
-    // I need to inject the Redis Client or Cache Manager.
+    // Only bump user-specific version for user role changes
+    // Global rbacVersion is only bumped for role/permission definition changes
+    await this.redis.incr(redisKeys.rbacUserVersion(userId));
+  }
+
+  private async invalidateGlobalRbac() {
+    // Strategy A: Bump global version
+    await this.redis.incr(redisKeys.rbacVersion());
   }
 
   private toDomain(record: any): Role {

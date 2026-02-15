@@ -1,5 +1,5 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
+import { AppException } from '#src/core/domain/exceptions/app-exception.js';
+import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
 
 export class AuthException extends AppException {
   static authenticationRequired() {
@@ -9,10 +9,6 @@ export class AuthException extends AppException {
     });
   }
 
-  /**
-   * When session has expired
-   * Use this when we detect an expired session
-   */
   static sessionExpired() {
     return new AuthException({
       code: AppErrorCode.UNAUTHORIZED,
@@ -20,9 +16,6 @@ export class AuthException extends AppException {
     });
   }
 
-  /**
-   * When token is invalid or malformed
-   */
   static invalidToken() {
     return new AuthException({
       code: AppErrorCode.UNAUTHORIZED,
@@ -30,19 +23,12 @@ export class AuthException extends AppException {
     });
   }
 
-  /**
-   * When login credentials are wrong
-   */
   static invalidCredentials() {
     return new AuthException({
       code: AppErrorCode.UNAUTHORIZED,
       messageKey: 'auth.errors.invalid_credentials',
     });
   }
-
-  // ========================================
-  // Email related
-  // ========================================
 
   static emailAlreadyExists() {
     return new AuthException({
@@ -65,10 +51,6 @@ export class AuthException extends AppException {
     });
   }
 
-  // ========================================
-  // Password related
-  // ========================================
-
   static passwordIncorrect() {
     return new AuthException({
       code: AppErrorCode.BAD_REQUEST,
@@ -76,20 +58,12 @@ export class AuthException extends AppException {
     });
   }
 
-  // ========================================
-  // Session related
-  // ========================================
-
   static sessionNotFound() {
     return new AuthException({
       code: AppErrorCode.NOT_FOUND,
       messageKey: 'auth.errors.session_not_found',
     });
   }
-
-  // ========================================
-  // Social auth
-  // ========================================
 
   static accountNotFound() {
     return new AuthException({
@@ -104,10 +78,6 @@ export class AuthException extends AppException {
       messageKey: 'auth.errors.invalid_provider',
     });
   }
-
-  // ========================================
-  // Generic errors
-  // ========================================
 
   static invalidRequest() {
     return new AuthException({
@@ -151,13 +121,6 @@ export class AuthException extends AppException {
     });
   }
 
-  // ========================================
-  // Backward compatibility (deprecated)
-  // ========================================
-
-  /**
-   * @deprecated Use authenticationRequired() or sessionExpired() instead
-   */
   static unauthorized() {
     return AuthException.authenticationRequired();
   }

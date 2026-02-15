@@ -1,5 +1,5 @@
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { clearRedisCache } from './test-redis.helper.js';
 
 export class RbacHelper {
@@ -21,10 +21,21 @@ export class RbacHelper {
         subject,
         action,
         description: `${action} ${subject}`,
-        index: Math.floor(Math.random() * 100000) + 1,
+        index: Math.floor(Math.random() * 1000000000) + 1,
       },
     });
     return perm.id;
+  }
+
+  async getPermission(subject: string, action: string) {
+    return this.prisma.permission.findUnique({
+      where: {
+        action_subject: {
+          action,
+          subject,
+        },
+      },
+    });
   }
 
   async assignRoleToUser(userId: string, roleId: string): Promise<void> {

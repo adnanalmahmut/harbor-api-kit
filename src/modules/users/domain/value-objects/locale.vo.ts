@@ -2,8 +2,8 @@ import {
   DEFAULT_LOCALE,
   SUPPORTED_LOCALES,
   type SupportedLocale,
-} from '#src/core/constants/locales.js';
-import { AppException } from '#src/core/exceptions/app-exception.js';
+} from '#src/core/domain/constants/locales.js';
+import { AppException } from '#src/core/domain/exceptions/app-exception.js';
 
 export class LocaleVO {
   private constructor(readonly value: SupportedLocale) {}

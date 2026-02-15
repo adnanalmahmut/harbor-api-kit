@@ -1,3 +1,6 @@
+// MUST set APP_ENV before any imports to ensure test environment
+process.env.APP_ENV = 'test';
+
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 

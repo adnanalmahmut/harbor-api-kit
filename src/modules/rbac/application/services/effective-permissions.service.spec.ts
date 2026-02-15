@@ -1,5 +1,6 @@
-import type { CacheManagerPort } from '#src/core/ports/cache-manager.port.js';
-import type { LoggerPort } from '#src/core/ports/logger.port.js';
+import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
+import type { LoggerPort } from '#src/core/application/ports/logger.port.js';
+import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
@@ -14,11 +15,12 @@ describe('EffectivePermissionsService', () => {
   let mockGrantsRepo: jest.Mocked<GrantsRepositoryPort>;
   let mockCache: jest.Mocked<CacheManagerPort>;
   let mockLogger: jest.Mocked<LoggerPort>;
+  let mockContextStore: jest.Mocked<RequestContextStorePort>;
 
   beforeEach(() => {
     mockRoleRepo = {
       listUserRoleIds: jest.fn<() => Promise<string[]>>(),
-      listRolesForUser: jest.fn<() => Promise<never[]>>().mockResolvedValue([]),
+      listRolesForUser: jest.fn<() => Promise<any[]>>().mockResolvedValue([]),
       findAll: jest.fn(),
       findById: jest.fn(),
       findBySlug: jest.fn(),
@@ -37,8 +39,9 @@ describe('EffectivePermissionsService', () => {
 
     mockCache = {
       get: jest.fn<() => Promise<string | null>>().mockResolvedValue(null),
-      set: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      del: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      set: jest.fn<() => Promise<any>>().mockResolvedValue('OK'),
+      del: jest.fn<() => Promise<number>>().mockResolvedValue(1),
+      incr: jest.fn<() => Promise<number>>().mockResolvedValue(1),
     } as unknown as jest.Mocked<CacheManagerPort>;
 
     mockLogger = {
@@ -48,11 +51,22 @@ describe('EffectivePermissionsService', () => {
       error: jest.fn(),
     } as unknown as jest.Mocked<LoggerPort>;
 
+    mockContextStore = {
+      get: jest.fn(),
+      set: jest.fn(),
+      getOrLoad: jest
+        .fn<any>()
+        .mockImplementation((_key: string, loader: () => Promise<any>) =>
+          loader(),
+        ),
+    } as unknown as jest.Mocked<RequestContextStorePort>;
+
     service = new EffectivePermissionsService(
       mockRoleRepo,
       mockGrantsRepo,
       mockCache,
       mockLogger,
+      mockContextStore,
     );
   });
 
@@ -74,7 +88,7 @@ describe('EffectivePermissionsService', () => {
       deny: [],
     });
 
-    const perms = await service.buildForUser(userId);
+    const perms = await service.buildForUser({ id: userId });
 
     expect(perms.has('posts:read')).toBe(true);
     expect(perms.has('posts:write')).toBe(true);

@@ -1,5 +1,5 @@
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AuthHelper } from './helpers/auth.helper.js';
@@ -15,6 +15,27 @@ describe('RBAC Admin API Contract (E2E)', () => {
   let authHelper: AuthHelper;
   let rbacHelper: RbacHelper;
   let adminCookies: string[];
+  let csrfCookie: string | undefined;
+  let csrfToken: string | undefined;
+
+  const extractCsrf = (cookies: string[] = []) => {
+    for (const c of cookies) {
+      const match = c.match(/__Host-csrf=([^;]+)/);
+      if (match) return { cookie: c, token: match[1] };
+    }
+    return undefined;
+  };
+
+  const csrfHeaders = (cookies: string[]) => {
+    const list =
+      csrfCookie && !cookies.includes(csrfCookie)
+        ? [...cookies, csrfCookie]
+        : cookies;
+    const cookieHeader = list.join('; ');
+    if (!csrfToken)
+      throw new Error('CSRF token missing in RBAC contract tests');
+    return { Cookie: cookieHeader, 'X-CSRF-Token': csrfToken };
+  };
 
   beforeAll(async () => {
     const factory = await TestAppFactory.create();
@@ -33,6 +54,7 @@ describe('RBAC Admin API Contract (E2E)', () => {
     await resetDb(prisma);
     await clearRedisCache(redisService);
     await setupAdmin();
+    await fetchCsrf(adminCookies);
   });
 
   async function setupAdmin() {
@@ -80,11 +102,22 @@ describe('RBAC Admin API Contract (E2E)', () => {
     adminCookies = cookies;
   }
 
+  async function fetchCsrf(cookies: string[]) {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', cookies);
+    const setCookies = res.get('Set-Cookie') || [];
+    const found = extractCsrf(setCookies) ?? extractCsrf(cookies);
+    csrfCookie = found?.cookie ?? csrfCookie;
+    csrfToken = found?.token ?? csrfToken;
+    if (!csrfToken) throw new Error('CSRF token could not be initialized');
+  }
+
   describe('Roles CRUD', () => {
     it('should create a role successfully', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/admin/roles')
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({
           name: 'Editor',
           slug: 'editor',
@@ -92,6 +125,7 @@ describe('RBAC Admin API Contract (E2E)', () => {
         })
         .expect(201);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.id).toBeDefined();
       expect(res.body.data.slug).toBe('editor');
     });
@@ -101,13 +135,14 @@ describe('RBAC Admin API Contract (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/admin/roles')
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({
           name: 'Duplicate',
           slug: 'duplicate', // Conflict on slug
         })
         .expect(409); // Conflict
 
+      expect(res.body.success).toBe(false);
       expect(res.body.message).toBeDefined();
     });
 
@@ -119,6 +154,7 @@ describe('RBAC Admin API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.slug).toBe('viewer');
     });
 
@@ -127,10 +163,11 @@ describe('RBAC Admin API Contract (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/admin/roles/${id}`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ description: 'Updated Description' })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.description).toBe('Updated Description');
     });
 
@@ -139,14 +176,17 @@ describe('RBAC Admin API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .delete(`/api/v1/admin/roles/${id}`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .expect(200);
 
       // Verify gone
       await request(app.getHttpServer())
         .get(`/api/v1/admin/roles/${id}`)
         .set('Cookie', adminCookies)
-        .expect(404);
+        .expect(404)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
   });
 
@@ -154,7 +194,7 @@ describe('RBAC Admin API Contract (E2E)', () => {
     it('should create permission', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/admin/permissions')
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({
           subject: 'posts',
           action: 'publish',
@@ -162,6 +202,7 @@ describe('RBAC Admin API Contract (E2E)', () => {
         })
         .expect(201);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.action).toBe('publish');
     });
   });
@@ -173,15 +214,19 @@ describe('RBAC Admin API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/v1/admin/roles/${rId}/permissions`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ permissionId: pId })
-        .expect(201);
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       const list = await request(app.getHttpServer())
         .get(`/api/v1/admin/roles/${rId}/permissions`)
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(list.body.success).toBe(true);
       expect(list.body.data).toHaveLength(1);
       expect(list.body.data[0].id).toBe(pId);
     });
@@ -193,7 +238,7 @@ describe('RBAC Admin API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .put(`/api/v1/admin/roles/${rId}/permissions`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ permissionIds: [p1, p2] })
         .expect(200);
 
@@ -202,7 +247,159 @@ describe('RBAC Admin API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(list.body.success).toBe(true);
       expect(list.body.data).toHaveLength(2);
+    });
+  });
+  describe('Cache Invalidation (Immediate Effect)', () => {
+    let userBCookies: string[];
+    let userBId: string;
+    let usersReadPermissionId: string;
+
+    const protectedEndpoint = '/api/v1/users';
+
+    const requestProtectedAsUserB = (status: number) =>
+      request(app.getHttpServer())
+        .get(protectedEndpoint)
+        .set('Cookie', userBCookies)
+        .expect(status)
+        .expect((res) => {
+          expect(res.body.success).toBe(status < 400);
+        });
+
+    async function ensureUsersReadPermission(): Promise<string> {
+      const existing = await rbacHelper.getPermission('users', 'read');
+      if (existing) return existing.id;
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/admin/permissions')
+        .set(csrfHeaders(adminCookies))
+        .send({
+          subject: 'users',
+          action: 'read',
+          description: 'users read',
+        })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      return res.body.data.id;
+    }
+
+    async function createLimitedRole(): Promise<string> {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/admin/roles')
+        .set(csrfHeaders(adminCookies))
+        .send({
+          name: 'Limited',
+          slug: 'limited',
+          description: 'Limited role for cache invalidation tests',
+        })
+        .expect(201);
+
+      const roleId = res.body.data.id;
+      expect(res.body.success).toBe(true);
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/admin/roles/${roleId}/permissions`)
+        .set(csrfHeaders(adminCookies))
+        .send({ permissionId: usersReadPermissionId })
+        .expect(201)
+        .expect((r) => {
+          expect(r.body.success).toBe(true);
+        });
+
+      return roleId;
+    }
+
+    async function assignRoleToUser(roleId: string) {
+      await request(app.getHttpServer())
+        .post(`/api/v1/users/${userBId}/roles`)
+        .set(csrfHeaders(adminCookies))
+        .send({ roleId })
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
+    }
+
+    async function unassignRoleFromUser(roleId: string) {
+      await request(app.getHttpServer())
+        .delete(`/api/v1/users/${userBId}/roles/${roleId}`)
+        .set(csrfHeaders(adminCookies))
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
+    }
+
+    async function setUserOverride(effect: 'ALLOW' | 'DENY') {
+      await request(app.getHttpServer())
+        .put(`/api/v1/users/${userBId}/permissions`)
+        .set(csrfHeaders(adminCookies))
+        .send({
+          overrides: [{ permissionId: usersReadPermissionId, effect }],
+        })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
+    }
+
+    beforeEach(async () => {
+      // Create User B (Must be done after resetDb, which runs in outer beforeEach)
+      const res = await authHelper.registerAndLogin({
+        email: 'userb@test.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'User',
+        lastName: 'Bee',
+      });
+      userBCookies = res.cookies;
+      userBId = res.userId;
+      usersReadPermissionId = await ensureUsersReadPermission();
+    });
+
+    it('يحدث ترقية للإذن مباشرة بعد تعيين الدور حتى مع وجود كاش مرفوض مسبقاً', async () => {
+      const roleId = await createLimitedRole();
+
+      await requestProtectedAsUserB(403); // يبني كاش رفض
+
+      await assignRoleToUser(roleId);
+
+      await requestProtectedAsUserB(200);
+    });
+
+    it('يمنع فوراً بعد تطبيق Override بالمنع حتى لو كان الكاش يسمح', async () => {
+      const roleId = await createLimitedRole();
+      await assignRoleToUser(roleId);
+
+      await requestProtectedAsUserB(200); // يبني كاش سماح
+
+      await setUserOverride('DENY');
+
+      await requestProtectedAsUserB(403);
+    });
+
+    it('يعيد السماح فوراً بعد تحويل الـ Override من المنع إلى السماح مع وجود كاش منع', async () => {
+      const roleId = await createLimitedRole();
+      await assignRoleToUser(roleId);
+
+      await setUserOverride('DENY');
+      await requestProtectedAsUserB(403); // يبني كاش منع
+
+      await setUserOverride('ALLOW');
+
+      await requestProtectedAsUserB(200);
+    });
+
+    it('يلغي السماح المخبأ مباشرة بعد إزالة الدور', async () => {
+      const roleId = await createLimitedRole();
+      await assignRoleToUser(roleId);
+      await requestProtectedAsUserB(200); // يبني كاش سماح
+
+      await unassignRoleFromUser(roleId);
+
+      await requestProtectedAsUserB(403);
     });
   });
 });

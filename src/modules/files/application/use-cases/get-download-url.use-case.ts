@@ -8,16 +8,16 @@ export class GetDownloadUrlUseCase {
     private readonly repository: IFileRepository,
   ) {}
 
-  async execute(id: string, userId?: string) {
-    const file = await this.repository.findById(id);
+  async execute(
+    id: string,
+    actor: { actorUserId: string; actorIsAdmin: boolean },
+  ): Promise<{ url: string; expiresIn?: number; isPublic: boolean }> {
+    const file = await this.repository.findAccessibleById(
+      id,
+      actor.actorUserId,
+      actor.actorIsAdmin,
+    );
     if (!file || file.isDeleted) throw FilesException.notFound(id);
-
-    // Basic access control logic
-    if (!file.isPublic && !userId) {
-      // Should be handled by Guard, but double check
-      throw FilesException.accessDenied();
-    }
-    // Note: strict RBAC ownership check is done in controller/guards
 
     const url = await this.storage.getSignedUrl(file.filePath, {
       action: 'read',
@@ -25,17 +25,9 @@ export class GetDownloadUrlUseCase {
       contentType: file.mimeType || undefined,
     });
 
-    if (url.startsWith('/')) {
-      const stream = await this.storage.getReadStream(file.filePath);
-      return {
-        stream,
-        mimeType: file.mimeType || 'application/octet-stream',
-        isPublic: file.isPublic,
-      };
-    }
-
     return {
-      url,
+      // For local driver (relative paths), expose API download endpoint
+      url: url.startsWith('/') ? `/api/v1/files/${file.id}/download` : url,
       expiresIn: 900,
       isPublic: file.isPublic,
     };

@@ -1,4 +1,5 @@
-import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
 import { z } from 'zod';
 
@@ -9,8 +10,6 @@ export const AddRoleToUserSchema = z.object({
 export type AddRoleToUserCommand = {
   userId: string;
 } & z.infer<typeof AddRoleToUserSchema>;
-
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 
 export class AddRoleToUserUseCase {
   constructor(

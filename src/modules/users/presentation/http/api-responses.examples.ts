@@ -1,10 +1,10 @@
-import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
+import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
 import {
   createApiError,
   createApiResponseConfig,
   createApiSuccess,
   type ApiResponseConfig,
-} from '#src/shared/http/decorators/api-errors.decorator.js';
+} from '#src/core/presentation/http/decorators/api-errors.decorator.js';
 import { HttpStatus } from '@nestjs/common';
 import {
   EffectivePermissionsResponseDto,

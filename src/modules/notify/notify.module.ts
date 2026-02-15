@@ -1,5 +1,5 @@
-import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
-import { QueueModule } from '#src/infrastructure/queue/queue.module.js';
+import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
+import { QueueModule } from '#src/core/infrastructure/queue/queue.module.js';
 import { BullMqEmailQueueAdapter } from '#src/modules/notify/infrastructure/bullmq/bullmq-email-queue.adapter.js';
 import { EmailProcessor } from '#src/modules/notify/infrastructure/bullmq/email.processor.js';
 import { ResendEmailProvider } from '#src/modules/notify/infrastructure/resend/resend.provider.js';

@@ -1,7 +1,7 @@
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import type { CurrentSessionProviderPort } from '#src/modules/auth/domain/ports/current-session.provider.port.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
-import type { CurrentSessionProviderPort } from '../ports/current-session.provider.port.js';
-import type { AuthProviderPort } from '../ports/index.js';
 
 export class GetSessionUseCase {
   constructor(
@@ -30,7 +30,7 @@ export class GetSessionUseCase {
     const roles = await this.roleRepo.listRolesForUser(user.id);
     const roleSlugs = roles.map((r) => r.slug);
 
-    const permsData = await this.effectivePermissions.buildForUser(user.id);
+    const permsData = await this.effectivePermissions.buildForUser(user);
 
     return {
       user: {

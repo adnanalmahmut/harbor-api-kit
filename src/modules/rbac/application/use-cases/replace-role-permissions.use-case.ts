@@ -1,4 +1,4 @@
-import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
+import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
 

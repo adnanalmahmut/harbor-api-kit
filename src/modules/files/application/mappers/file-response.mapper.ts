@@ -12,7 +12,6 @@ export class FileResponseMapper {
       isPublic: file.isPublic,
       createdAt: file.createdAt,
       downloadUrl: `/api/v1/files/${file.id}/download`,
-      streamUrl: `/api/v1/files/${file.id}/stream`,
       publicUrl:
         file.isPublic && file.publicToken
           ? `/api/v1/public/files/${file.publicToken}`

@@ -7,6 +7,5 @@ export interface FileResponse {
   isPublic: boolean;
   createdAt: Date;
   downloadUrl: string;
-  streamUrl: string;
   publicUrl?: string;
 }

@@ -1,4 +1,5 @@
-import { AppCacheService } from '#src/modules/shared/application/services/app-cache.service.js';
+import { AppCacheService } from '#src/core/application/services/app-cache.service.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -7,7 +8,11 @@ import { Module } from '@nestjs/common';
       provide: AppCacheService,
       useFactory: () => new AppCacheService(),
     },
+    {
+      provide: CORE_TOKENS.APP_CACHE,
+      useExisting: AppCacheService,
+    },
   ],
-  exports: [AppCacheService],
+  exports: [AppCacheService, CORE_TOKENS.APP_CACHE],
 })
 export class SharedModule {}

@@ -26,7 +26,7 @@ describe('HealthController (e2e)', () => {
       .get('/health')
       .expect(200)
       .expect((res) => {
-        expect(res.body).toEqual({ status: 'ok' });
+        expect(res.body).toMatchObject({ status: 'ok' });
       });
   });
 });

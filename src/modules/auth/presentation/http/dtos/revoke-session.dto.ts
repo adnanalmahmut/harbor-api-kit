@@ -1,18 +1,18 @@
-import { createStrictZodDto } from '#src/core/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/core/presentation/http/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
 const RevokeSessionSchema = z.object({
-  token: z
+  sessionId: z
     .string({ message: 'validation.mixed.required' })
-    .min(1, { message: 'validation.token.required' })
-    .describe('Session Token'),
+    .min(1, { message: 'validation.id.required' })
+    .describe('Session ID'),
 });
 
 export class RevokeSessionDto extends createStrictZodDto(RevokeSessionSchema) {
   @ApiProperty({
-    description: 'The session token to revoke',
-    example: 'session_token_123',
+    description: 'The session ID to revoke',
+    example: 'session_id_123',
   })
-  token!: string;
+  sessionId!: string;
 }

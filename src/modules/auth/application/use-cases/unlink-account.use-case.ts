@@ -1,6 +1,6 @@
-import type { UnlinkAccountCommand } from '../ports/auth-commands.js';
-import type { AuthProviderPort } from '../ports/auth-provider.port.js';
-import type { AuthResult } from '../ports/auth-result.js';
+import type { UnlinkAccountCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import type { AuthResult } from '#src/modules/auth/domain/ports/auth-result.js';
 
 export class UnlinkAccountUseCase {
   constructor(private readonly authProvider: AuthProviderPort) {}

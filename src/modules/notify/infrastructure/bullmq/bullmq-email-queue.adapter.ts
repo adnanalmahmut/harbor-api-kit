@@ -1,25 +1,32 @@
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import {
   type EmailProviderPort,
   type SendEmailParams,
 } from '#src/modules/notify/domain/ports/email.provider.port.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class BullMqEmailQueueAdapter implements EmailProviderPort {
-  private readonly logger = new Logger(BullMqEmailQueueAdapter.name);
-
-  constructor(@InjectQueue('email') private readonly emailQueue: Queue) {}
+  constructor(
+    @InjectQueue('email') private readonly emailQueue: Queue,
+    private readonly config: AppConfigService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(BullMqEmailQueueAdapter.name);
+  }
 
   async sendEmail(params: SendEmailParams): Promise<void> {
-    this.logger.log(`Enqueuing email to ${params.to}`);
+    const { emailRetryAttempts, emailRetryDelayMs } = this.config.notify();
+    this.logger.info(`Enqueuing email to ${params.to}`);
     await this.emailQueue.add('send-email', params, {
       removeOnComplete: true, // Auto remove on success
-      attempts: 5,
+      attempts: emailRetryAttempts,
       backoff: {
         type: 'exponential',
-        delay: 5000,
+        delay: emailRetryDelayMs,
       },
     });
   }

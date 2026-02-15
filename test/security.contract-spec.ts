@@ -1,7 +1,7 @@
 import { configureApp } from '#src/app.bootstrap.js';
 import { AppModule } from '#src/app.module.js';
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
@@ -21,7 +21,7 @@ import { clearRedisCache } from './helpers/test-redis.helper.js';
 import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 
-import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
+import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
 
 @Controller('test-security')
 @UseGuards(AuthGuard, RbacGuard)
@@ -116,7 +116,10 @@ describe('Security Config Contract (E2E)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/test-security/roles-any')
         .set('Cookie', cookies)
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
     });
 
     it('AND: should fail access with only one matching role', async () => {
@@ -135,7 +138,10 @@ describe('Security Config Contract (E2E)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/test-security/roles-and')
         .set('Cookie', cookies)
-        .expect(403);
+        .expect(403)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('AND: should allow access with all matching roles', async () => {
@@ -158,7 +164,10 @@ describe('Security Config Contract (E2E)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/test-security/roles-and')
         .set('Cookie', cookies)
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
     });
   });
 
@@ -185,7 +194,10 @@ describe('Security Config Contract (E2E)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/test-security/perms-any')
         .set('Cookie', cookies)
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
     });
   });
 
@@ -216,7 +228,10 @@ describe('Security Config Contract (E2E)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/test-security/deny-check')
         .set('Cookie', cookies)
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       // 3. Add Deny Override
       await rbacHelper.assignUserPermissionOverride(userId, pId, 'DENY');
@@ -225,7 +240,11 @@ describe('Security Config Contract (E2E)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/test-security/deny-check')
         .set('Cookie', cookies)
-        .expect(403);
+        .expect(403)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+          expect(res.body.message).not.toContain('core.errors');
+        });
     });
   });
 });

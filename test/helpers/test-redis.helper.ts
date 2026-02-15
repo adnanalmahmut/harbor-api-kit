@@ -1,4 +1,4 @@
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 
 /**
  * Clear application cache keys from Redis without affecting BullMQ job data.
@@ -11,8 +11,12 @@ export async function clearRedisCache(redis: RedisService): Promise<void> {
     'scp:rbac:*',
     'scp:rl:*',
     'scp:lock:*',
-    'core-platform-api:*', // Also clear the prefix-based keys
-    'test-api:*', // Test environment prefix from .env.test
+    'test-api:auth:*',
+    'test-api:rbac:*',
+    'test-api:rl:*',
+    'test-api:lock:*',
+    'core-platform-api:auth:*',
+    'core-platform-api:rbac:*',
   ];
 
   for (const pattern of patterns) {

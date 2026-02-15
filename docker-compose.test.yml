@@ -1,35 +1,28 @@
 services:
   postgres_test:
     image: postgres:15-alpine
-    container_name: core_platform_api_db_test
+    container_name: core_platform_api_test_db
     environment:
       POSTGRES_DB: saas_core_test
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
     ports:
       - '5435:5432'
-    volumes:
-      - postgres_data_test:/var/lib/postgresql/data
+    tmpfs:
+      - /var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U test_user -d saas_core_test']
-      interval: 5s
+      interval: 2s
       timeout: 5s
       retries: 10
 
   redis_test:
     image: redis:7-alpine
-    container_name: core_platform_api_redis_test
-    command: ['redis-server', '--appendonly', 'yes']
+    container_name: core_platform_api_test_redis
     ports:
       - '6380:6379'
-    volumes:
-      - redis_data_test:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
+      interval: 2s
       timeout: 3s
       retries: 10
-
-volumes:
-  postgres_data_test:
-  redis_data_test:

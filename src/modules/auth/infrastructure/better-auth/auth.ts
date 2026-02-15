@@ -1,10 +1,10 @@
-import { getRequestContext } from '#src/infrastructure/context/request-context.manager.js';
-import type { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
+import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { getRequestContextStatic } from '#src/core/infrastructure/context/request-context-storage.js';
+import type { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
 import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
-import type { AppConfigService } from '#src/shared/config/app-config.service.js';
-import { Logger } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import type { PinoLogger } from 'nestjs-pino';
 
 export type BetterAuthInstance = ReturnType<typeof betterAuth>;
 
@@ -12,9 +12,9 @@ export function createBetterAuth(
   prisma: PrismaService,
   config: AppConfigService,
   emailHooks: AuthEmailHooks,
-  socialConfig?: { socialProviders?: any },
+  logger: PinoLogger,
+  socialConfig?: { socialProviders?: Record<string, any> },
 ): BetterAuthInstance {
-  const logger = new Logger('BetterAuth');
   const {
     sessionTokenCookie,
     sessionDataCookie,
@@ -112,9 +112,9 @@ export function createBetterAuth(
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
-      async sendResetPassword(data: any) {
+      async sendResetPassword(data: { user: any; url: string; token: string }) {
         // data usually contains { user, url, token }
-        const ctx = getRequestContext();
+        const ctx = getRequestContextStatic();
         if (ctx) {
           await emailHooks.sendResetPasswordEmail(data, ctx);
         } else {
@@ -128,7 +128,7 @@ export function createBetterAuth(
       autoSignInAfterVerification: true,
       expiresIn: 86400, // 24 hours
       sendVerificationEmail: async (params) => {
-        const ctx = getRequestContext();
+        const ctx = getRequestContextStatic();
         if (ctx) {
           await emailHooks.sendVerificationEmail(params, ctx);
         } else {
@@ -215,7 +215,7 @@ export function createBetterAuth(
                     roleId: role.id,
                   },
                 });
-                logger.log(
+                logger.info(
                   `Assigned default role '${DEFAULT_ROLE_SLUG}' to user ${user.id}`,
                 );
               }
@@ -231,13 +231,13 @@ export function createBetterAuth(
                     where: { id: user.id },
                     data: { firstName, lastName },
                   });
-                  logger.log(
+                  logger.info(
                     `Extracted name parts for user ${user.id}: ${firstName} ${lastName}`,
                   );
                 }
               }
             } catch (err) {
-              logger.error(`Failed post-create hook for user ${user.id}`, err);
+              logger.error(err, `Failed post-create hook for user ${user.id}`);
             }
           },
         },
@@ -264,8 +264,8 @@ export function createBetterAuth(
                 }
               } catch (err) {
                 logger.warn(
-                  `Geolocation failed for session ${session.id}`,
                   err,
+                  `Geolocation failed for session ${session.id}`,
                 );
               }
             }

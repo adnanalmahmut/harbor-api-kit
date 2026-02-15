@@ -1,23 +1,26 @@
-import type { RequestContext } from '#src/core/context/request-context.type.js';
-import { resolveLocaleFromSource } from '#src/infrastructure/i18n/i18n-helpers.js';
+import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
+import { resolveLocaleFromSource } from '#src/core/domain/utils/shared.utils.js';
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import type {
   AuthEmailSenderPort,
   ChangeEmailVerificationParams,
-} from '#src/modules/auth/application/ports/auth-email.sender.port.js';
+} from '#src/modules/auth/domain/ports/auth-email.sender.port.js';
 import type { EmailProviderPort } from '#src/modules/notify/domain/ports/email.provider.port.js';
-import { AppConfigService } from '#src/shared/config/app-config.service.js';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class AuthEmailHooks implements AuthEmailSenderPort {
-  private readonly logger = new Logger(AuthEmailHooks.name);
   constructor(
     private readonly config: AppConfigService,
     @Inject('EmailProviderPort')
     private readonly emailProvider: EmailProviderPort,
     private readonly i18n: I18nService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(AuthEmailHooks.name);
+  }
 
   private getLocale(user: any, context?: RequestContext): string {
     const { headerName, queryName } = this.config.i18n();
@@ -63,7 +66,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
         locale,
       });
     } catch (error) {
-      this.logger.error('Failed to send verification email via hook', error);
+      this.logger.error(error, 'Failed to send verification email via hook');
     }
   }
 
@@ -92,7 +95,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
         locale,
       });
     } catch (error) {
-      this.logger.error('Failed to send reset password email via hook', error);
+      this.logger.error(error, 'Failed to send reset password email via hook');
       // Rethrow to allow BetterAuthProvider to catch and map it
       throw error;
     }
@@ -124,8 +127,8 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
       });
     } catch (error) {
       this.logger.error(
-        'Failed to send change email verification via hook',
         error,
+        'Failed to send change email verification via hook',
       );
     }
   }

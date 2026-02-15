@@ -1,5 +1,11 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
+import { AppException } from '#src/core/domain/exceptions/app-exception.js';
+import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
+
+export type InvalidFileReason =
+  | 'extension_not_allowed'
+  | 'empty_file'
+  | 'signature_mismatch'
+  | 'mime_type_mismatch';
 
 export class FilesException extends AppException {
   static notFound(id?: string) {
@@ -10,11 +16,23 @@ export class FilesException extends AppException {
     });
   }
 
-  static invalidType(mimeType: string) {
+  static invalidType(params: {
+    reason: InvalidFileReason;
+    extension?: string;
+    mimeType?: string;
+  }) {
     return new FilesException({
       code: AppErrorCode.VALIDATION_ERROR,
       messageKey: 'files.errors.invalid_type',
-      details: { mimeType },
+      details: params,
+    });
+  }
+
+  static invalidRequest(reason: 'multipart_required' | 'no_file_uploaded') {
+    return new FilesException({
+      code: AppErrorCode.VALIDATION_ERROR,
+      messageKey: 'files.errors.invalid_request',
+      details: { reason },
     });
   }
 

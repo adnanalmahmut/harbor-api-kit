@@ -1,4 +1,5 @@
 import { UsersException } from '#src/modules/users/application/exceptions/users.exception.js';
+import { User } from '#src/modules/users/domain/entities/user.entity.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
 import { z } from 'zod';
 
@@ -18,7 +19,7 @@ export type AdminUpdateUserCommand = {
 export class UpdateUserByIdUseCase {
   constructor(private readonly userRepo: UserRepositoryPort) {}
 
-  async execute(command: AdminUpdateUserCommand): Promise<void> {
+  async execute(command: AdminUpdateUserCommand): Promise<User> {
     const user = await this.userRepo.findById(command.userId);
     if (!user) {
       throw UsersException.userNotFound(command.userId);
@@ -33,6 +34,6 @@ export class UpdateUserByIdUseCase {
     // but for "Admin Update", we assume admin knows what they are doing (or we set verified=false).
     // For now, simple update.
 
-    await this.userRepo.update(user);
+    return await this.userRepo.update(user);
   }
 }

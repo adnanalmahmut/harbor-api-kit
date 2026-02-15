@@ -1,9 +1,8 @@
-import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
-import { PrismaModule } from '#src/infrastructure/db/prisma/prisma.module.js';
-import { NestLoggerAdapter } from '#src/infrastructure/logging/nest-logger.adapter.js';
-import type { AuthEmailSenderPort } from '#src/modules/auth/application/ports/auth-email.sender.port.js';
-import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
-import type { CurrentSessionProviderPort } from '#src/modules/auth/application/ports/current-session.provider.port.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
+import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
+import { RequestContextStoreAdapter } from '#src/core/infrastructure/context/request-context.store.adapter.js';
+import { PrismaModule } from '#src/core/infrastructure/db/prisma/prisma.module.js';
+import { NestLoggerAdapter } from '#src/core/infrastructure/logging/nest-logger.adapter.js';
 import { ChangeEmailUseCase } from '#src/modules/auth/application/use-cases/change-email.use-case.js';
 import { ChangePasswordUseCase } from '#src/modules/auth/application/use-cases/change-password.use-case.js';
 import { CheckResetTokenUseCase } from '#src/modules/auth/application/use-cases/check-reset-token.use-case.js';
@@ -28,9 +27,11 @@ import { UpdateUserUseCase } from '#src/modules/auth/application/use-cases/updat
 import { VerifyEmailUseCase } from '#src/modules/auth/application/use-cases/verify-email.use-case.js';
 import { VerifyPasswordUseCase } from '#src/modules/auth/application/use-cases/verify-password.use-case.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import type { AuthEmailSenderPort } from '#src/modules/auth/domain/ports/auth-email.sender.port.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import type { CurrentSessionProviderPort } from '#src/modules/auth/domain/ports/current-session.provider.port.js';
 import { AuthConfigAdapter } from '#src/modules/auth/infrastructure/adapters/auth-config.adapter.js';
 import { RedisSessionTrackerAdapter } from '#src/modules/auth/infrastructure/adapters/redis-session-tracker.adapter.js';
-import { RequestContextStoreAdapter } from '#src/modules/auth/infrastructure/adapters/request-context.store.adapter.js';
 import { BetterAuthProvider } from '#src/modules/auth/infrastructure/better-auth/better-auth.provider.adapter.js';
 import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
 import { InfraCurrentSessionProvider } from '#src/modules/auth/infrastructure/context/infra-current-session.provider.js';
@@ -46,6 +47,7 @@ import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.re
 import { UsersModule } from '#src/modules/users/users.module.js';
 import { USERS_TOKENS } from '#src/modules/users/users.tokens.js';
 import { Module } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 
 @Module({
   imports: [
@@ -67,7 +69,7 @@ import { Module } from '@nestjs/common';
       useClass: InfraCurrentSessionProvider,
     },
     {
-      provide: AUTH_TOKENS.REQUEST_CONTEXT_STORE,
+      provide: CORE_TOKENS.REQUEST_CONTEXT_STORE,
       useClass: RequestContextStoreAdapter,
     },
     {
@@ -84,18 +86,20 @@ import { Module } from '@nestjs/common';
         authProvider: AuthProviderPort,
         roleRepo: RoleRepositoryPort,
         effectivePermissions: EffectivePermissionsService,
+        logger: Logger,
       ) => {
         return new RegisterUserUseCase(
           authProvider,
           roleRepo,
           effectivePermissions,
-          new NestLoggerAdapter(RegisterUserUseCase.name),
+          new NestLoggerAdapter(RegisterUserUseCase.name, logger),
         );
       },
       inject: [
         AUTH_TOKENS.AUTH_PROVIDER,
         RBAC_TOKENS.ROLE_REPOSITORY,
         EffectivePermissionsService,
+        Logger,
       ],
     },
     {
@@ -291,7 +295,7 @@ import { Module } from '@nestjs/common';
   exports: [
     AuthGuard,
     AUTH_TOKENS.AUTH_PROVIDER,
-    AUTH_TOKENS.REQUEST_CONTEXT_STORE,
+    CORE_TOKENS.REQUEST_CONTEXT_STORE,
     AUTH_TOKENS.AUTH_CONFIG,
     AUTH_TOKENS.SESSION_TRACKER,
     RegisterUserUseCase,

@@ -1,17 +1,11 @@
-import type {
-  GetSessionResult,
-  Session,
-  SignInResultData,
-  SignUpResultData,
-  User,
-} from '#src/modules/auth/application/ports/auth-dtos.js';
+import type { User } from '#src/modules/auth/domain/entities/user.entity.js';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { UserResponseDto } from '#src/modules/users/presentation/http/dtos/users-response.dto.js';
 
 export { UserResponseDto };
 
-export class SessionResponseDto implements Session {
+export class SessionResponseDto {
   @ApiProperty({ example: 'sess_123' })
   id!: string;
 
@@ -43,7 +37,7 @@ export class SessionResponseDto implements Session {
   updatedAt!: Date;
 }
 
-export class SignUpResponseDto implements SignUpResultData {
+export class SignUpResponseDto {
   @ApiProperty({ description: 'Authentication token' })
   token!: string;
 
@@ -51,7 +45,7 @@ export class SignUpResponseDto implements SignUpResultData {
   user!: UserResponseDto;
 }
 
-export class SignInResponseDto implements SignInResultData {
+export class SignInResponseDto {
   @ApiProperty({ example: true })
   redirect!: boolean;
 
@@ -68,7 +62,7 @@ export class SignInResponseDto implements SignInResultData {
   user!: UserResponseDto;
 }
 
-export class GetSessionResponseDto implements NonNullable<GetSessionResult> {
+export class GetSessionResponseDto {
   @ApiProperty({ type: UserResponseDto })
   user!: UserResponseDto;
 
@@ -86,7 +80,7 @@ export class StatusResponseDto {
   status!: boolean;
 }
 
-export class SocialSignInResponseDto implements SignInResultData {
+export class SocialSignInResponseDto {
   @ApiProperty({ example: true })
   redirect!: boolean;
 

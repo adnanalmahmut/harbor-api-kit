@@ -58,11 +58,14 @@ export class UploadFileUseCase {
         bucket: this.config.bucket ?? undefined,
         uploadedById: command.uploadedById,
         isPublic: command.isPublic ?? false,
-        publicToken: crypto.randomUUID(), // Generate public token by default for easier sharing later
+        publicToken: command.isPublic ? crypto.randomUUID() : undefined,
       });
 
       return file;
     } catch (error) {
+      if (error instanceof FilesException) {
+        throw error;
+      }
       // If DB fails, try to cleanup storage? (Optional consistency check)
       throw FilesException.storageError(error);
     }

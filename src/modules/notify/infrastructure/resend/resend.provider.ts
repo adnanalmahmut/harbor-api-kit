@@ -1,10 +1,11 @@
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
 } from '#src/modules/notify/domain/ports/email.provider.port.js';
-import { AppConfigService } from '#src/shared/config/app-config.service.js';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
+import { PinoLogger } from 'nestjs-pino';
 import * as path from 'path';
 import { Resend } from 'resend';
 
@@ -12,10 +13,13 @@ import { NotifyException } from '#src/modules/notify/domain/exceptions/notify.ex
 
 @Injectable()
 export class ResendEmailProvider implements EmailProviderPort {
-  private readonly logger = new Logger(ResendEmailProvider.name);
   private readonly resend: Resend;
 
-  constructor(private readonly config: AppConfigService) {
+  constructor(
+    private readonly config: AppConfigService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(ResendEmailProvider.name);
     const apiKey = (this.config.resend() as any).apiKey;
     this.resend = new Resend(apiKey);
   }
@@ -28,7 +32,7 @@ export class ResendEmailProvider implements EmailProviderPort {
 
       const from = `${(this.config.resend() as any).fromName} <${(this.config.resend() as any).fromEmail}>`;
 
-      this.logger.log(
+      this.logger.info(
         `Sending email to ${to} [Template: ${template}, Locale: ${locale}]`,
       );
 
@@ -39,9 +43,9 @@ export class ResendEmailProvider implements EmailProviderPort {
         html,
       });
 
-      this.logger.log(`Email sent successfully to ${to}`);
+      this.logger.info(`Email sent successfully to ${to}`);
     } catch (error) {
-      this.logger.error(`Failed to send email to ${to}`, error);
+      this.logger.error(error, `Failed to send email to ${to}`);
       if (error instanceof NotifyException) throw error;
       throw NotifyException.providerError(
         error instanceof Error ? error.message : 'Unknown error',
@@ -66,8 +70,18 @@ export class ResendEmailProvider implements EmailProviderPort {
     try {
       let content = await fs.readFile(templatePath, 'utf-8');
 
+      const defaults = {
+        brandName:
+          (this.config.resend() as any).fromName || this.config.app().name,
+        year: new Date().getFullYear(),
+        supportEmail: (this.config.resend() as any).fromEmail,
+        websiteUrl: this.config.frontend().url,
+      };
+
+      const finalData: Record<string, any> = { ...defaults, ...data };
+
       content = content.replace(/{{\s*([\w]+)\s*}}/g, (match, key) => {
-        const val = data[key];
+        const val = finalData[key];
         if (val !== undefined) {
           return String(val);
         }
@@ -77,7 +91,7 @@ export class ResendEmailProvider implements EmailProviderPort {
 
       return content;
     } catch (error) {
-      this.logger.warn(`Template not found: ${templatePath}.`, error);
+      this.logger.warn(error, `Template not found: ${templatePath}.`);
       throw NotifyException.templateNotFound(templateName);
     }
   }

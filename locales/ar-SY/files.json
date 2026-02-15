@@ -5,7 +5,8 @@
     "restore_success": "تم استعادة الملف بنجاح",
     "visibility_updated": "تم تحديث خصوصية الملف",
     "download_link_generated": "تم إنشاء رابط التحميل",
-    "meta_retrieved": "تم استرجاع بيانات الملف بنجاح"
+    "meta_retrieved": "تم استرجاع بيانات الملف بنجاح",
+    "download_url_retrieved": "تم إنشاء رابط التحميل بنجاح"
   },
   "errors": {
     "not_found": "الملف غير موجود",

@@ -1,5 +1,5 @@
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { HttpStatus } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
@@ -13,6 +13,28 @@ describe('Auth API Contract (E2E)', () => {
   let prisma: PrismaService;
   let redisService: RedisService;
   let authHelper: AuthHelper;
+
+  const extractCsrf = (cookies: string[] = []) => {
+    for (const c of cookies) {
+      const match = c.match(/__Host-csrf=([^;]+)/);
+      if (match) return { cookie: c, token: match[1] };
+    }
+    return undefined;
+  };
+
+  const buildCsrfHeaders = async (cookies: string[]) => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', cookies)
+      .expect(200);
+
+    const setCookies = res.get('Set-Cookie') || [];
+    const found = extractCsrf(setCookies) ?? extractCsrf(cookies);
+    if (!found) throw new Error('CSRF token missing in auth contract tests');
+
+    const cookieHeader = [...cookies, found.cookie].join('; ');
+    return { Cookie: cookieHeader, 'X-CSRF-Token': found.token };
+  };
 
   beforeAll(async () => {
     const factory = await TestAppFactory.create();
@@ -42,8 +64,9 @@ describe('Auth API Contract (E2E)', () => {
           firstName: 'Test',
           lastName: 'User',
         })
-        .expect(201); // Created
+        .expect(201);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.user.email).toBe('test@example.com');
       // Expect cookie
@@ -59,8 +82,9 @@ describe('Auth API Contract (E2E)', () => {
           firstName: 'Test',
           lastName: 'User',
         })
-        .expect(400); // Unprocessable Entity / Validation Error
+        .expect(400);
 
+      expect(res.body.success).toBe(false);
       expect(res.body.message).toBeDefined();
       expect(res.body.errors).toBeDefined();
       expect(res.body.errors[0].path).toBe('email');
@@ -84,8 +108,9 @@ describe('Auth API Contract (E2E)', () => {
           firstName: 'Another',
           lastName: 'User',
         })
-        .expect(409); // Conflict
+        .expect(409);
 
+      expect(res.body.success).toBe(false);
       expect(res.body.message).toBeDefined();
       // Ensure no Prisma error leakage
       expect(res.body.message).not.toContain('Unique constraint');
@@ -111,6 +136,7 @@ describe('Auth API Contract (E2E)', () => {
         })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.user.email).toBe('login@example.com');
       expect(res.get('Set-Cookie')).toBeDefined();
@@ -123,8 +149,9 @@ describe('Auth API Contract (E2E)', () => {
           email: 'nonexistent@example.com',
           password: 'Password123!',
         })
-        .expect(401); // Unauthorized (BetterAuth behavior)
+        .expect(401);
 
+      expect(res.body.success).toBe(false);
       expect(res.body.message).toBeDefined();
     });
   });
@@ -139,10 +166,13 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Out',
       });
 
-      await request(app.getHttpServer())
+      const headers = await buildCsrfHeaders(cookies);
+      const signOutRes = await request(app.getHttpServer())
         .post('/api/v1/auth/sign-out')
-        .set('Cookie', cookies)
+        .set(headers)
         .expect(HttpStatus.OK); // OK (Success Envelope)
+
+      expect(signOutRes.body.success).toBe(true);
 
       // Verify validation (should be 401 now)
       await request(app.getHttpServer())
@@ -167,6 +197,7 @@ describe('Auth API Contract (E2E)', () => {
         .set('Cookie', cookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.user.id).toBe(userId);
       // Ensure roles/permissions are present (even if empty)
       // expect(res.body.data.roles).toBeDefined(); // Need to verify if response shape includes these
@@ -193,15 +224,19 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Pass',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       await request(app.getHttpServer())
         .post('/api/v1/auth/change-password')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({
           currentPassword: 'Password123!',
           newPassword: 'NewPassword123!',
           revokeOtherSessions: true,
         })
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       // Verify login with new password
       await request(app.getHttpServer())
@@ -224,15 +259,17 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Name',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/update-user')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({
           firstName: 'New',
           lastName: 'Name',
         })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       // better-auth returns { status: true } on successful update
       expect(res.body.data.status).toBe(true);
 
@@ -244,7 +281,10 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/update-user')
         .send({ firstName: 'New' })
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should delete user account', async () => {
@@ -256,10 +296,14 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Delete',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       await request(app.getHttpServer())
         .post('/api/v1/auth/delete-user')
-        .set('Cookie', cookies)
-        .expect(200);
+        .set(headers)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       // Subsequent login should fail (depending on implementation, may check soft-delete or hard-delete)
       // If hard delete: 401/404. If soft: 403?
@@ -267,13 +311,19 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: 'delete@example.com', password: 'Password123!' })
-        .expect(401); // or 400/422 depending on implementation of login check
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        }); // or 400/422 depending on implementation of login check
     });
 
     it('should fail to delete user when unauthorized', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/delete-user')
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
   });
 
@@ -287,12 +337,14 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Pass',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/verify-password')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({ password: 'Password123!' })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
     });
 
@@ -305,12 +357,14 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Pass',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/verify-password')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({ password: 'WrongPassword123!' })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.valid).toBe(false);
     });
 
@@ -318,7 +372,10 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/verify-password')
         .send({ password: 'Password123!' })
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should fail change password with wrong current password', async () => {
@@ -330,14 +387,18 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Pass',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       await request(app.getHttpServer())
         .post('/api/v1/auth/change-password')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({
           currentPassword: 'WrongPassword!',
           newPassword: 'NewPassword123!',
         })
-        .expect(400); // Returns 400 with "Current password is incorrect"
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        }); // Returns 400 with "Current password is incorrect"
     });
   });
 
@@ -356,6 +417,7 @@ describe('Auth API Contract (E2E)', () => {
         .send({ email: 'forget@example.com' })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.message).toBeDefined();
     });
 
@@ -363,20 +425,29 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/forgot-password')
         .send({ email: 'invalid-email' })
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should fail check reset token with invalid token', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/auth/check-reset-token/invalid-token')
-        .expect(404); // Token not found
+        .expect(404)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        }); // Token not found
     });
 
     it('should fail reset password with invalid token', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/reset-password')
         .send({ token: 'invalid-token', newPassword: 'NewPassword123!' })
-        .expect(401); // Invalid/expired token
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        }); // Invalid/expired token
     });
   });
 
@@ -395,6 +466,7 @@ describe('Auth API Contract (E2E)', () => {
         .set('Cookie', cookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body.data.length).toBeGreaterThan(0);
@@ -403,7 +475,10 @@ describe('Auth API Contract (E2E)', () => {
     it('should fail list sessions when unauthorized', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/auth/list-sessions')
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should revoke single session successfully', async () => {
@@ -421,13 +496,18 @@ describe('Auth API Contract (E2E)', () => {
         .set('Cookie', cookies)
         .expect(200);
 
+      const headers = await buildCsrfHeaders(cookies);
+      expect(sessionsRes.body.success).toBe(true);
       const sessionToken = sessionsRes.body.data[0]?.token;
       if (sessionToken) {
         await request(app.getHttpServer())
           .post('/api/v1/auth/revoke-session')
-          .set('Cookie', cookies)
+          .set(headers)
           .send({ token: sessionToken })
-          .expect(200);
+          .expect(200)
+          .expect((res) => {
+            expect(res.body.success).toBe(true);
+          });
       }
     });
 
@@ -440,11 +520,15 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'User',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       await request(app.getHttpServer())
         .post('/api/v1/auth/revoke-session')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({ token: 'invalid-token' })
-        .expect(404);
+        .expect(404)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should revoke other sessions successfully', async () => {
@@ -456,16 +540,23 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Other',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       await request(app.getHttpServer())
         .post('/api/v1/auth/revoke-other-sessions')
-        .set('Cookie', cookies)
-        .expect(200);
+        .set(headers)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
     });
 
     it('should fail revoke other sessions when unauthorized', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/revoke-other-sessions')
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
   });
 
@@ -476,6 +567,7 @@ describe('Auth API Contract (E2E)', () => {
         .send({ provider: 'google' })
         .expect(201);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.url).toBeDefined();
       expect(res.body.data.url).toContain('google');
@@ -485,7 +577,10 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/sign-in/social')
         .send({ provider: 'invalid-provider' })
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     // SKIP: BetterAuth API client requires running server for network calls, fails with 401 in supertest
@@ -498,12 +593,14 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Account',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/link-social')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({ provider: 'google' })
         .expect(201);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.url).toBeDefined();
     });
@@ -513,7 +610,10 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/link-social')
         .send({ provider: 'google' })
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     // SKIP: Implementation bug - better-auth returns unhandled error
@@ -531,6 +631,7 @@ describe('Auth API Contract (E2E)', () => {
         .set('Cookie', cookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       // Should return empty array or array of accounts
       expect(res.body.data).toBeDefined();
     });
@@ -539,7 +640,10 @@ describe('Auth API Contract (E2E)', () => {
     it('should fail list accounts when unauthorized', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/auth/list-accounts')
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should fail unlink account with validation error', async () => {
@@ -551,18 +655,25 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Account',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       await request(app.getHttpServer())
         .post('/api/v1/auth/unlink-account')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({}) // Missing providerId
-        .expect(400);
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
 
     it('should fail unlink account when unauthorized', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/unlink-account')
         .send({ providerId: 'google' })
-        .expect(401);
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        });
     });
   });
 
@@ -618,9 +729,10 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'Email',
       });
 
+      const headers = await buildCsrfHeaders(cookies);
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/change-email')
-        .set('Cookie', cookies)
+        .set(headers)
         .send({ newEmail: 'newemail@example.com' })
         .expect(200);
 

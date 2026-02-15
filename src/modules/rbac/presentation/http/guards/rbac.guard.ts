@@ -1,26 +1,26 @@
+import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
 import type { EffectivePermissions } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { PERMISSIONS_KEY } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { ROLES_KEY } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import {
+  Injectable,
   type CanActivate,
   type ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class RbacGuard implements CanActivate {
-  private readonly logger = new Logger(RbacGuard.name);
-
   constructor(
     private reflector: Reflector,
     private effectivePermissions: EffectivePermissionsService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(RbacGuard.name);
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const rolesRequirement = this.reflector.getAllAndOverride<
@@ -44,7 +44,7 @@ export class RbacGuard implements CanActivate {
       this.logger.warn(
         '[rbac.check.failed] reason=no_user route=' + req.routeOptions?.url,
       );
-      throw new UnauthorizedException('Unauthorized access');
+      throw RbacException.unauthorizedAccess();
     }
 
     // Always use EffectivePermissionsService to ensure correct application of:
@@ -52,7 +52,7 @@ export class RbacGuard implements CanActivate {
     // 2. Management escalation (subject:manage -> subject:action)
     // 3. Cache consistency
     const effective: EffectivePermissions =
-      await this.effectivePermissions.buildForUser(user.id);
+      await this.effectivePermissions.buildForUser(user);
 
     // Check Roles
     if (rolesRequirement) {
@@ -67,7 +67,7 @@ export class RbacGuard implements CanActivate {
         this.logger.warn(
           `[rbac.check.failed] reason=missing_role userId=${user.id} required=${roles.join(',')} mode=${mode}`,
         );
-        throw new ForbiddenException(`Missing roles: ${roles.join(', ')}`);
+        throw RbacException.missingRole(roles.join(', '));
       }
     }
 
@@ -83,9 +83,7 @@ export class RbacGuard implements CanActivate {
         this.logger.warn(
           `[rbac.check.failed] reason=missing_permission userId=${user.id} required=${permissions.join(',')} mode=${mode}`,
         );
-        throw new ForbiddenException(
-          `Missing permissions: ${permissions.join(', ')}`,
-        );
+        throw RbacException.missingPermission(permissions.join(', '));
       }
     }
 

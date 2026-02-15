@@ -1,15 +1,16 @@
 import { setupCors } from '#src/app.cors.js';
 import { setupApiDocs } from '#src/app.docs.js';
 import { AppModule } from '#src/app.module.js';
-import { validateEnv } from '#src/infrastructure/config/env.schema.js';
-import { createRequestContextHook } from '#src/infrastructure/context/request-context.manager.js';
-import { GlobalExceptionFilter } from '#src/infrastructure/http/filters/global-exception.filter.js';
-import { RequestIdentityInterceptor } from '#src/infrastructure/http/interceptors/request-identity.interceptor.js';
-import { ResponseInterceptor } from '#src/infrastructure/http/interceptors/response.interceptor.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
-import { CsrfGuard } from '#src/infrastructure/security/csrf/csrf.guard.js';
-import { GlobalValidationPipe } from '#src/infrastructure/validation/global-validation-pipe.js';
-import { AppConfigService } from '#src/shared/config/app-config.service.js';
+import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { validateEnv } from '#src/core/infrastructure/config/env.schema.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { GlobalExceptionFilter } from '#src/core/presentation/http/filters/global-exception.filter.js';
+import { createRequestContextHook } from '#src/core/presentation/http/hooks/request-context.hook.js';
+import { RequestIdentityInterceptor } from '#src/core/presentation/http/interceptors/request-identity.interceptor.js';
+import { ResponseInterceptor } from '#src/core/presentation/http/interceptors/response.interceptor.js';
+import { CsrfGuard } from '#src/core/presentation/http/security/csrf/csrf.guard.js';
+import { GlobalValidationPipe } from '#src/core/presentation/http/validation/global-validation-pipe.js';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import {
@@ -24,15 +25,19 @@ import {
 } from '@nestjs/platform-fastify';
 import { I18nService } from 'nestjs-i18n';
 import { Logger } from 'nestjs-pino';
+import { CORE_TOKENS } from './core/core.tokens.js';
 
 export async function createApp(opts?: {
   logger?: false | LogLevel[] | LoggerService;
 }): Promise<NestFastifyApplication> {
-  const env = validateEnv(process.env);
+  // Use validateEnv for consistent configuration (single source of truth)
+  const validatedEnv = validateEnv(process.env);
+  const trustProxy = validatedEnv.FASTIFY_TRUST_PROXY;
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
-      trustProxy: env.FASTIFY_TRUST_PROXY,
+      trustProxy,
     }),
     //  { logger: opts?.logger === false ? false : ['error', 'warn'] },
     // { logger: opts?.logger ?? false },
@@ -64,7 +69,7 @@ export function configureApp(app: NestFastifyApplication) {
     },
   });
 
-  app.useGlobalGuards(new CsrfGuard(config));
+  app.useGlobalGuards(new CsrfGuard(config, reflector));
 
   setupCors(app, config);
 
@@ -76,17 +81,27 @@ export function configureApp(app: NestFastifyApplication) {
   });
 
   const redisService = app.get(RedisService);
-  const requestContextHook = createRequestContextHook(config, redisService);
+  const contextStore = app.get<RequestContextStorePort>(
+    CORE_TOKENS.REQUEST_CONTEXT_STORE,
+  );
+
+  const requestContextHook = createRequestContextHook(
+    config,
+    contextStore,
+    redisService,
+  );
   adapter.addHook('onRequest', requestContextHook);
 
   app.useGlobalPipes(new GlobalValidationPipe());
 
   app.useGlobalInterceptors(
-    new RequestIdentityInterceptor(),
-    new ResponseInterceptor(reflector, i18n),
+    new RequestIdentityInterceptor(contextStore),
+    new ResponseInterceptor(reflector, i18n, contextStore),
   );
 
-  app.useGlobalFilters(new GlobalExceptionFilter(logger, i18n, config));
+  app.useGlobalFilters(
+    new GlobalExceptionFilter(logger, i18n, config, contextStore),
+  );
 
   setupApiDocs(app, config);
   return config;

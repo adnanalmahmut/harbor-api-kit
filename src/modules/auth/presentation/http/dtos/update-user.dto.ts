@@ -1,5 +1,5 @@
-import { SUPPORTED_LOCALES } from '#src/core/constants/locales.js';
-import { createStrictZodDto } from '#src/core/validation/strict-zod-dto.js';
+import { SUPPORTED_LOCALES } from '#src/core/domain/constants/locales.js';
+import { createStrictZodDto } from '#src/core/presentation/http/validation/strict-zod-dto.js';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
 

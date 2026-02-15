@@ -7,11 +7,29 @@ import { FileValidatorPort } from '../../application/ports/file-validator.port.j
 @Injectable()
 export class FileSignatureValidator implements FileValidatorPort {
   private readonly SIGNATURES: Record<string, string[]> = {
-    jpg: ['ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2'],
-    jpeg: ['ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2'],
+    jpg: ['ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2', 'ffd8ffdb', 'ffd8ffee'], // Expanded JPEG signatures
+    jpeg: ['ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2', 'ffd8ffdb', 'ffd8ffee'],
     png: ['89504e47'],
     pdf: ['25504446'],
+    gif: ['47494638'], // GIF87a/GIF89a
+    webp: ['52494646'], // WEBP (RIFF)
   };
+
+  private readonly ALLOWED_EXTENSIONS = new Set([
+    'jpg',
+    'jpeg',
+    'png',
+    'pdf',
+    'gif',
+    'webp',
+    'txt',
+    'csv',
+    'json',
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+  ]);
 
   /**
    * Validates file signature (magic bytes) against extension and mime type.
@@ -25,13 +43,15 @@ export class FileSignatureValidator implements FileValidatorPort {
   ): Promise<void> {
     const ext = path.extname(fileName).toLowerCase().replace('.', '');
 
-    // Skip validation for unknown extensions or allow-list approach
-    // For P1 hardening, we enforce list for known types.
+    if (!ext || !this.ALLOWED_EXTENSIONS.has(ext)) {
+      throw FilesException.invalidType({
+        reason: 'extension_not_allowed',
+        extension: ext || undefined,
+      });
+    }
+
+    // Skip validation for extensions without defined signatures (e.g. txt, csv)
     if (!this.SIGNATURES[ext]) {
-      // If extension is not in our strict list, we might allow it or block it.
-      // For this P1, we will only block if it mismatches known allowed types.
-      // Implementing strict allow-list would break other file types unless specified.
-      // User asked: "at least: jpg, png, pdf"
       return;
     }
 
@@ -40,7 +60,9 @@ export class FileSignatureValidator implements FileValidatorPort {
     const chunk = await this.readBytes(stream, 8);
 
     if (!chunk || chunk.length === 0) {
-      throw FilesException.invalidType('Empty file');
+      throw FilesException.invalidType({
+        reason: 'empty_file',
+      });
     }
 
     const hex = chunk.toString('hex');
@@ -52,9 +74,10 @@ export class FileSignatureValidator implements FileValidatorPort {
     stream.unshift(chunk);
 
     if (!isValid) {
-      throw FilesException.invalidType(
-        `File signature mismatches extension .${ext}`,
-      );
+      throw FilesException.invalidType({
+        reason: 'signature_mismatch',
+        extension: ext,
+      });
     }
   }
 

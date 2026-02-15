@@ -1,30 +1,26 @@
-import {
-  AuthCacheKeys,
-  CacheTTL,
-} from '#src/modules/auth/application/cache/auth-cache.keys.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
+import { CacheTTL } from '#src/core/domain/constants/cache.constants.js';
+import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import { AuthCacheKeys } from '#src/modules/auth/application/cache/auth-cache.keys.js';
 import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
-import { AuthConfigPort } from '#src/modules/auth/application/ports/auth-config.port.js';
-import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
-import type { RequestContextStorePort } from '#src/modules/auth/application/ports/request-context.store.port.js';
-import { SessionTrackerPort } from '#src/modules/auth/application/ports/session-tracker.port.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import type { AuthConfigPort } from '#src/modules/auth/domain/ports/auth-config.port.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import type { SessionTrackerPort } from '#src/modules/auth/domain/ports/session-tracker.port.js';
 import {
   type CanActivate,
-  type ExecutionContext, // ...
+  type ExecutionContext,
   Inject,
   Injectable,
-  Logger,
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private readonly logger = new Logger(AuthGuard.name);
-
   constructor(
     @Inject(AUTH_TOKENS.AUTH_PROVIDER)
     private readonly authProvider: AuthProviderPort,
-    @Inject(AUTH_TOKENS.REQUEST_CONTEXT_STORE)
+    @Inject(CORE_TOKENS.REQUEST_CONTEXT_STORE)
     private readonly contextStore: RequestContextStorePort,
     @Inject(AUTH_TOKENS.AUTH_CONFIG)
     private readonly config: AuthConfigPort,
@@ -59,11 +55,22 @@ export class AuthGuard implements CanActivate {
         this.authProvider.getSession({
           context: this.contextStore.get()!,
         }),
-      CacheTTL.ONE_WEEK, // Cache for 1 week (L2)
+      CacheTTL.FIFTEEN_MINUTES, // Balanced TTL (L2)
       scope,
     );
 
     if (!sessionResult?.session) throw AuthException.authenticationRequired();
+
+    // Check if user is still allowed to login (not deleted/suspended)
+    // Check if user is still allowed to login (not deleted/suspended)
+    // NOTE: When coming from cache, the user object might be a plain object,
+    // so we cannot rely on class getters like .canLogin or .isActive.
+    const isDeleted = !!sessionResult.user.deletedAt;
+    const canLogin = !isDeleted;
+
+    if (!canLogin) {
+      throw AuthException.authenticationRequired();
+    }
 
     this.contextStore.set({
       userId: sessionResult.user.id,

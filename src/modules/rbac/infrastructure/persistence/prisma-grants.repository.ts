@@ -1,7 +1,8 @@
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { redisKeys } from '#src/core/infrastructure/redis/redis.keys.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { GrantEffect } from '#src/generated/prisma/enums.js';
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { redisKeys } from '#src/infrastructure/redis/redis.keys.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
 import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 import { PermissionKeyVO } from '#src/modules/rbac/domain/value-objects/permission-key.vo.js';
@@ -16,70 +17,98 @@ export class PrismaGrantsRepository implements GrantsRepositoryPort {
   ) {}
 
   async listPermissionsForRoleIds(roleIds: string[]): Promise<Permission[]> {
-    const rolePerms = await this.prisma.rolePermission.findMany({
-      where: { roleId: { in: roleIds } },
-      include: { permission: true },
-    });
+    try {
+      const rolePerms = await this.prisma.rolePermission.findMany({
+        where: { roleId: { in: roleIds } },
+        include: { permission: true },
+      });
 
-    return rolePerms.map((rp) => this.toPermissionDomain(rp.permission));
+      return rolePerms.map((rp) => this.toPermissionDomain(rp.permission));
+    } catch (error) {
+      throw RbacException.databaseError({ roleIds, originalError: error });
+    }
   }
 
   async listUserOverrides(userId: string): Promise<{
     allow: UserPermissionOverride[];
     deny: UserPermissionOverride[];
   }> {
-    const userPerms = await this.prisma.userPermission.findMany({
-      where: { userId },
-      include: { permission: true },
-    });
+    try {
+      const userPerms = await this.prisma.userPermission.findMany({
+        where: { userId },
+        include: { permission: true },
+      });
 
-    const allow: UserPermissionOverride[] = [];
-    const deny: UserPermissionOverride[] = [];
+      const allow: UserPermissionOverride[] = [];
+      const deny: UserPermissionOverride[] = [];
 
-    for (const up of userPerms) {
-      const vo = new UserPermissionOverride(
-        PermissionKeyVO.fromParts(up.permission.subject, up.permission.action),
-        up.effect === GrantEffect.ALLOW ? 'ALLOW' : 'DENY',
-        up.note ?? undefined,
-      );
+      for (const up of userPerms) {
+        const vo = new UserPermissionOverride(
+          PermissionKeyVO.fromParts(
+            up.permission.subject,
+            up.permission.action,
+          ),
+          up.effect === GrantEffect.ALLOW ? 'ALLOW' : 'DENY',
+          up.note ?? undefined,
+        );
 
-      if (up.effect === GrantEffect.ALLOW) {
-        allow.push(vo);
-      } else {
-        deny.push(vo);
+        if (up.effect === GrantEffect.ALLOW) {
+          allow.push(vo);
+        } else {
+          deny.push(vo);
+        }
       }
-    }
 
-    return { allow, deny };
+      return { allow, deny };
+    } catch (error) {
+      throw RbacException.databaseError({ userId, originalError: error });
+    }
   }
 
   async assignPermissionToRole(
     roleId: string,
     permissionId: string,
   ): Promise<void> {
-    await this.prisma.rolePermission.create({
-      data: {
+    try {
+      await this.prisma.rolePermission.create({
+        data: {
+          roleId,
+          permissionId,
+        },
+      });
+      // Role perm change -> Global Bump
+      await this.redis.incr(redisKeys.rbacVersion());
+    } catch (error) {
+      throw RbacException.databaseError({
         roleId,
         permissionId,
-      },
-    });
-    // Invalidate global version because Role Definitions changed
-    await this.redis.incr(redisKeys.rbacVersion());
+        originalError: error,
+      });
+    }
   }
 
   async removePermissionFromRole(
     roleId: string,
     permissionId: string,
   ): Promise<void> {
-    await this.prisma.rolePermission.delete({
-      where: {
-        roleId_permissionId: {
-          roleId,
-          permissionId,
+    try {
+      await this.prisma.rolePermission.delete({
+        where: {
+          roleId_permissionId: {
+            roleId,
+            permissionId,
+          },
         },
-      },
-    });
-    await this.redis.incr(redisKeys.rbacVersion());
+      });
+      // Role perm change -> Global Bump
+      await this.redis.incr(redisKeys.rbacVersion());
+    } catch (error) {
+      throw RbacException.databaseError({
+        roleId,
+        permissionId,
+        originalError: error,
+      });
+    }
   }
 
   async setUserPermissionOverride(
@@ -87,54 +116,90 @@ export class PrismaGrantsRepository implements GrantsRepositoryPort {
     permissionId: string,
     effect: 'ALLOW' | 'DENY',
   ): Promise<void> {
-    await this.prisma.userPermission.upsert({
-      where: {
-        userId_permissionId: {
+    try {
+      await this.prisma.userPermission.upsert({
+        where: {
+          userId_permissionId: {
+            userId,
+            permissionId,
+          },
+        },
+        create: {
           userId,
           permissionId,
+          effect: effect === 'ALLOW' ? GrantEffect.ALLOW : GrantEffect.DENY,
         },
-      },
-      create: {
+        update: {
+          effect: effect === 'ALLOW' ? GrantEffect.ALLOW : GrantEffect.DENY,
+        },
+      });
+      // User override -> User Bump
+      await Promise.all([
+        this.redis.incr(redisKeys.rbacUserVersion(userId)),
+        this.redis.incr(redisKeys.rbacVersion()),
+      ]);
+    } catch (error) {
+      throw RbacException.databaseError({
         userId,
         permissionId,
-        effect: effect === 'ALLOW' ? GrantEffect.ALLOW : GrantEffect.DENY,
-      },
-      update: {
-        effect: effect === 'ALLOW' ? GrantEffect.ALLOW : GrantEffect.DENY,
-      },
-    });
-    // Invalidate User Specific Cache
-    await this.redis.del(redisKeys.rbacPermissions(userId));
+        effect,
+        originalError: error,
+      });
+    }
   }
 
   async removeUserPermissionOverride(
     userId: string,
     permissionId: string,
   ): Promise<void> {
-    await this.prisma.userPermission.delete({
-      where: {
-        userId_permissionId: {
-          userId,
-          permissionId,
+    try {
+      await this.prisma.userPermission.delete({
+        where: {
+          userId_permissionId: {
+            userId,
+            permissionId,
+          },
         },
-      },
-    });
-    await this.redis.del(redisKeys.rbacPermissions(userId));
+      });
+      // User override -> User Bump
+      await Promise.all([
+        this.redis.incr(redisKeys.rbacUserVersion(userId)),
+        this.redis.incr(redisKeys.rbacVersion()),
+      ]);
+    } catch (error) {
+      throw RbacException.databaseError({
+        userId,
+        permissionId,
+        originalError: error,
+      });
+    }
   }
 
   async replaceRolePermissions(
     roleId: string,
     permissionIds: string[],
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.rolePermission.deleteMany({ where: { roleId } });
-      if (permissionIds.length > 0) {
-        await tx.rolePermission.createMany({
-          data: permissionIds.map((permissionId) => ({ roleId, permissionId })),
-        });
-      }
-    });
-    await this.redis.incr(redisKeys.rbacVersion());
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.rolePermission.deleteMany({ where: { roleId } });
+        if (permissionIds.length > 0) {
+          await tx.rolePermission.createMany({
+            data: permissionIds.map((permissionId) => ({
+              roleId,
+              permissionId,
+            })),
+          });
+        }
+      });
+      // Role perm change -> Global Bump
+      await this.redis.incr(redisKeys.rbacVersion());
+    } catch (error) {
+      throw RbacException.databaseError({
+        roleId,
+        permissionIds,
+        originalError: error,
+      });
+    }
   }
 
   async replaceUserPermissions(
@@ -145,21 +210,33 @@ export class PrismaGrantsRepository implements GrantsRepositoryPort {
       note?: string;
     }[],
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.userPermission.deleteMany({ where: { userId } });
-      if (overrides.length > 0) {
-        await tx.userPermission.createMany({
-          data: overrides.map((o) => ({
-            userId,
-            permissionId: o.permissionId,
-            effect: o.effect === 'ALLOW' ? GrantEffect.ALLOW : GrantEffect.DENY,
-            note: o.note,
-          })),
-        });
-      }
-    });
-
-    await this.redis.del(redisKeys.rbacPermissions(userId));
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.userPermission.deleteMany({ where: { userId } });
+        if (overrides.length > 0) {
+          await tx.userPermission.createMany({
+            data: overrides.map((o) => ({
+              userId,
+              permissionId: o.permissionId,
+              effect:
+                o.effect === 'ALLOW' ? GrantEffect.ALLOW : GrantEffect.DENY,
+              note: o.note,
+            })),
+          });
+        }
+      });
+      // User override -> User Bump
+      await Promise.all([
+        this.redis.incr(redisKeys.rbacUserVersion(userId)),
+        this.redis.incr(redisKeys.rbacVersion()),
+      ]);
+    } catch (error) {
+      throw RbacException.databaseError({
+        userId,
+        overrides,
+        originalError: error,
+      });
+    }
   }
 
   private toPermissionDomain(record: any): Permission {

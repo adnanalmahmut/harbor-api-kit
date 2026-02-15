@@ -1,5 +1,5 @@
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AuthHelper } from './helpers/auth.helper.js';
@@ -15,6 +15,27 @@ describe('Users API Contract (E2E)', () => {
   let authHelper: AuthHelper;
   let rbacHelper: RbacHelper;
   let adminCookies: string[];
+  let csrfCookie: string | undefined;
+  let csrfToken: string | undefined;
+
+  const extractCsrf = (cookies: string[] = []) => {
+    for (const c of cookies) {
+      const match = c.match(/__Host-csrf=([^;]+)/);
+      if (match) return { cookie: c, token: match[1] };
+    }
+    return undefined;
+  };
+
+  const csrfHeaders = (cookies: string[]) => {
+    const list =
+      csrfCookie && !cookies.includes(csrfCookie)
+        ? [...cookies, csrfCookie]
+        : cookies;
+    const cookieHeader = list.join('; ');
+    if (!csrfToken)
+      throw new Error('CSRF token missing in Users contract tests');
+    return { Cookie: cookieHeader, 'X-CSRF-Token': csrfToken };
+  };
 
   beforeAll(async () => {
     const factory = await TestAppFactory.create();
@@ -35,7 +56,19 @@ describe('Users API Contract (E2E)', () => {
     const { cookies } = await authHelper.setupAdmin(rbacHelper);
     await clearRedisCache(redisService);
     adminCookies = cookies;
+    await fetchCsrf(adminCookies);
   });
+
+  async function fetchCsrf(cookies: string[]) {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', cookies);
+    const setCookies = res.get('Set-Cookie') || [];
+    const found = extractCsrf(setCookies) ?? extractCsrf(cookies);
+    csrfCookie = found?.cookie ?? csrfCookie;
+    csrfToken = found?.token ?? csrfToken;
+    if (!csrfToken) throw new Error('CSRF token could not be initialized');
+  }
 
   describe('Users CRUD', () => {
     it('should list users', async () => {
@@ -44,6 +77,7 @@ describe('Users API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
     });
 
@@ -62,6 +96,7 @@ describe('Users API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.email).toBe('target@test.com');
     });
 
@@ -76,10 +111,11 @@ describe('Users API Contract (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .put(`/api/v1/users/${userId}`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ firstName: 'Updated' })
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
 
       // Verify with get
@@ -87,6 +123,7 @@ describe('Users API Contract (E2E)', () => {
         .get(`/api/v1/users/${userId}`)
         .set('Cookie', adminCookies)
         .expect(200);
+      expect(get.body.success).toBe(true);
       expect(get.body.data.firstName).toBe('Updated');
     });
   });
@@ -104,7 +141,7 @@ describe('Users API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/v1/users/${userId}/roles`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ roleId: rId })
         .expect(201); // or 200
 
@@ -113,6 +150,7 @@ describe('Users API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(list.body.success).toBe(true);
       expect(list.body.data).toHaveLength(1);
       expect(list.body.data[0].slug).toBe('myrole');
     });
@@ -130,7 +168,7 @@ describe('Users API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .put(`/api/v1/users/${userId}/roles`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ roleIds: [r1, r2] })
         .expect(200);
 
@@ -139,6 +177,7 @@ describe('Users API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(list.body.success).toBe(true);
       expect(list.body.data).toHaveLength(2);
     });
   });
@@ -155,9 +194,12 @@ describe('Users API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/v1/users/${userId}/permissions`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ permissionId: 'invalid-uuid', effect: 'ALLOW' })
-        .expect(400); // Validation error
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.success).toBe(false);
+        }); // Validation error
     });
 
     it('should add allow override', async () => {
@@ -172,15 +214,19 @@ describe('Users API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/v1/users/${userId}/permissions`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ permissionId: pId, effect: 'ALLOW' })
-        .expect(201);
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       const perms = await request(app.getHttpServer())
         .get(`/api/v1/users/${userId}/permissions`)
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(perms.body.success).toBe(true);
       expect(perms.body.data.allow).toHaveLength(1);
       expect(perms.body.data.allow[0].key.subject).toBe('foo');
       expect(perms.body.data.allow[0].key.action).toBe('bar');
@@ -210,6 +256,7 @@ describe('Users API Contract (E2E)', () => {
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(res.body.success).toBe(true);
       expect(res.body.data.permissions).toContain('s:a');
     });
   });
@@ -279,7 +326,7 @@ describe('Users API Contract (E2E)', () => {
 
       const res = await request(app.getHttpServer())
         .put(`/api/v1/users/${fakeId}`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ firstName: 'Test' })
         .expect(404);
 
@@ -299,7 +346,7 @@ describe('Users API Contract (E2E)', () => {
       // Try to create another user with same email
       const res = await request(app.getHttpServer())
         .post('/api/v1/users')
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({
           email: 'duplicate@test.com',
           firstName: 'Second',
@@ -314,7 +361,7 @@ describe('Users API Contract (E2E)', () => {
     it('should return 400 for invalid email format', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/users')
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({
           email: 'invalid-email',
           firstName: 'Test',
@@ -345,13 +392,17 @@ describe('Users API Contract (E2E)', () => {
         .get(`/api/v1/users/${userId}/roles`)
         .set('Cookie', adminCookies)
         .expect(200);
+      expect(before.body.success).toBe(true);
       expect(before.body.data).toHaveLength(1);
 
       // Remove the role
       await request(app.getHttpServer())
         .delete(`/api/v1/users/${userId}/roles/${roleId}`)
-        .set('Cookie', adminCookies)
-        .expect(200);
+        .set(csrfHeaders(adminCookies))
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       // Verify role is removed
       await clearRedisCache(redisService);
@@ -359,6 +410,7 @@ describe('Users API Contract (E2E)', () => {
         .get(`/api/v1/users/${userId}/roles`)
         .set('Cookie', adminCookies)
         .expect(200);
+      expect(after.body.success).toBe(true);
       expect(after.body.data).toHaveLength(0);
     });
 
@@ -375,21 +427,28 @@ describe('Users API Contract (E2E)', () => {
       // Add permission override
       await request(app.getHttpServer())
         .post(`/api/v1/users/${userId}/permissions`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({ permissionId: permId, effect: 'ALLOW' })
-        .expect(201);
+        .expect(201)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       // Remove it
       await request(app.getHttpServer())
         .delete(`/api/v1/users/${userId}/permissions/${permId}`)
-        .set('Cookie', adminCookies)
-        .expect(200);
+        .set(csrfHeaders(adminCookies))
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       // Verify it's removed
       const perms = await request(app.getHttpServer())
         .get(`/api/v1/users/${userId}/permissions`)
         .set('Cookie', adminCookies)
         .expect(200);
+      expect(perms.body.success).toBe(true);
       expect(perms.body.data.allow).toHaveLength(0);
     });
 
@@ -406,20 +465,24 @@ describe('Users API Contract (E2E)', () => {
 
       await request(app.getHttpServer())
         .put(`/api/v1/users/${userId}/permissions`)
-        .set('Cookie', adminCookies)
+        .set(csrfHeaders(adminCookies))
         .send({
           overrides: [
             { permissionId: p1, effect: 'ALLOW' },
             { permissionId: p2, effect: 'DENY' },
           ],
         })
-        .expect(200);
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.success).toBe(true);
+        });
 
       const perms = await request(app.getHttpServer())
         .get(`/api/v1/users/${userId}/permissions`)
         .set('Cookie', adminCookies)
         .expect(200);
 
+      expect(perms.body.success).toBe(true);
       expect(perms.body.data.allow).toHaveLength(1);
       expect(perms.body.data.deny).toHaveLength(1);
     });

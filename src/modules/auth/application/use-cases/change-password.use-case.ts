@@ -1,7 +1,5 @@
-import type {
-  AuthProviderPort,
-  ChangePasswordCommand,
-} from '../ports/index.js';
+import type { ChangePasswordCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
 
 export class ChangePasswordUseCase {
   constructor(private readonly authProvider: AuthProviderPort) {}

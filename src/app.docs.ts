@@ -1,5 +1,5 @@
 // src/app.docs.ts
-import type { AppConfigService } from '#src/shared/config/app-config.service.js';
+import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
@@ -41,8 +41,14 @@ export function setupApiDocs(
     .addGlobalParameters({
       name: 'Accept-Language',
       in: 'header',
-      required: false,
-      schema: { type: 'string', enum: ['en-US', 'ar-SY'] },
+      required: true,
+      schema: { type: 'string', enum: ['ar-SY', 'en-US'] },
+    })
+    .addGlobalParameters({
+      name: 'X-Forwarded-For',
+      in: 'header',
+      required: true,
+      schema: { type: 'string', example: '192.29.224.220' },
     })
     .addApiKey(
       {

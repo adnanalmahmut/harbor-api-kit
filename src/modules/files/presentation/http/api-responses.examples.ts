@@ -1,12 +1,12 @@
-import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
+import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
 import {
   type ApiResponseConfig,
   createApiError,
   createApiResponseConfig,
   createApiSuccess,
-} from '#src/shared/http/decorators/api-errors.decorator.js';
+} from '#src/core/presentation/http/decorators/api-errors.decorator.js';
 import { HttpStatus } from '@nestjs/common';
-import { FileResponseDto } from './dtos/files.dto.js';
+import { DownloadUrlDto, FileResponseDto } from './dtos/files.dto.js';
 
 export const FILES_RESPONSES = {
   upload: createApiResponseConfig(
@@ -57,10 +57,12 @@ export const FILES_RESPONSES = {
     [createApiError(AppErrorCode.NOT_FOUND, 'files.errors.not_found')],
   ),
   download: createApiResponseConfig(
-    {
-      status: HttpStatus.FOUND,
-      message: 'Redirect to signed URL',
-    },
+    createApiSuccess(
+      'Signed URL generated',
+      HttpStatus.OK,
+      undefined,
+      DownloadUrlDto,
+    ),
     [
       createApiError(AppErrorCode.NOT_FOUND, 'files.errors.not_found'),
       createApiError(AppErrorCode.FORBIDDEN, 'files.errors.access_denied'),

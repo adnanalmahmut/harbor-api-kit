@@ -1,5 +1,5 @@
-import { AuthConfigPort } from '#src/modules/auth/application/ports/auth-config.port.js';
-import { AppConfigService } from '#src/shared/config/app-config.service.js';
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AuthConfigPort } from '#src/modules/auth/domain/ports/auth-config.port.js';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

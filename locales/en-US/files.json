@@ -5,7 +5,8 @@
     "restore_success": "File restored successfully",
     "visibility_updated": "File visibility updated",
     "download_link_generated": "Download link generated",
-    "meta_retrieved": "File metadata retrieved successfully"
+    "meta_retrieved": "File metadata retrieved successfully",
+    "download_url_retrieved": "Download URL retrieved successfully"
   },
   "errors": {
     "not_found": "File not found",

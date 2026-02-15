@@ -1,5 +1,5 @@
-import type { AuthProviderPort } from '#src/modules/auth/application/ports/auth-provider.port.js';
-import type { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 
 export type RemoveUserPermissionOverrideCommand = {

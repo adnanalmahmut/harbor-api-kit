@@ -1,3 +1,4 @@
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import type {
   FileMetadata,
@@ -6,7 +7,6 @@ import type {
   SignedUrlOptions,
   UploadResult,
 } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { AppConfigService } from '#src/shared/config/app-config.service.js';
 import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -72,9 +72,7 @@ export class LocalDriver implements IStorageDriver {
     const _options = options;
     // Local driver doesn't support real signed URLs.
     // We return a proxy URL that requires authentication via the main API.
-    // Format: /api/v1/files/:id/stream (The controller handles this redirection/proxying)
-    // NOTE: This return value is often ignored by the controller in favor of proxying directly for local.
-    return `/api/v1/files/${key}/stream`;
+    return `/api/v1/files/${key}/download`;
   }
 
   async delete(key: string): Promise<void> {

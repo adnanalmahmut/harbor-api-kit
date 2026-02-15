@@ -1,5 +1,5 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/exceptions/error-definitions.js';
+import { AppException } from '#src/core/domain/exceptions/app-exception.js';
+import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
 
 export class NotifyException extends AppException {
   static providerError(detail?: string) {

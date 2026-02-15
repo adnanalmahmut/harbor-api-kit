@@ -1,5 +1,5 @@
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
@@ -42,53 +42,47 @@ describe('Security Module (E2E)', () => {
     cookies = loginRes.get('Set-Cookie') || [];
   });
 
-  it('should block POST requests without CSRF token when browser-like headers are present', async () => {
-    // The CSRF guard only applies when:
-    // 1. The request is "browser-like" (has sec-fetch-*, origin, or referer headers)
-    // 2. The request has auth cookies
-    // 3. The method is unsafe (POST, PUT, DELETE, PATCH)
+  it('should block POST requests with auth cookies when CSRF header is missing', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-out')
       .set('Cookie', cookies)
-      .set('Origin', 'http://localhost:5001') // Make request browser-like
-      .expect(403);
+      .expect(403)
+      .expect((res) => {
+        expect(res.body.success).toBe(false);
+        expect(typeof res.body.message).toBe('string');
+        expect(res.body.message).not.toContain('core.errors');
+      });
   });
 
   it('should allow POST requests with valid CSRF token', async () => {
-    // First, get a CSRF token by making a GET request with browser headers
+    const extractCsrf = (cookieList: string[] = []) => {
+      for (const c of cookieList) {
+        const match = c.match(/__Host-csrf=([^;]+)/);
+        if (match) return { cookie: c, token: match[1] };
+      }
+      return undefined;
+    };
+
     const getRes = await request(app.getHttpServer())
       .get('/api/v1/auth/me')
       .set('Cookie', cookies)
-      .set('Origin', 'http://localhost:5001')
       .expect(200);
 
-    // Extract CSRF cookie from response
     const setCookies = getRes.get('Set-Cookie') || [];
-    const csrfCookie = setCookies.find((c: string) =>
-      c.includes('__Host-csrf='),
-    );
+    // Check both new Set-Cookie and original login cookies
+    const csrf = extractCsrf(setCookies) ?? extractCsrf(cookies);
 
-    if (csrfCookie) {
-      // Extract token value
-      const match = csrfCookie.match(/__Host-csrf=([^;]+)/);
-      const csrfToken = match ? match[1] : '';
+    expect(csrf).toBeDefined();
+    expect(csrf!.token).toBeTruthy();
 
-      // Make POST with CSRF header
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/sign-out')
-        .set('Cookie', [...cookies, csrfCookie])
-        .set('Origin', 'http://localhost:5001')
-        .set('X-CSRF-Token', csrfToken)
-        .expect(200);
-    }
-  });
-
-  it('should allow POST requests from non-browser clients (no CSRF required)', async () => {
-    // Supertest without browser headers should bypass CSRF
+    // Make POST with CSRF header
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-out')
-      .set('Cookie', cookies)
-      // No Origin/Referer/sec-fetch-* headers = non-browser client
-      .expect(200);
+      .set('Cookie', [...cookies, csrf!.cookie])
+      .set('X-CSRF-Token', csrf!.token)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.success).toBe(true);
+      });
   });
 });

@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # saas-core-platform - rules.md
 
 Canonical rules for saas-core-platform. Source of truth for boundaries, contracts, and non-negotiables.

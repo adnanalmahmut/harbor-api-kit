@@ -1,4 +1,4 @@
-import type { CookieDirective } from '#src/modules/auth/application/common/cookie-directive.js';
+import type { CookieDirective } from '#src/modules/auth/domain/ports/cookie-directive.js';
 import type { FastifyReply } from 'fastify';
 
 export function serializeCookie(c: CookieDirective): string {

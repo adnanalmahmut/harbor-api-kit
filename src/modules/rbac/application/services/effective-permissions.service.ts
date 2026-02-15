@@ -1,5 +1,6 @@
-import type { CacheManagerPort } from '#src/core/ports/cache-manager.port.js';
-import type { LoggerPort } from '#src/core/ports/logger.port.js';
+import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
+import type { LoggerPort } from '#src/core/application/ports/logger.port.js';
+import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
 import { rbacCacheKeys } from '#src/modules/rbac/application/rbac.cache-keys.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
@@ -13,6 +14,29 @@ export type EffectivePermissions = {
   has: (key: string) => boolean;
 };
 
+/**
+ * Shared logic for checking permissions including subject:manage escalation.
+ */
+export function checkPermission(
+  key: string,
+  permissions: Set<string>,
+  deny: Set<string>,
+): boolean {
+  if (deny.has(key)) return false;
+  if (permissions.has(key)) return true;
+
+  try {
+    const vo = PermissionKeyVO.parse(key);
+    const mgmtKey = `${vo.subject}:manage`;
+    if (deny.has(mgmtKey)) return false;
+    if (permissions.has(mgmtKey)) return true;
+  } catch {
+    // ignore invalid keys
+  }
+
+  return false;
+}
+
 type CachedEffectivePermissions = {
   roles: string[];
   permissions: string[];
@@ -25,72 +49,97 @@ export class EffectivePermissionsService {
     private readonly grantsRepo: GrantsRepositoryPort,
     private readonly cache: CacheManagerPort,
     private readonly logger: LoggerPort,
+    private readonly contextStore: RequestContextStorePort,
   ) {}
 
-  async buildForUser(userId: string): Promise<EffectivePermissions> {
-    const version = (await this.cache.get(rbacCacheKeys.rbacVersion())) || '0';
-    const cacheKey = `${rbacCacheKeys.rbacPermissions(userId)}:${version}`;
-    const cached = await this.cache.get(cacheKey);
+  async buildForUser(user: {
+    id: string;
+    roles?: string[];
+    permissions?: string[];
+  }): Promise<EffectivePermissions> {
+    const userId = user.id;
 
-    if (cached) {
-      try {
-        const data = JSON.parse(cached) as CachedEffectivePermissions;
-        if (!data.permissions || !data.roles || !data.deny) {
-          throw new Error('Invalid cache shape');
-        }
-        this.logger.debug?.(`Cache HIT for user ${userId} (key: ${cacheKey})`);
-        return this.hydrate(data);
-      } catch {
-        this.logger.warn(
-          `Cache CORRUPTION or VERSION MISMATCH for user ${userId}`,
-        );
-      }
-    } else {
-      this.logger.debug?.(`Cache MISS for user ${userId} (key: ${cacheKey})`);
+    // Optional: If AuthGuard already populated roles/permissions in the user object,
+    // we could potentially wrap them. However, Usually AuthGuard only has basic user info.
+    // If the user object HAS permissions AND roles, and we trust them for this request:
+    if (user.roles?.length || user.permissions?.length) {
+      // Note: This assumes the user object in req.user is fully hydrated with RBAC
+      // which might not be true if it comes from a minimal session.
+      // But if it is, we can return it immediately.
     }
 
-    const result = await this.fetchFromDb(userId);
+    return this.contextStore.getOrLoad(
+      rbacCacheKeys.rbacPermissions(userId),
+      async () => {
+        const globalVer =
+          (await this.cache.get(rbacCacheKeys.rbacVersion())) || '0';
+        const userVer =
+          (await this.cache.get(rbacCacheKeys.rbacUserVersion(userId))) || '0';
+        const cacheKey = `${rbacCacheKeys.rbacPermissions(userId)}:${globalVer}:${userVer}`;
+        const cached = await this.cache.get(cacheKey);
 
-    const cacheData: CachedEffectivePermissions = {
-      roles: Array.from(result.roles),
-      permissions: Array.from(result.permissions),
-      deny: Array.from(result.deny),
-    };
-    await this.cache.set(cacheKey, JSON.stringify(cacheData), 3600);
+        if (cached) {
+          try {
+            const data = JSON.parse(cached) as CachedEffectivePermissions;
+            if (!data.permissions || !data.roles || !data.deny) {
+              throw new Error('Invalid cache shape');
+            }
+            this.logger.debug?.(
+              `Cache HIT for user ${userId} (key: ${cacheKey})`,
+            );
+            return this.hydrate(data);
+          } catch {
+            this.logger.warn(
+              `Cache CORRUPTION or VERSION MISMATCH for user ${userId}`,
+            );
+          }
+        } else {
+          this.logger.debug?.(
+            `Cache MISS for user ${userId} (key: ${cacheKey})`,
+          );
+        }
 
-    // Safe event-based logging (no permission sets exposed)
-    this.logger.debug?.(
-      `[rbac.cache.set] userId=${userId} permissionCount=${result.permissions.size} roleCount=${result.roles.size}`,
+        const result = await this.fetchFromDb(userId);
+
+        const cacheData: CachedEffectivePermissions = {
+          roles: Array.from(result.roles),
+          permissions: Array.from(result.permissions),
+          deny: Array.from(result.deny),
+        };
+        await this.cache.set(cacheKey, JSON.stringify(cacheData), 3600);
+
+        // Safe event-based logging (no permission sets exposed)
+        this.logger.debug?.(
+          `[rbac.cache.set] userId=${userId} permissionCount=${result.permissions.size} roleCount=${result.roles.size}`,
+        );
+
+        return this.createEffective(
+          result.roles,
+          result.permissions,
+          result.deny,
+        );
+      },
+      3600,
+      'request',
     );
-
-    return this.createEffective(result.roles, result.permissions, result.deny);
   }
 
   async refreshForUser(userId: string): Promise<void> {
     this.logger.debug?.(`Refreshing cache for user ${userId}`);
-    const version = (await this.cache.get(rbacCacheKeys.rbacVersion())) || '0';
-    const cacheKey = `${rbacCacheKeys.rbacPermissions(userId)}:${version}`;
-
-    const result = await this.fetchFromDb(userId);
-
-    const cacheData: CachedEffectivePermissions = {
-      roles: Array.from(result.roles),
-      permissions: Array.from(result.permissions),
-      deny: Array.from(result.deny),
-    };
-
-    await this.cache.set(cacheKey, JSON.stringify(cacheData), 3600);
-    this.logger.debug?.(
-      `Cache REFRESHED for user ${userId} (key: ${cacheKey})`,
-    );
+    await this.invalidateForUser(userId);
   }
 
   private hydrate(data: CachedEffectivePermissions): EffectivePermissions {
-    return this.createEffective(
-      new Set(data.roles),
-      new Set(data.permissions),
-      new Set(data.deny),
-    );
+    const roles = new Set(data.roles);
+    const permissions = new Set(data.permissions);
+    const deny = new Set(data.deny);
+
+    return {
+      roles,
+      permissions,
+      deny,
+      has: (key: string) => checkPermission(key, permissions, deny),
+    };
   }
 
   private createEffective(
@@ -102,31 +151,19 @@ export class EffectivePermissionsService {
       roles,
       permissions,
       deny,
-      has: (key: string) => {
-        if (deny.has(key)) return false;
-        if (permissions.has(key)) return true;
-
-        try {
-          const vo = PermissionKeyVO.parse(key);
-          const mgmtKey = `${vo.subject}:manage`;
-          if (deny.has(mgmtKey)) return false;
-          // Check escalation against the flattened list
-          if (permissions.has(mgmtKey)) return true;
-        } catch {
-          // ignore invalid keys
-        }
-
-        return false;
-      },
+      has: (key: string) => checkPermission(key, permissions, deny),
     };
   }
 
   async invalidateForUser(userId: string): Promise<void> {
-    const version = (await this.cache.get(rbacCacheKeys.rbacVersion())) || '0';
-    const cacheKey = `${rbacCacheKeys.rbacPermissions(userId)}:${version}`;
-    await this.cache.del(cacheKey);
+    // Only bump user-specific version for user-specific changes
+    // Global rbacVersion is only bumped for role/permission definition changes
+    const userNext = await this.cache.incr(
+      rbacCacheKeys.rbacUserVersion(userId),
+    );
+
     this.logger.debug?.(
-      `Cache INVALIDATED for user ${userId} (key: ${cacheKey})`,
+      `RBAC user version bumped user=${userId} userVer=${userNext}`,
     );
   }
 
@@ -165,10 +202,7 @@ export class EffectivePermissionsService {
   }
 
   async invalidateAll(): Promise<void> {
-    const key = rbacCacheKeys.rbacVersion();
-    const v = (await this.cache.get(key)) || '0';
-    const next = (parseInt(v) + 1).toString();
-    await this.cache.set(key, next);
+    const next = await this.cache.incr(rbacCacheKeys.rbacVersion());
     this.logger.log(`Global RBAC Version Incremented to ${next}`);
   }
 }

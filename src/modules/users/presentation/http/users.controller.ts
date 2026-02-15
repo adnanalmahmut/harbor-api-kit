@@ -1,3 +1,5 @@
+import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
@@ -21,8 +23,6 @@ import { ReplaceUserPermissionsDto } from '#src/modules/users/presentation/http/
 import { ReplaceUserRolesDto } from '#src/modules/users/presentation/http/dtos/replace-user-roles.dto.js';
 import { SetPermissionOverrideDto } from '#src/modules/users/presentation/http/dtos/set-permission-override.dto.js';
 import { UpdateUserAdminDto } from '#src/modules/users/presentation/http/dtos/update-user-admin.dto.js';
-import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
 import {
   Body,
   Controller,
@@ -102,7 +102,6 @@ export class UsersController {
   @Post(':id/roles')
   async addRole(@Param('id') userId: string, @Body() body: AddRoleToUserDto) {
     await this.addRoleToUserUseCase.execute({ userId, roleId: body.roleId });
-    return { message: 'Role added to user' };
   }
 
   @ApiResponses(USERS_RESPONSES.removeRoleFromUser)
@@ -117,7 +116,6 @@ export class UsersController {
     @Param('roleId') roleId: string,
   ) {
     await this.removeRoleFromUserUseCase.execute({ userId, roleId });
-    return { message: 'Role removed from user' };
   }
 
   @ApiResponses(USERS_RESPONSES.setPermissionOverride)
@@ -135,7 +133,6 @@ export class UsersController {
       permissionId: body.permissionId,
       effect: body.effect,
     });
-    return { message: 'Permission override set' };
   }
 
   @ApiResponses(USERS_RESPONSES.removePermissionOverride)
@@ -153,7 +150,6 @@ export class UsersController {
       userId,
       permissionId,
     });
-    return { message: 'Permission override removed' };
   }
 
   @ApiResponses(USERS_RESPONSES.update)
@@ -166,11 +162,11 @@ export class UsersController {
     @Param('id') userId: string,
     @Body() body: UpdateUserAdminDto,
   ) {
-    await this.updateUserByIdUseCase.execute({
+    const user = await this.updateUserByIdUseCase.execute({
       userId,
       ...body,
     });
-    return { message: 'User updated' };
+    return UserResponseMapper.map(user);
   }
 
   @ApiResponses(USERS_RESPONSES.getUserRoles)
@@ -194,7 +190,6 @@ export class UsersController {
     @Body() body: ReplaceUserRolesDto,
   ) {
     await this.replaceUserRolesUseCase.execute(userId, body.roleIds);
-    return { message: 'User roles replaced' };
   }
 
   @ApiResponses(USERS_RESPONSES.getUserPermissions)
@@ -218,7 +213,6 @@ export class UsersController {
     @Body() body: ReplaceUserPermissionsDto,
   ) {
     await this.replaceUserPermissionsUseCase.execute(userId, body.overrides);
-    return { message: 'User permissions replaced' };
   }
 
   @ApiResponses(USERS_RESPONSES.getEffectivePermissions)

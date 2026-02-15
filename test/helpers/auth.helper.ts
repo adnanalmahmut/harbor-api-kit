@@ -1,3 +1,4 @@
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
 import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
@@ -12,6 +13,12 @@ export class AuthHelper {
       .post('/api/v1/auth/register')
       .send(dto)
       .expect(201);
+
+    const prisma = this.app.get(PrismaService);
+    await prisma.user.update({
+      where: { email: dto.email },
+      data: { emailVerified: true },
+    });
 
     const loginRes = await request(this.app.getHttpServer())
       .post('/api/v1/auth/login')

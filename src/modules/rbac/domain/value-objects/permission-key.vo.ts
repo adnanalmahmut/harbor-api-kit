@@ -1,4 +1,4 @@
-import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
+import { RbacDomainException } from '#src/modules/rbac/domain/exceptions/rbac-domain.exception.js';
 
 /**
  * Permission key format: subject:action (e.g., user:read, role:manage)
@@ -16,14 +16,14 @@ export class PermissionKeyVO {
     const s = subject.trim().toLowerCase();
     const a = action.trim().toLowerCase();
     if (!s || !a || !PERMISSION_KEY_PATTERN.test(`${s}:${a}`)) {
-      throw RbacException.invalidPermissionKey(`${s}:${a}`);
+      throw RbacDomainException.invalidPermissionKey(`${s}:${a}`);
     }
     return new PermissionKeyVO(s, a);
   }
 
   static parse(key: string): PermissionKeyVO {
     if (!PermissionKeyVO.isValid(key)) {
-      throw RbacException.invalidPermissionKey(key);
+      throw RbacDomainException.invalidPermissionKey(key);
     }
     const [subject, action] = key.split(':');
     return new PermissionKeyVO(subject, action);

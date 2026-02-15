@@ -1,7 +1,10 @@
-import { AppConfigModule } from '#src/infrastructure/config/app-config.module.js';
-import { PrismaModule } from '#src/infrastructure/db/prisma/prisma.module.js';
-import { RedisModule } from '#src/infrastructure/redis/redis.module.js';
-import { RedisService } from '#src/infrastructure/redis/redis.service.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
+import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
+import { PrismaModule } from '#src/core/infrastructure/db/prisma/prisma.module.js';
+import { NestLoggerAdapter } from '#src/core/infrastructure/logging/nest-logger.adapter.js';
+import { RedisModule } from '#src/core/infrastructure/redis/redis.module.js';
+import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
@@ -27,7 +30,8 @@ import { PrismaPermissionRepository } from '#src/modules/rbac/infrastructure/per
 import { PrismaRoleRepository } from '#src/modules/rbac/infrastructure/persistence/prisma-role.repository.js';
 import { RbacController } from '#src/modules/rbac/presentation/http/rbac.controller.js';
 import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
-import { forwardRef, Logger, Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 
 @Module({
   imports: [
@@ -70,19 +74,23 @@ import { forwardRef, Logger, Module } from '@nestjs/common';
         roleRepo: RoleRepositoryPort,
         grantsRepo: GrantsRepositoryPort,
         redis: RedisService,
+        contextStore: RequestContextStorePort,
+        logger: Logger,
       ) => {
-        const logger = new Logger(EffectivePermissionsService.name);
         return new EffectivePermissionsService(
           roleRepo,
           grantsRepo,
           redis,
-          logger,
+          new NestLoggerAdapter(EffectivePermissionsService.name, logger),
+          contextStore,
         );
       },
       inject: [
         RBAC_TOKENS.ROLE_REPOSITORY,
         RBAC_TOKENS.GRANTS_REPOSITORY,
         RedisService,
+        CORE_TOKENS.REQUEST_CONTEXT_STORE,
+        Logger,
       ],
     },
 

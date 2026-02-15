@@ -1,3 +1,5 @@
+import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
 import { CreatePermissionUseCase } from '#src/modules/rbac/application/use-cases/create-permission.use-case.js';
@@ -21,8 +23,6 @@ import { ReplaceRolePermissionsDto } from '#src/modules/rbac/presentation/http/d
 import { UpdatePermissionDto } from '#src/modules/rbac/presentation/http/dtos/update-permission.dto.js';
 import { UpdateRoleDto } from '#src/modules/rbac/presentation/http/dtos/update-role.dto.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
-import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
 import {
   Body,
   Controller,
@@ -100,7 +100,6 @@ export class RbacController {
       roleId,
       permissionId: dto.permissionId,
     });
-    return { message: 'Permission assigned to role' };
   }
 
   @ApiResponses(RBAC_RESPONSES.removePermissionFromRole)
@@ -113,7 +112,6 @@ export class RbacController {
     @Param('permissionId') permissionId: string,
   ) {
     await this.removePermissionUseCase.execute({ roleId, permissionId });
-    return { message: 'Permission removed from role' };
   }
 
   @ApiResponses(RBAC_RESPONSES.getRolePermissions)
@@ -146,7 +144,6 @@ export class RbacController {
   @Delete('roles/:id')
   async deleteRole(@Param('id') id: string) {
     await this.deleteRoleUseCase.execute(id);
-    return { message: 'Role deleted' };
   }
 
   @ApiResponses(RBAC_RESPONSES.getPermission)
@@ -174,7 +171,6 @@ export class RbacController {
   @Delete('permissions/:id')
   async deletePermission(@Param('id') id: string) {
     await this.deletePermissionUseCase.execute(id);
-    return { message: 'Permission deleted' };
   }
 
   @ApiResponses(RBAC_RESPONSES.replaceRolePermissions)
@@ -186,6 +182,5 @@ export class RbacController {
     @Body() dto: ReplaceRolePermissionsDto,
   ) {
     await this.replaceRolePermissionsUseCase.execute(roleId, dto.permissionIds);
-    return { message: 'Role permissions replaced' };
   }
 }

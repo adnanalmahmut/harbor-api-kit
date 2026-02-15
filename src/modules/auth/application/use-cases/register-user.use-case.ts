@@ -1,8 +1,8 @@
+import type { LoggerPort } from '#src/core/application/ports/logger.port.js';
+import type { SignUpCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
-import type { AuthProviderPort, SignUpCommand } from '../ports/index.js';
-
-import type { LoggerPort } from '#src/core/ports/logger.port.js';
 
 export class RegisterUserUseCase {
   private static readonly DEFAULT_ROLE_SLUG = 'user';
@@ -29,7 +29,9 @@ export class RegisterUserUseCase {
     if (result.data?.user) {
       const roles = await this.roleRepo.listRolesForUser(userId);
       const roleSlugs = roles.map((r) => r.slug);
-      const perms = await this.effectivePermissions.buildForUser(userId);
+      const perms = await this.effectivePermissions.buildForUser(
+        result.data.user,
+      );
 
       result.data.user.roles = roleSlugs;
       result.data.user.permissions = Array.from(perms.permissions);

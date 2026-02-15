@@ -1,5 +1,5 @@
-import { AppException } from '#src/core/exceptions/app-exception.js';
-import type { AppConfigService } from '#src/shared/config/app-config.service.js';
+import { AppException } from '#src/core/domain/exceptions/app-exception.js';
+import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 export function setupCors(

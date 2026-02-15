@@ -35,6 +35,11 @@ export interface FileFilterParams {
 export interface IFileRepository {
   create(data: CreateFileProps): Promise<FileEntity>;
   findById(id: string): Promise<FileEntity | null>;
+  findAccessibleById(
+    id: string,
+    userId: string,
+    isAdmin: boolean,
+  ): Promise<FileEntity | null>;
   findByPublicToken(token: string): Promise<FileEntity | null>;
   update(id: string, data: UpdateFileProps): Promise<FileEntity>;
   delete(id: string): Promise<FileEntity>; // Soft delete

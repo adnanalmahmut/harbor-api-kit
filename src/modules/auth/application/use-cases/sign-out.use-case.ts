@@ -1,5 +1,6 @@
 import { AuthCacheKeys } from '#src/modules/auth/application/cache/auth-cache.keys.js';
-import type { AuthProviderPort, SignOutCommand } from '../ports/index.js';
+import type { SignOutCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
 
 export class SignOutUseCase {
   constructor(private readonly authProvider: AuthProviderPort) {}

@@ -1,6 +1,7 @@
+import type { SignInCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
-import type { AuthProviderPort, SignInCommand } from '../ports/index.js';
 
 export class LoginUserUseCase {
   constructor(
@@ -25,7 +26,9 @@ export class LoginUserUseCase {
       const userId = result.data.user.id;
       const roles = await this.roleRepo.listRolesForUser(userId);
       const roleSlugs = roles.map((r) => r.slug);
-      const perms = await this.effectivePermissions.buildForUser(userId);
+      const perms = await this.effectivePermissions.buildForUser(
+        result.data.user,
+      );
 
       result.data.user.roles = roleSlugs;
       result.data.user.permissions = Array.from(perms.permissions);

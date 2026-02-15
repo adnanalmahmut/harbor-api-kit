@@ -1,7 +1,5 @@
-import type {
-  AuthProviderPort,
-  ForgetPasswordCommand,
-} from '../ports/index.js';
+import type { ForgetPasswordCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
 
 export class ForgetPasswordUseCase {
   constructor(private readonly authProvider: AuthProviderPort) {}

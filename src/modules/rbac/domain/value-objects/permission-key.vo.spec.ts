@@ -1,4 +1,4 @@
-import { RbacException } from '#src/modules/rbac/domain/exceptions/rbac.exception.js';
+import { RbacDomainException } from '#src/modules/rbac/domain/exceptions/rbac-domain.exception.js';
 import {
   PERMISSION_KEY_PATTERN,
   PermissionKeyVO,
@@ -33,10 +33,14 @@ describe('PermissionKeyVO', () => {
       expect(vo.toString()).toBe('user:read');
     });
 
-    it('should throw RbacException for invalid key', () => {
-      expect(() => PermissionKeyVO.parse('invalid')).toThrow(RbacException);
-      expect(() => PermissionKeyVO.parse('')).toThrow(RbacException);
-      expect(() => PermissionKeyVO.parse('User:Read')).toThrow(RbacException);
+    it('should throw RbacDomainException for invalid key', () => {
+      expect(() => PermissionKeyVO.parse('invalid')).toThrow(
+        RbacDomainException,
+      );
+      expect(() => PermissionKeyVO.parse('')).toThrow(RbacDomainException);
+      expect(() => PermissionKeyVO.parse('User:Read')).toThrow(
+        RbacDomainException,
+      );
     });
   });
 
@@ -56,13 +60,13 @@ describe('PermissionKeyVO', () => {
 
     it('should throw for invalid parts', () => {
       expect(() => PermissionKeyVO.fromParts('', 'read')).toThrow(
-        RbacException,
+        RbacDomainException,
       );
       expect(() => PermissionKeyVO.fromParts('user', '')).toThrow(
-        RbacException,
+        RbacDomainException,
       );
       expect(() => PermissionKeyVO.fromParts('user-name', 'read')).toThrow(
-        RbacException,
+        RbacDomainException,
       );
     });
   });

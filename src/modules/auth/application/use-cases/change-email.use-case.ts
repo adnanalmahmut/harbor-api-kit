@@ -1,6 +1,7 @@
+import type { ChangeEmailCommand } from '#src/modules/auth/domain/ports/auth-commands.js';
+import type { AuthEmailSenderPort } from '#src/modules/auth/domain/ports/auth-email.sender.port.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
-import type { AuthEmailSenderPort } from '../ports/auth-email.sender.port.js';
-import type { AuthProviderPort, ChangeEmailCommand } from '../ports/index.js';
 
 export class ChangeEmailUseCase {
   constructor(

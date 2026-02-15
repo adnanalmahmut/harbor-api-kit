@@ -128,7 +128,7 @@ const contextRestricted = {
   ],
 };
 
-export default tseslint.config(
+export default [
   {
     ignores: ['eslint.config.mjs', 'dist/**', 'generated/**', 'test/**'],
   },
@@ -188,7 +188,7 @@ export default tseslint.config(
         {
           paths: [
             ...prismaRestricted.paths,
-            ...zipPaths(classValidatorRestricted.paths), // Helper or just spread? Spread is fine if not merging into same object keys
+            ...zipPaths(classValidatorRestricted.paths),
             ...redisRestricted.paths,
             ...i18nRestricted.paths,
           ],
@@ -223,7 +223,6 @@ export default tseslint.config(
             ...infrastructureRestricted.patterns,
             ...presentationRestricted.patterns,
             ...contextRestricted.patterns,
-            // Allow domain
           ],
         },
       ],
@@ -246,8 +245,17 @@ export default tseslint.config(
           ],
           patterns: [
             ...prismaRestricted.patterns,
-            ...domainRestricted.patterns,
-            ...infrastructureRestricted.patterns,
+            {
+              group: [
+                '#src/infrastructure/**',
+                '#src/modules/**/infrastructure/**',
+                '#src/core/infrastructure/**',
+                '!#src/core/infrastructure/config/**',
+                '!#src/core/infrastructure/logger/**',
+              ],
+              message:
+                'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+            },
           ],
         },
       ],
@@ -269,23 +277,85 @@ export default tseslint.config(
       ],
     },
   },
-  // Core Layer
+  // Core Layer: Domain
   {
-    files: ['src/core/**/*.ts'],
+    files: ['src/core/domain/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [
             ...prismaRestricted.paths,
-            ...classValidatorRestricted.paths,
             ...redisRestricted.paths,
             ...i18nRestricted.paths,
           ],
           patterns: [
             ...prismaRestricted.patterns,
             ...nestJsRestricted.patterns,
-            ...presentationRestricted.patterns, // Prevent feature internals
+            ...infrastructureRestricted.patterns,
+            ...presentationRestricted.patterns,
+            ...applicationRestricted.patterns,
+          ],
+        },
+      ],
+    },
+  },
+  // Core Layer: Application
+  {
+    files: ['src/core/application/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            ...prismaRestricted.paths,
+            ...redisRestricted.paths,
+            ...i18nRestricted.paths,
+          ],
+          patterns: [
+            ...prismaRestricted.patterns,
+            ...nestJsRestricted.patterns,
+            ...infrastructureRestricted.patterns,
+            ...presentationRestricted.patterns,
+          ],
+        },
+      ],
+    },
+  },
+  // Core Layer: Infrastructure
+  {
+    files: ['src/core/infrastructure/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [], // Allows prisma/redis here
+          patterns: [...presentationRestricted.patterns],
+        },
+      ],
+    },
+  },
+  // Core Layer: Presentation
+  {
+    files: ['src/core/presentation/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [...prismaRestricted.paths, ...redisRestricted.paths],
+          patterns: [
+            ...prismaRestricted.patterns,
+            {
+              group: [
+                '#src/infrastructure/**',
+                '#src/modules/**/infrastructure/**',
+                '#src/core/infrastructure/**',
+                '!#src/core/infrastructure/config/**',
+                '!#src/core/infrastructure/logger/**',
+              ],
+              message:
+                'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+            },
           ],
         },
       ],
@@ -305,4 +375,4 @@ export default tseslint.config(
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
-);
+];

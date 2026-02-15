@@ -1,5 +1,5 @@
+import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
 import type { Prisma } from '#src/generated/prisma/client.js';
-import { PrismaService } from '#src/infrastructure/db/prisma/prisma.service.js';
 import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import { FileEntity } from '#src/modules/files/domain/entities/file.entity.js';
 import { Injectable } from '@nestjs/common';
@@ -42,6 +42,27 @@ export class PrismaFileRepository implements IFileRepository {
     const file = await this.prisma.file.findUnique({
       where: { id },
     });
+    return file ? this.mapToEntity(file) : null;
+  }
+
+  async findAccessibleById(
+    id: string,
+    userId: string,
+    isAdmin: boolean,
+  ): Promise<FileEntity | null> {
+    // Admin can access any file
+    if (isAdmin) {
+      return this.findById(id);
+    }
+
+    // Non-admin: must be owner or public
+    const file = await this.prisma.file.findFirst({
+      where: {
+        id,
+        OR: [{ isPublic: true }, { uploadedById: userId }],
+      },
+    });
+
     return file ? this.mapToEntity(file) : null;
   }
 

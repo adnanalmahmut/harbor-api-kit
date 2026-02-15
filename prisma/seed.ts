@@ -1,13 +1,17 @@
 /* prisma/seed.ts */
+// STRICT ENVIRONMENT GATING: Seed only runs in test environment
+if (process.env.APP_ENV !== 'test') {
+  console.error('⛔  Seed can only run when APP_ENV=test');
+  console.error('    Current APP_ENV:', process.env.APP_ENV || 'undefined');
+  console.error('    Run with: APP_ENV=test npx prisma db seed');
+  process.exit(1);
+}
+
 import dotenv from 'dotenv';
 import path from 'path';
 
-const envFile =
-  process.env.APP_ENV === 'test' || process.env.NODE_ENV === 'test'
-    ? '.env.test'
-    : '.env';
-
-dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+// Only load .env.test when in test environment
+dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
@@ -344,11 +348,9 @@ async function seedTestUsersViaBetterAuth(prisma: PrismaClient) {
 }
 
 async function main() {
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.SEED_FORCE !== 'true'
-  ) {
-    console.error('⛔  Production seeding requires SEED_FORCE=true');
+  // Additional safety check (already checked at top of file)
+  if (process.env.APP_ENV !== 'test') {
+    console.error('⛔  Seed can only run when APP_ENV=test');
     process.exit(1);
   }
 

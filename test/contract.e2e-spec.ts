@@ -19,6 +19,7 @@ describe('API Contract (E2E)', () => {
       .get('/api/v1/health') // Assuming health endpoint exists and is wrapped
       .expect(200);
 
+    expect(res.body.success).toBe(true);
     expect(res.body).toHaveProperty('data');
     // message might be optional
     // expect(res.body.message).toBeDefined();
@@ -31,6 +32,7 @@ describe('API Contract (E2E)', () => {
       .send({ email: 'bad-email' }) // Missing fields
       .expect(400);
 
+    expect(res.body.success).toBe(false);
     // Expect: { message: "...", errors: [...] }
     expect(res.body).toHaveProperty('errors');
     expect(Array.isArray(res.body.errors)).toBe(true);
@@ -47,5 +49,7 @@ describe('API Contract (E2E)', () => {
     // Check if message is a key or translated?
     // Usually standardized exceptions return a user-friendly message, potentially translated.
     expect(res.body).toHaveProperty('message');
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).not.toContain('core.errors');
   });
 });

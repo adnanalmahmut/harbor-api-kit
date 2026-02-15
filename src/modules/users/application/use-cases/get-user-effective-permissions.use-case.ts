@@ -6,7 +6,9 @@ export class GetUserEffectivePermissionsUseCase {
   ) {}
 
   async execute(userId: string) {
-    const effective = await this.effectivePermissions.buildForUser(userId);
+    const effective = await this.effectivePermissions.buildForUser({
+      id: userId,
+    });
     return {
       roles: Array.from(effective.roles),
       permissions: Array.from(effective.permissions),

@@ -1,17 +1,15 @@
+import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
-import { ApiResponses } from '#src/shared/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/shared/http/decorators/response-message.decorator.js';
 import {
   Body,
   Controller,
   Get,
-  HttpStatus,
   Param,
   Patch,
   Post,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -21,7 +19,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyRequest } from 'fastify';
 
 import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
 import { FileResponseMapper } from '#src/modules/files/application/mappers/file-response.mapper.js';
@@ -31,6 +29,7 @@ import { SetVisibilityUseCase } from '#src/modules/files/application/use-cases/s
 import { UploadFileUseCase } from '#src/modules/files/application/use-cases/upload-file.use-case.js';
 import { FILES_RESPONSES } from './api-responses.examples.js';
 import {
+  DownloadUrlDto,
   FileResponseDto,
   SetVisibilityDto,
   UploadFileDto,
@@ -42,6 +41,13 @@ import type { MultipartFile } from '@fastify/multipart';
 interface FastifyMultipartRequest extends FastifyRequest {
   isMultipart: () => boolean;
   file: () => Promise<MultipartFile | undefined>;
+}
+
+interface RequestWithUser extends FastifyRequest {
+  user?: {
+    id: string;
+    roles?: string[];
+  };
 }
 
 @ApiTags('Files')
@@ -64,7 +70,7 @@ export class FilesController {
   @ResponseMessage('files.messages.upload_success')
   async upload(@Req() req: FastifyMultipartRequest): Promise<FileResponseDto> {
     if (!req.isMultipart()) {
-      throw FilesException.invalidType('multipart/form-data required');
+      throw FilesException.invalidRequest('multipart_required');
     }
 
     let filePart: MultipartFile | undefined;
@@ -83,7 +89,7 @@ export class FilesController {
     }
 
     if (!filePart) {
-      throw FilesException.invalidType('No file uploaded');
+      throw FilesException.invalidRequest('no_file_uploaded');
     }
 
     const file = await this.uploadFileUseCase.execute({
@@ -98,6 +104,7 @@ export class FilesController {
     return FileResponseMapper.map(file);
   }
 
+  @UseGuards(AuthGuard)
   @Post('upload/multiple')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadFilesDto })
@@ -108,7 +115,7 @@ export class FilesController {
     @Req() req: FastifyMultipartRequest,
   ): Promise<FileResponseDto[]> {
     if (!req.isMultipart()) {
-      throw FilesException.invalidType('multipart/form-data required');
+      throw FilesException.invalidRequest('multipart_required');
     }
 
     const files = [];
@@ -135,7 +142,7 @@ export class FilesController {
     }
 
     if (files.length === 0) {
-      throw FilesException.invalidType('No files uploaded');
+      throw FilesException.invalidRequest('no_file_uploaded');
     }
 
     return files.map((file) => FileResponseMapper.map(file));
@@ -147,8 +154,20 @@ export class FilesController {
   @ApiOperation({ summary: 'Get file metadata' })
   @ResponseMessage('files.messages.meta_retrieved')
   @ApiResponses(FILES_RESPONSES.getMeta)
-  async getMeta(@Param('id') id: string): Promise<FileResponseDto> {
-    const file = await this.getFileMetaUseCase.execute(id);
+  async getMeta(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<FileResponseDto> {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw FilesException.accessDenied();
+    }
+    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+
+    const file = await this.getFileMetaUseCase.execute(id, {
+      actorUserId: userId,
+      actorIsAdmin: isAdmin,
+    });
     return FileResponseMapper.map(file);
   }
 
@@ -157,38 +176,22 @@ export class FilesController {
   @Permissions(['files:read'])
   @ApiOperation({ summary: 'Get download URL (Redirect)' })
   @ApiResponses(FILES_RESPONSES.download)
+  @ResponseMessage('files.messages.download_url_retrieved')
   async download(
     @Param('id') id: string,
-    @Req() req: FastifyRequest,
-    @Res() res: FastifyReply,
-  ) {
-    const result = await this.getDownloadUrlUseCase.execute(id, req.user?.id);
-
-    if ((result as any).stream) {
-      res.header('Content-Type', (result as any).mimeType);
-      return res.send((result as any).stream);
+    @Req() req: RequestWithUser,
+  ): Promise<DownloadUrlDto> {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw FilesException.accessDenied();
     }
-    return res.status(HttpStatus.FOUND).redirect(result.url!);
-  }
+    const isAdmin = req.user?.roles?.includes('admin') ?? false;
 
-  @Get(':id/stream')
-  @UseGuards(AuthGuard)
-  @Permissions(['files:read'])
-  @ApiOperation({ summary: 'Stream file (Redirect or Proxy)' })
-  @ApiResponses(FILES_RESPONSES.download)
-  async stream(
-    @Param('id') id: string,
-    @Req() req: FastifyRequest,
-    @Res() res: FastifyReply,
-  ) {
-    const result = await this.getDownloadUrlUseCase.execute(id, req.user?.id);
-
-    if ((result as any).stream) {
-      res.header('Content-Type', (result as any).mimeType);
-      return res.send((result as any).stream);
-    }
-
-    return res.status(HttpStatus.FOUND).redirect(result.url!);
+    const result = await this.getDownloadUrlUseCase.execute(id, {
+      actorUserId: userId,
+      actorIsAdmin: isAdmin,
+    });
+    return { url: result.url, expiresIn: result.expiresIn };
   }
 
   @Patch(':id/visibility')
@@ -200,8 +203,18 @@ export class FilesController {
   async setVisibility(
     @Param('id') id: string,
     @Body() body: SetVisibilityDto,
+    @Req() req: RequestWithUser,
   ): Promise<FileResponseDto> {
-    const file = await this.setVisibilityUseCase.execute(id, body.isPublic);
+    const userId = req.user?.id;
+    if (!userId) {
+      throw FilesException.accessDenied();
+    }
+    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+
+    const file = await this.setVisibilityUseCase.execute(id, body.isPublic, {
+      actorUserId: userId,
+      actorIsAdmin: isAdmin,
+    });
     return FileResponseMapper.map(file);
   }
 }

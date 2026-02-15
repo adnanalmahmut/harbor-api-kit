@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/core/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/core/presentation/http/validation/strict-zod-dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
@@ -29,9 +29,14 @@ export class FileResponseDto {
 
   @ApiProperty({ nullable: true })
   downloadUrl?: string;
+}
 
-  @ApiProperty({ nullable: true })
-  streamUrl?: string;
+export class DownloadUrlDto {
+  @ApiProperty()
+  url!: string;
+
+  @ApiProperty({ required: false })
+  expiresIn?: number;
 }
 
 const SetVisibilitySchema = z.object({
