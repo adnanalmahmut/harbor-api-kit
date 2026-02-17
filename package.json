@@ -45,7 +45,7 @@
     "@nestjs/swagger": "11.2.3",
     "@prisma/adapter-pg": "7.2.0",
     "@prisma/client": "7.2.0",
-    "@scalar/nestjs-api-reference": "1.0.13",
+    "@scalar/nestjs-api-reference": "1.0.24",
     "@thallesp/nestjs-better-auth": "2.2.2",
     "better-auth": "1.4.17",
     "bullmq": "5.67.1",
