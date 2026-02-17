@@ -3,6 +3,7 @@ dist
 build
 .next
 out
+package-lock.json
 
 # dependencies
 node_modules

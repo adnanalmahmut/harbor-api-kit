@@ -3,7 +3,6 @@ import type { RequestContextStorePort } from '#src/core/domain/ports/request-con
 import { CONSTANTS_KEYS } from '#src/core/presentation/http/constants/metadata-keys.constants.js';
 import type { ApiSuccess } from '#src/core/presentation/http/types/api.types.js';
 import { translateIfKey } from '#src/core/presentation/http/utils/i18n.utils.js';
-import { ROLES_KEY } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import {
   Inject,
   Injectable,
@@ -39,7 +38,7 @@ export class ResponseInterceptor<T>
     const rolesReq = this.reflector.getAllAndOverride<{
       roles: string[];
       mode: 'AND' | 'ANY';
-    }>(ROLES_KEY, [context.getHandler(), context.getClass()]);
+    }>(CONSTANTS_KEYS.ROLES, [context.getHandler(), context.getClass()]);
     const isAdminRoute = rolesReq?.roles.includes('admin');
 
     const messageKey = this.reflector.getAllAndOverride<string>(

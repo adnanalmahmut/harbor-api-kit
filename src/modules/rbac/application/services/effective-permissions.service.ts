@@ -71,6 +71,7 @@ export class EffectivePermissionsService {
     return this.contextStore.getOrLoad(
       rbacCacheKeys.rbacPermissions(userId),
       async () => {
+        const startMs = Date.now();
         const globalVer =
           (await this.cache.get(rbacCacheKeys.rbacVersion())) || '0';
         const userVer =
@@ -111,6 +112,9 @@ export class EffectivePermissionsService {
         // Safe event-based logging (no permission sets exposed)
         this.logger.debug?.(
           `[rbac.cache.set] userId=${userId} permissionCount=${result.permissions.size} roleCount=${result.roles.size}`,
+        );
+        this.logger.debug?.(
+          `[rbac.perf.build] userId=${userId} ms=${Date.now() - startMs} permissionCount=${result.permissions.size} roleCount=${result.roles.size}`,
         );
 
         return this.createEffective(
@@ -168,16 +172,16 @@ export class EffectivePermissionsService {
   }
 
   private async fetchFromDb(userId: string) {
-    const roleIds = await this.rolesRepo.listUserRoleIds(userId);
-
-    const roles = await this.rolesRepo.listRolesForUser(userId);
+    const [roleIds, roles, overrides] = await Promise.all([
+      this.rolesRepo.listUserRoleIds(userId),
+      this.rolesRepo.listRolesForUser(userId),
+      this.grantsRepo.listUserOverrides(userId),
+    ]);
     const roleSlugs = new Set(roles.map((r) => r.slug));
 
     const rolePerms = roleIds.length
       ? await this.grantsRepo.listPermissionsForRoleIds(roleIds)
       : [];
-
-    const overrides = await this.grantsRepo.listUserOverrides(userId);
 
     const rolePermissionsList = rolePerms.map((p) => p.key.toString());
     const allowOverridesList = overrides.allow.map((p) => p.key.toString());

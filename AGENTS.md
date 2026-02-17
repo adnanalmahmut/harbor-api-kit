@@ -1,3 +1,31 @@
+# AGENTS.md
+
+## Review guidelines
+### Security
+- No secrets in code/logs/config samples.
+- Validate all external input (DTO/Zod/class-validator) and keep auth/rbac guards consistent.
+- Prevent SSRF/path traversal in uploads and URL fetchers.
+- Ensure rate-limit + CSRF policy is applied on sensitive routes.
+
+### Clean Architecture
+- Enforce import boundaries (Domain/Application must not depend on Infrastructure).
+- Centralized config only (no direct env reads outside config layer).
+- Controllers thin, business rules in services/use-cases, data access in repositories.
+
+### Clean Code
+- Prefer small functions, explicit naming, no duplicated logic, consistent error handling.
+- Avoid “smart” utilities that hide side effects.
+
+### Performance
+- Avoid N+1 queries, avoid per-request heavy instantiation, cache hot paths, watch async loops.
+- Add/keep performance tests or at least load-smoke on critical endpoints.
+
+## Definition of Done for reviews
+- Provide prioritized findings (P0/P1/P2)
+- For each finding: file path + line range + why + suggested patch (diff)
+- Run: lint, typecheck, unit/e2e tests after changes
+
+
 # Project rules (core-platform-api)
 - Always run in WSL (Linux).
 - After changes, run: npm test, npm run lint, npm run build.

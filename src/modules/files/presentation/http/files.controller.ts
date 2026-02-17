@@ -2,6 +2,7 @@ import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.
 import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
+import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import {
   Body,
   Controller,
@@ -149,7 +150,7 @@ export class FilesController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RbacGuard)
   @Permissions(['files:read'])
   @ApiOperation({ summary: 'Get file metadata' })
   @ResponseMessage('files.messages.meta_retrieved')
@@ -172,7 +173,7 @@ export class FilesController {
   }
 
   @Get(':id/download')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RbacGuard)
   @Permissions(['files:read'])
   @ApiOperation({ summary: 'Get download URL (Redirect)' })
   @ApiResponses(FILES_RESPONSES.download)
@@ -195,7 +196,7 @@ export class FilesController {
   }
 
   @Patch(':id/visibility')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RbacGuard)
   @Permissions(['files:update'])
   @ApiOperation({ summary: 'Set file visibility' })
   @ResponseMessage('files.messages.visibility_updated')
