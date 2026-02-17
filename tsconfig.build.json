@@ -1,10 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "sourceMap": false,
-    "tsBuildInfoFile": "./.cache/tsconfig.build.tsbuildinfo"
-  },
-  "exclude": [
+   "exclude": [
     "node_modules",
     "dist",
     "test",
@@ -13,3 +9,4 @@
     "**/*.test.ts"
   ]
 }
+
