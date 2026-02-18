@@ -221,10 +221,11 @@ export class BetterAuthProvider implements AuthProviderPort {
     // is passed to BetterAuth via the x-forwarded-for header if not already present.
     let clientIp = fastifyReq.ip;
 
-    // Developer Hack: If a 'x-test-ip' cookie exists, use it (for local testing of social auth IP)
-    const testIp = fastifyReq.cookies?.['x-test-ip'];
-    if (testIp) {
-      clientIp = testIp;
+    if (this.config.app().env === 'test') {
+      const testIp = fastifyReq.cookies?.['x-test-ip'];
+      if (testIp) {
+        clientIp = testIp;
+      }
     }
 
     if (clientIp && !request.headers['x-forwarded-for']) {

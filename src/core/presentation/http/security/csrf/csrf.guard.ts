@@ -1,3 +1,4 @@
+// src/core/presentation/http/security/csrf/csrf.guard.ts
 import { AppException } from '#src/core/domain/exceptions/app-exception.js';
 import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
 import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
@@ -124,10 +125,8 @@ export class CsrfGuard implements CanActivate {
     const reply = http.getResponse<FastifyReply>();
 
     const isUnsafe = CSRF_METHODS.has(req.method);
-    const hasAuth = this.hasAuthCookie(req);
 
     const cookieToken = this.getCookieToken(req, csrf.cookieName);
-    const headerToken = this.getHeaderToken(req, csrf.headerName);
 
     if (!isUnsafe) {
       this.issueCsrfCookieIfMissing(
@@ -140,6 +139,17 @@ export class CsrfGuard implements CanActivate {
       return true;
     }
 
+    // Exempt unsafe routes early (webhooks, etc.)
+    if (this.isExempt(context)) {
+      return true;
+    }
+
+    // Enforce origin/referrer checks for ALL unsafe requests in prod
+    this.assertOriginAllowed(req, csrf);
+
+    const hasAuth = this.hasAuthCookie(req);
+    const headerToken = this.getHeaderToken(req, csrf.headerName);
+
     if (!hasAuth) {
       this.issueCsrfCookieIfMissing(
         reply,
@@ -150,12 +160,6 @@ export class CsrfGuard implements CanActivate {
       );
       return true;
     }
-
-    if (this.isExempt(context)) {
-      return true;
-    }
-
-    this.assertOriginAllowed(req, csrf);
 
     if (!cookieToken || !headerToken) {
       if (!cookieToken && hasAuth) {
