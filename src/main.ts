@@ -1,4 +1,4 @@
-import { setup } from '#src/app.bootstrap.js';
+import { setup } from '#src/core/app.bootstrap.js';
 import 'reflect-metadata';
 
 void setup();

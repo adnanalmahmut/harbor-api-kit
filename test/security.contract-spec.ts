@@ -1,6 +1,6 @@
-import { configureApp } from '#src/app.bootstrap.js';
 import { AppModule } from '#src/app.module.js';
 import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { configureApp } from '#src/core/app.bootstrap.js';
 import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
