@@ -99,7 +99,7 @@ export const envSchema = z
       })
       .default([]),
 
-    FASTIFY_TRUST_PROXY: trustProxySchema.default(true),
+    FASTIFY_TRUST_PROXY: trustProxySchema.default(1),
 
     REDIS_URL: z
       .string()
@@ -294,6 +294,14 @@ export function validateEnv(config: Record<string, unknown>) {
     throw AppException.validationError({
       field: 'CORS_TRUSTED_ORIGINS',
       message: 'CORS_TRUSTED_ORIGINS must be configured in production',
+    });
+  }
+
+  if (d.APP_ENV === 'production' && d.FASTIFY_TRUST_PROXY === true) {
+    throw AppException.validationError({
+      field: 'FASTIFY_TRUST_PROXY',
+      message:
+        'FASTIFY_TRUST_PROXY=true trusts ALL proxies and allows IP spoofing. Use a hop count (e.g. 1) in production.',
     });
   }
 

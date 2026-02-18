@@ -35,7 +35,7 @@ export interface AuthProviderPort {
 
   verifyEmail(cmd: VerifyEmailCommand): Promise<AuthResult<void>>;
 
-  forgetPassword(cmd: ForgetPasswordCommand): Promise<AuthResult<TokenResult>>;
+  forgetPassword(cmd: ForgetPasswordCommand): Promise<AuthResult<void>>;
 
   resetPassword(cmd: ResetPasswordCommand): Promise<AuthResult<void>>;
 

@@ -379,32 +379,20 @@ export class BetterAuthProvider implements AuthProviderPort {
     }
   }
 
-  async forgetPassword(
-    cmd: ForgetPasswordCommand,
-  ): Promise<AuthResult<TokenResult>> {
+  async forgetPassword(cmd: ForgetPasswordCommand): Promise<AuthResult<void>> {
     try {
       const { email, context } = cmd;
+
       const res = await (this.auth.api as any).requestPasswordReset({
         body: { email },
         headers: toHeadersFromContext(context),
       });
 
       const headers = res?.headers;
-      const response = res?.response ?? res?.data;
       const cookies = headers ? readCookiesFromHeaders(headers) : [];
 
-      let token = response?.token;
-
-      if (!token) {
-        const verification = await this.prisma.verification.findFirst({
-          where: { identifier: email },
-          orderBy: { expiresAt: 'desc' },
-        });
-        if (verification) token = verification.value;
-      }
-
       return {
-        data: { token: token || '' },
+        data: undefined,
         cookies,
       };
     } catch (e) {

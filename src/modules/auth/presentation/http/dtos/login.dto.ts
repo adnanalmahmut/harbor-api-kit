@@ -12,7 +12,10 @@ export const LoginSchema = z.object({
     .describe('Password'),
   rememberMe: z.boolean().optional().describe('Remember session'),
   redirect: z.boolean().optional().describe('Redirect to callback URL'),
-  callbackURL: z.string().optional().describe('Callback URL'),
+  callbackURL: z
+    .url({ message: 'validation.url.invalid' })
+    .optional()
+    .describe('Callback URL'),
 });
 
 export class LoginDto extends createStrictZodDto(LoginSchema) {

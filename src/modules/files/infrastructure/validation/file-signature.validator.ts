@@ -13,6 +13,10 @@ export class FileSignatureValidator implements FileValidatorPort {
     pdf: ['25504446'],
     gif: ['47494638'], // GIF87a/GIF89a
     webp: ['52494646'], // WEBP (RIFF)
+    doc: ['d0cf11e0'], // OLE2 compound file (legacy Office)
+    xls: ['d0cf11e0'], // OLE2 compound file (legacy Office)
+    docx: ['504b0304'], // ZIP/OOXML
+    xlsx: ['504b0304'], // ZIP/OOXML
   };
 
   private readonly ALLOWED_EXTENSIONS = new Set([
@@ -31,6 +35,24 @@ export class FileSignatureValidator implements FileValidatorPort {
     'xlsx',
   ]);
 
+  private readonly ALLOWED_MIMES: Record<string, string[]> = {
+    jpg: ['image/jpeg'],
+    jpeg: ['image/jpeg'],
+    png: ['image/png'],
+    pdf: ['application/pdf'],
+    gif: ['image/gif'],
+    webp: ['image/webp'],
+    txt: ['text/plain'],
+    csv: ['text/csv', 'text/plain'],
+    json: ['application/json', 'text/plain'],
+    doc: ['application/msword'],
+    docx: [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ],
+    xls: ['application/vnd.ms-excel'],
+    xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  };
+
   /**
    * Validates file signature (magic bytes) against extension and mime type.
    * NOTE: This consumes the beginning of the stream and unshifts it back.
@@ -38,8 +60,7 @@ export class FileSignatureValidator implements FileValidatorPort {
   async validate(
     stream: Readable,
     fileName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _mimeType: string,
+    mimeType: string,
   ): Promise<void> {
     const ext = path.extname(fileName).toLowerCase().replace('.', '');
 
@@ -50,7 +71,17 @@ export class FileSignatureValidator implements FileValidatorPort {
       });
     }
 
-    // Skip validation for extensions without defined signatures (e.g. txt, csv)
+    // Validate MIME type against allowlist
+    const allowedMimes = this.ALLOWED_MIMES[ext];
+    if (allowedMimes && !allowedMimes.includes(mimeType)) {
+      throw FilesException.invalidType({
+        reason: 'mime_type_mismatch',
+        extension: ext,
+        mimeType,
+      });
+    }
+
+    // Skip signature validation for extensions without defined signatures (e.g. txt, csv)
     if (!this.SIGNATURES[ext]) {
       return;
     }

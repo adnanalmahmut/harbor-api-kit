@@ -1,3 +1,80 @@
+# compiled output
+dist
+build
+.next
+out
 
-# dev-only
+# dependencies
+node_modules
+.pnpm-store
+.yarn
+.yarn-cache
+
+# cache / temp
+.cache
+.temp
+.tmp
+tmp
+temp
+
+# logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# env files (ignore all, but keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
+# prisma / generated
+prisma.config.js
+prisma.config.js.map
+generated/prisma
+**/generated/prisma
+
+# tests / coverage
+coverage
+.nyc_output
+playwright-report
+test-results
+
+# runtime
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.idea
+.project
+.classpath
+.c9
+.settings
+*.sublime-workspace
+*.launch
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# uploads / local storage
+uploads
+test-uploads
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# knip
 knip.json

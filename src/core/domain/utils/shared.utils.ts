@@ -1,3 +1,8 @@
+import {
+  buildI18nFallbacks,
+  SUPPORTED_LOCALES,
+} from '#src/core/domain/constants/locales.js';
+
 export function stripQuery(url: string | undefined): string {
   const u = url ?? '/';
   const i = u.indexOf('?');
@@ -47,5 +52,20 @@ export function resolveLocaleFromSource(
   const a = headers['accept-language'] as any;
 
   const raw = normalizeHeader(q) ?? normalizeHeader(h) ?? normalizeHeader(a);
-  return raw ? firstLanguageTag(raw) : undefined;
+  if (!raw) return undefined;
+
+  const tag = firstLanguageTag(raw);
+  return isKnownLocale(tag) ? tag : undefined;
+}
+
+const KNOWN_LOCALES: Set<string> = new Set([
+  ...SUPPORTED_LOCALES,
+  ...Object.keys(buildI18nFallbacks(SUPPORTED_LOCALES)),
+]);
+
+function isKnownLocale(tag: string): boolean {
+  if (KNOWN_LOCALES.has(tag)) return true;
+  // Check wildcard patterns like 'en-*' by matching the language prefix
+  const lang = tag.split('-')[0].toLowerCase();
+  return KNOWN_LOCALES.has(lang) || KNOWN_LOCALES.has(`${lang}-*`);
 }

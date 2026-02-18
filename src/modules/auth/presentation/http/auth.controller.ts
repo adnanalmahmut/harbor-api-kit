@@ -1,6 +1,10 @@
 import { CORE_TOKENS } from '#src/core/core.tokens.js';
 import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
 import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import {
+  assertAllowedRedirectURL,
+  InvalidRedirectURLError,
+} from '#src/core/domain/utils/url-validation.utils.js';
 import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
 import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
@@ -116,6 +120,19 @@ export class AuthController {
     return ctx;
   }
 
+  private validateCallbackURL(url?: string): void {
+    try {
+      const frontendUrl = this.config.frontend().url;
+      const trustedOrigins = this.config.cors().trustedOrigins;
+      assertAllowedRedirectURL(url, [frontendUrl, ...trustedOrigins]);
+    } catch (e) {
+      if (e instanceof InvalidRedirectURLError) {
+        throw AuthException.invalidRequest();
+      }
+      throw e;
+    }
+  }
+
   private issueCsrfCookie(reply: FastifyReply) {
     const csrf = this.config.csrf();
     if (!csrf.enabled) return;
@@ -172,6 +189,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     const context = this.requireContext();
+    this.validateCallbackURL(body.callbackURL);
     const result = await this.loginUseCase.execute({
       email: body.email,
       password: body.password,
@@ -321,6 +339,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     const context = this.requireContext();
+    this.validateCallbackURL(body.callbackURL);
     const result = await this.changeEmailUseCase.execute({
       newEmail: body.newEmail,
       callbackURL: body.callbackURL,
@@ -423,6 +442,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<any> {
     const context = this.requireContext();
+    this.validateCallbackURL(dto.callbackURL);
     const result = await this.signInSocialUseCase.execute({
       provider: dto.provider,
       callbackURL: dto.callbackURL,
@@ -442,6 +462,7 @@ export class AuthController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<any> {
     const context = this.requireContext();
+    this.validateCallbackURL(dto.callbackURL);
     const result = await this.linkSocialUseCase.execute({
       provider: dto.provider,
       callbackURL: dto.callbackURL,
