@@ -1,5 +1,5 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
+import { AppConfigService } from '#src/core/index.js';
+import { FilesException } from '#src/modules/files/application/files.exception.js';
 import type {
   FileMetadata,
   IStorageDriver,

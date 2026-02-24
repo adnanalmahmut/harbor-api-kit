@@ -1,11 +1,12 @@
-import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { PrismaModule } from '#src/core/infrastructure/db/prisma/prisma.module.js';
-import { NestLoggerAdapter } from '#src/core/infrastructure/logging/nest-logger.adapter.js';
-import { RedisModule } from '#src/core/infrastructure/redis/redis.module.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { AuthModule } from '#src/modules/auth/auth.module.js';
+import {
+  AppConfigModule,
+  CORE_TOKENS,
+  PrismaModule,
+  RedisModule,
+  RedisService,
+  type RequestContextStorePort,
+} from '#src/core/index.js';
+import { AuthModule } from '#src/modules/auth/index.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
 import { CreatePermissionUseCase } from '#src/modules/rbac/application/use-cases/create-permission.use-case.js';
@@ -81,7 +82,7 @@ import { Logger } from 'nestjs-pino';
           roleRepo,
           grantsRepo,
           redis,
-          new NestLoggerAdapter(EffectivePermissionsService.name, logger),
+          logger,
           contextStore,
         );
       },

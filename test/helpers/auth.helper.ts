@@ -1,5 +1,5 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
+import { PrismaService } from '#src/core/index.js';
+import { RegisterDto } from '#src/modules/auth/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 
@@ -88,6 +88,11 @@ export class AuthHelper {
       ['users', 'create'],
       ['users', 'update'],
       ['users', 'delete'],
+      ['files', 'create'],
+      ['files', 'read'],
+      ['files', 'update'],
+      ['files', 'delete'],
+      ['files', 'download'],
     ];
 
     for (const [subject, action] of permissions) {

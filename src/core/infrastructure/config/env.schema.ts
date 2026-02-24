@@ -1,83 +1,66 @@
-import {
-  DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
-} from '#src/core/domain/constants/locales.js';
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
 import { z } from 'zod';
-
-const supported = z.enum(SUPPORTED_LOCALES);
-
-const isOrigin = (v: string) => {
-  try {
-    const u = new URL(v);
-    return u.origin === v;
-  } catch {
-    return false;
-  }
-};
-
-const toStrArray = (v: unknown) => {
-  if (Array.isArray(v)) return v.map(String);
-  if (typeof v === 'string') {
-    return v
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return [];
-};
-
-const trustProxySchema = z.preprocess(
-  (v) => {
-    if (typeof v === 'boolean') return v;
-    if (typeof v === 'number') return v;
-
-    if (typeof v === 'string') {
-      const s = v.trim().toLowerCase();
-      if (s === 'true') return true;
-      if (s === 'false') return false;
-      if (/^\d+$/.test(s)) return Number(s);
-    }
-
-    return v;
-  },
-  z.union([z.boolean(), z.number().int().min(0)]),
-);
+import {
+  DEFAULT_LOCALE_VALUE,
+  envBool,
+  isOrigin,
+  supported,
+  toStrArray,
+  trustProxySchema,
+} from './env.parsers.js';
 
 export const envSchema = z
   .object({
-    APP_NAME: z.string().min(1).default('Core Platform API'),
+    // App Core
+    APP_NAME: z.string().trim().min(1).default('API'),
     APP_ENV: z
       .enum(['development', 'test', 'staging', 'production'])
       .default('development'),
-    APP_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    ENABLE_DOCS: z
-      .enum(['true', 'false'])
-      .default('false')
-      .transform((v) => v === 'true'),
-    FRONTEND_URL: z.url().min(1),
+    APP_PORT: z.coerce.number().int().min(1).max(65535).default(5000),
 
-    SESSION_TOKEN_COOKIE: z.string().min(1).default('__Host-session'),
-    SESSION_DATA_COOKIE: z.string().min(1).default('__Host-session-data'),
-    BETTER_AUTH_SECRET: z.string().min(1),
-    BETTER_AUTH_URL: z.string().min(1),
+    // Public URLs (Canonical)
+    APP_PUBLIC_URL: z.url(),
+    FRONTEND_PUBLIC_URL: z.url(),
 
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
+    // CORS + Redirect Allowlists
+    WEB_ALLOWED_ORIGINS: z
+      .preprocess(toStrArray, z.array(z.string().min(1)))
+      .refine((arr) => arr.every((o) => isOrigin(o)), {
+        message:
+          'WEB_ALLOWED_ORIGINS must contain valid origins like https://app.example.com (no paths)',
+      })
+      .default([]),
+    REDIRECT_ALLOWED_ORIGINS: z
+      .preprocess(toStrArray, z.array(z.string().min(1)))
+      .refine((arr) => arr.every((o) => isOrigin(o)), {
+        message:
+          'REDIRECT_ALLOWED_ORIGINS must contain valid origins like https://app.example.com (no paths)',
+      })
+      .default([]),
 
-    REQUEST_ID_HEADER_NAME: z.string().min(1).default('x-request-id'),
+    // HTTP Server / Proxy
+    FASTIFY_TRUST_PROXY: trustProxySchema.default(1),
 
-    I18N_HEADER_NAME: z.string().min(1).default('Accept-Language'),
-    I18N_QUERY_NAME: z.string().min(1).default('lang'),
+    // Cookies
+    COOKIE_ALLOWED_DOMAINS: z
+      .preprocess(toStrArray, z.array(z.string().min(1)))
+      .default([]),
 
+    // Docs
+    ENABLE_DOCS: envBool(false),
+
+    // Logging & Request Tracing
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
+    LOG_PRETTY: envBool(false),
+    REQUEST_ID_HEADER_NAME: z.string().min(1).default('x-request-id'),
 
-    LOG_PRETTY: z.coerce.boolean().default(false),
+    // Internationalization (i18n)
+    I18N_HEADER_NAME: z.string().min(1).default('Accept-Language'),
+    I18N_QUERY_NAME: z.string().min(1).default('lang'),
+    I18N_DEFAULT_LOCALE: supported.default(DEFAULT_LOCALE_VALUE),
 
+    // Database (App)
     DATABASE_URL: z
       .string()
       .min(1)
@@ -85,67 +68,57 @@ export const envSchema = z
         message: 'DATABASE_URL must start with postgresql:// or postgres://',
       }),
 
-    RESEND_API_KEY: z.string().min(1),
-    RESEND_FROM_EMAIL: z.string().min(1),
-    RESEND_FROM_NAME: z.string().min(1),
-
-    I18N_DEFAULT_LOCALE: supported.default(DEFAULT_LOCALE),
-
-    CORS_TRUSTED_ORIGINS: z
-      .preprocess(toStrArray, z.array(z.string().min(1)))
-      .refine((arr) => arr.every((o) => isOrigin(o)), {
-        message:
-          'CORS_TRUSTED_ORIGINS must contain valid origins like https://app.example.com (no paths)',
-      })
-      .default([]),
-
-    FASTIFY_TRUST_PROXY: trustProxySchema.default(1),
-
+    // Cache / Queue (Redis)
     REDIS_URL: z
       .string()
       .min(1)
       .refine((v) => /^rediss?:\/\//.test(v), {
         message: 'REDIS_URL must start with redis:// or rediss://',
       }),
-
     REDIS_PREFIX: z.string().default('scp'),
     REDIS_DEFAULT_TTL_SEC: z.coerce.number().int().min(1).default(900),
 
-    CSRF_ENABLED: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((v) => v === 'true'),
-    CSRF_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
-
-    CSRF_COOKIE_SECURE: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((v) => v === 'true'),
-
-    COOKIE_CSRF_NAME: z.string().min(1).default('__Host-csrf'),
-
+    // Security - CSRF
+    CSRF_ENABLED: envBool(true),
     CSRF_HEADER_NAME: z.string().min(1).default('X-CSRF-Token'),
+    COOKIE_CSRF_NAME: z.string().min(1).default('__Host-csrf'),
+    CSRF_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+    CSRF_COOKIE_SECURE: envBool(true),
 
-    RATE_LIMIT_ENABLED: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((v) => v === 'true'),
-
+    // Security - Rate Limiting
+    RATE_LIMIT_ENABLED: envBool(true),
     RATE_LIMIT_POINTS: z.coerce.number().int().min(1).default(60),
     RATE_LIMIT_DURATION_SEC: z.coerce.number().int().min(1).default(60),
-
     RATE_LIMIT_KEY_STRATEGY: z.enum(['ip', 'userId', 'sid']).default('ip'),
-
     RATE_LIMIT_HEADER_PREFIX: z.string().min(1).default('RateLimit'),
 
+    // Authentication - Session Cookies
+    SESSION_TOKEN_COOKIE: z.string().min(1).default('__Host-session'),
+    SESSION_DATA_COOKIE: z.string().min(1).default('__Host-session-data'),
+    BETTER_AUTH_SECRET: z.string().min(32),
+    BETTER_AUTH_URL: z.url(),
+
+    // OAuth Providers
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    GITHUB_CLIENT_ID: z.string().optional(),
+    GITHUB_CLIENT_SECRET: z.string().optional(),
+
+    // Email Service (Resend)
+    RESEND_API_KEY: z.string().min(1),
+    RESEND_FROM_EMAIL: z.email(),
+    RESEND_FROM_NAME: z.string().trim().min(1),
+
+    // Notifications - Retry Policy
+    NOTIFY_EMAIL_RETRY_ATTEMPTS: z.coerce.number().int().min(0).default(5),
+    NOTIFY_EMAIL_RETRY_DELAY_MS: z.coerce.number().int().min(0).default(5000),
+
+    // Tenant
     TENANT_STRATEGY: z.enum(['subdomain', 'header']).default('subdomain'),
-    TENANT_REQUIRED: z
-      .enum(['true', 'false'])
-      .default('true')
-      .transform((v) => v === 'true'),
+    TENANT_REQUIRED: envBool(true),
     TENANT_HEADER_NAME: z.string().min(1).default('X-Tenant'),
 
-    // Storage Configuration
+    // Storage
     STORAGE_DRIVER: z
       .enum(['s3', 'r2', 'spaces', 'gcs', 'local'])
       .default('local'),
@@ -164,19 +137,13 @@ export const envSchema = z
 
     // Local
     LOCAL_STORAGE_PATH: z.string().default('./uploads'),
-
-    // Notification Configuration
-    NOTIFY_EMAIL_RETRY_ATTEMPTS: z.coerce.number().int().min(0).default(5),
-    NOTIFY_EMAIL_RETRY_DELAY_MS: z.coerce.number().int().min(0).default(5000),
   })
   .superRefine((data, ctx) => {
-    // Conditional Validation for Storage Drivers
-
     // 1. S3 Compatible (AWS S3, Cloudflare R2, DigitalOcean Spaces)
     if (['s3', 'r2', 'spaces'].includes(data.STORAGE_DRIVER)) {
       if (!data.S3_BUCKET) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['S3_BUCKET'],
           message:
             'S3_BUCKET is required when STORAGE_DRIVER is s3, r2, or spaces',
@@ -184,7 +151,7 @@ export const envSchema = z
       }
       if (!data.S3_ACCESS_KEY_ID) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['S3_ACCESS_KEY_ID'],
           message:
             'S3_ACCESS_KEY_ID is required when STORAGE_DRIVER is s3, r2, or spaces',
@@ -192,7 +159,7 @@ export const envSchema = z
       }
       if (!data.S3_SECRET_ACCESS_KEY) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['S3_SECRET_ACCESS_KEY'],
           message:
             'S3_SECRET_ACCESS_KEY is required when STORAGE_DRIVER is s3, r2, or spaces',
@@ -200,7 +167,7 @@ export const envSchema = z
       }
       if (!data.S3_REGION) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['S3_REGION'],
           message:
             'S3_REGION is required when STORAGE_DRIVER is s3, r2, or spaces',
@@ -210,7 +177,7 @@ export const envSchema = z
       // Endpoint is mandatory for R2 and Spaces, optional for AWS S3
       if (['r2', 'spaces'].includes(data.STORAGE_DRIVER) && !data.S3_ENDPOINT) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['S3_ENDPOINT'],
           message:
             'S3_ENDPOINT is required when STORAGE_DRIVER is r2 or spaces',
@@ -222,26 +189,25 @@ export const envSchema = z
     if (data.STORAGE_DRIVER === 'gcs') {
       if (!data.GCS_PROJECT_ID) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['GCS_PROJECT_ID'],
           message: 'GCS_PROJECT_ID is required when STORAGE_DRIVER is gcs',
         });
       }
       if (!data.GCS_BUCKET) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['GCS_BUCKET'],
           message: 'GCS_BUCKET is required when STORAGE_DRIVER is gcs',
         });
       }
-      // GCS_KEY_FILE is optional if using standard Google credentials strategy
     }
 
     // 3. Local Storage
     if (data.STORAGE_DRIVER === 'local') {
       if (!data.LOCAL_STORAGE_PATH) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['LOCAL_STORAGE_PATH'],
           message:
             'LOCAL_STORAGE_PATH is required when STORAGE_DRIVER is local',
@@ -251,59 +217,3 @@ export const envSchema = z
   });
 
 export type EnvVars = z.infer<typeof envSchema>;
-
-const SENSITIVE_KEY_REGEX =
-  /(PASSWORD|SECRET|TOKEN|KEY|DATABASE_URL|REDIS_URL|PRIVATE|CERT|CREDENTIAL|ACCESS)/i;
-
-export function validateEnv(config: Record<string, unknown>) {
-  const parsed = envSchema.safeParse(config);
-
-  if (!parsed.success) {
-    const failedKeys = Array.from(
-      new Set(parsed.error.issues.map((i) => i.path[0]).filter(Boolean)),
-    ) as string[];
-
-    const issues = parsed.error.issues
-      .map((i) => `${i.path.join('.')}: ${i.message}`)
-      .join('\n');
-
-    // Debug آمن: مفاتيح فقط + type (بدون قيم)
-    const debug = failedKeys
-      .map((k) => {
-        const raw = (config as any)[k];
-        const isSensitive = SENSITIVE_KEY_REGEX.test(String(k));
-        const type =
-          raw === null ? 'null' : Array.isArray(raw) ? 'array' : typeof raw;
-        return `${k} (type=${type}${isSensitive ? ', sensitive' : ''})`;
-      })
-      .join('\n');
-
-    throw AppException.validationError({
-      field: 'env',
-      message: `Invalid environment variables:\n${issues}\n\nDebug:\n${debug}`,
-    });
-  }
-
-  const d = parsed.data;
-
-  if (
-    d.APP_ENV === 'production' &&
-    d.CSRF_ENABLED === true &&
-    d.CORS_TRUSTED_ORIGINS.length === 0
-  ) {
-    throw AppException.validationError({
-      field: 'CORS_TRUSTED_ORIGINS',
-      message: 'CORS_TRUSTED_ORIGINS must be configured in production',
-    });
-  }
-
-  if (d.APP_ENV === 'production' && d.FASTIFY_TRUST_PROXY === true) {
-    throw AppException.validationError({
-      field: 'FASTIFY_TRUST_PROXY',
-      message:
-        'FASTIFY_TRUST_PROXY=true trusts ALL proxies and allows IP spoofing. Use a hop count (e.g. 1) in production.',
-    });
-  }
-
-  return d;
-}

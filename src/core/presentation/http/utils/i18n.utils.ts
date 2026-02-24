@@ -1,5 +1,4 @@
-import type { ValidationIssue } from '#src/core/domain/types/validation-issue.type.js';
-import { isI18nKeyLike as isI18nKeyLikeDomain } from '#src/core/domain/utils/shared.utils.js';
+import { isI18nKeyLike, type ValidationIssue } from '#src/core/domain/index.js';
 import type { I18nService } from 'nestjs-i18n';
 
 function toSafeString(value: unknown): string {
@@ -24,10 +23,6 @@ function toSafeString(value: unknown): string {
 export function normalizeFieldPath(path: unknown): string {
   if (Array.isArray(path)) return path.map(toSafeString).join('.');
   return toSafeString(path);
-}
-
-export function isI18nKeyLike(s: any): s is string {
-  return isI18nKeyLikeDomain(s);
 }
 
 export function translateIfKey(

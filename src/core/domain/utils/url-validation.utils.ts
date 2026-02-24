@@ -4,9 +4,11 @@
  */
 export function assertAllowedRedirectURL(
   url: string | undefined,
-  allowedOrigins: string[],
+  allowedOrigins: readonly string[],
 ): void {
-  if (!url) return; // field is optional — nothing to check
+  if (!url) return;
+
+  if (url.startsWith('/')) return;
 
   let parsed: URL;
   try {
@@ -15,27 +17,17 @@ export function assertAllowedRedirectURL(
     throw new InvalidRedirectURLError(url);
   }
 
-  // Only allow http(s) schemes
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new InvalidRedirectURLError(url);
   }
 
-  const allowedHostnames = allowedOrigins
-    .map((o) => {
-      try {
-        return new URL(o).hostname;
-      } catch {
-        return null;
-      }
-    })
-    .filter((h): h is string => h !== null);
+  if (parsed.username || parsed.password) {
+    throw new InvalidRedirectURLError(url);
+  }
 
-  const isAllowed = allowedHostnames.some(
-    (domain) =>
-      parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`),
-  );
+  const allowed = new Set(allowedOrigins);
 
-  if (!isAllowed) {
+  if (!allowed.has(parsed.origin)) {
     throw new InvalidRedirectURLError(url);
   }
 }

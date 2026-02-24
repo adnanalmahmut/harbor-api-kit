@@ -1,7 +1,12 @@
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import { AppException } from '../exceptions/app-exception.js';
+import { AppErrorCode } from '../exceptions/error-definitions.js';
+import type { RequestContextStorePort } from '../ports/request-context.store.port.js';
 
+/**
+ * Tenant resolution helpers.
+ * Source of truth: RequestContext. Multi-tenant flows should use requireTenantId()
+ * when tenant is mandatory for authorization/data isolation.
+ */
 export function getTenantId(
   contextStore: RequestContextStorePort,
 ): string | undefined {

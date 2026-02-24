@@ -1,8 +1,10 @@
 import { AppModule } from '#src/app.module.js';
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { configureApp } from '#src/core/app.bootstrap.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import {
+  AppConfigService,
+  configureApp,
+  PrismaService,
+  RedisService,
+} from '#src/core/index.js';
 import {
   FastifyAdapter,
   type NestFastifyApplication,
@@ -37,6 +39,8 @@ export class TestAppFactory {
   }
 
   static async teardown(app: NestFastifyApplication): Promise<void> {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   }
 }

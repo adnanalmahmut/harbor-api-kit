@@ -1,7 +1,7 @@
-import { stripQuery } from '#src/core/domain/utils/shared.utils.js';
-import { getRequestContextStatic } from '#src/core/infrastructure/context/request-context-storage.js';
+import { stripQuery } from '#src/core/domain/index.js';
 import type { LevelWithSilent } from 'pino';
 import type { Options } from 'pino-http';
+import { getRequestContextStatic } from '../context/request-context-storage.js';
 
 export function createPinoOptions(
   level: LevelWithSilent,

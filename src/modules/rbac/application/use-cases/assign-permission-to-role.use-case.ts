@@ -2,8 +2,8 @@ import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants
 import { z } from 'zod';
 
 export const AssignPermissionToRoleSchema = z.object({
-  roleId: z.string().uuid(),
-  permissionId: z.string().uuid(),
+  roleId: z.uuid(),
+  permissionId: z.uuid(),
 });
 
 export type AssignPermissionToRoleCommand = z.infer<

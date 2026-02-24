@@ -1,4 +1,4 @@
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { RedisService } from '#src/core/index.js';
 
 /**
  * Clear application cache keys from Redis without affecting BullMQ job data.

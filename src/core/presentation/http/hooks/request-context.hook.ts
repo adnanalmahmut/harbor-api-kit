@@ -1,10 +1,10 @@
-import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
 import {
   normalizeHeader,
   stripQuery,
-} from '#src/core/domain/utils/shared.utils.js';
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+  type CacheManagerPort,
+  type RequestContextStorePort,
+} from '#src/core/domain/index.js';
+import { AppConfigService } from '#src/core/infrastructure/index.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { randomUUID } from 'node:crypto';
 

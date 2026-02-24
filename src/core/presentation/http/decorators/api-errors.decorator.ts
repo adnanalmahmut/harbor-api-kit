@@ -1,9 +1,5 @@
-import {
-  AppErrorCode,
-  ERROR_DEFINITIONS,
-} from '#src/core/domain/exceptions/error-definitions.js';
-import type { Type } from '@nestjs/common';
-import { applyDecorators, HttpStatus } from '@nestjs/common';
+import { AppErrorCode, ERROR_DEFINITIONS } from '#src/core/domain/index.js';
+import { applyDecorators, HttpStatus, type Type } from '@nestjs/common';
 import { ApiExtraModels, ApiResponse, getSchemaPath } from '@nestjs/swagger';
 
 export type ApiErrorType = keyof typeof AppErrorCode;

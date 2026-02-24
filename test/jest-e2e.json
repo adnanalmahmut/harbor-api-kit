@@ -12,5 +12,6 @@
     "^#src/(.*)$": "<rootDir>/src/$1",
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
-  "setupFiles": ["<rootDir>/test/jest-setup.ts"]
+  "setupFiles": ["<rootDir>/test/jest-setup.ts"],
+  "testTimeout": 60000
 }

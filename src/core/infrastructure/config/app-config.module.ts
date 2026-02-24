@@ -1,7 +1,7 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { validateEnv } from '#src/core/infrastructure/config/env.schema.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
+import { AppConfigService } from './app-config.service.js';
+import { validateEnv } from './env.validate.js';
 
 @Module({
   imports: [

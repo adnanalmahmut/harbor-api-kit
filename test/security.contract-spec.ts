@@ -1,8 +1,6 @@
 import { AppModule } from '#src/app.module.js';
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { configureApp } from '#src/core/app.bootstrap.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+import { configureApp, PrismaService, RedisService } from '#src/core/index.js';
+import { AuthGuard } from '#src/modules/auth/index.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
@@ -18,10 +16,10 @@ import { RbacHelper } from './helpers/rbac.helper.js';
 import { resetDb } from './helpers/test-db.helper.js';
 import { clearRedisCache } from './helpers/test-redis.helper.js';
 
-import { AuthModule } from '#src/modules/auth/auth.module.js';
+import { AuthModule } from '#src/modules/auth/index.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
+import { AppConfigModule } from '#src/core/index.js';
 
 @Controller('test-security')
 @UseGuards(AuthGuard, RbacGuard)

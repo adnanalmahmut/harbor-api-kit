@@ -1,5 +1,4 @@
-import { DatabaseException } from '#src/core/infrastructure/db/exceptions/database.exception.js';
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
+import { DatabaseException, PrismaService } from '#src/core/index.js';
 import { User } from '#src/modules/users/domain/entities/user.entity.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
 import { Injectable } from '@nestjs/common';

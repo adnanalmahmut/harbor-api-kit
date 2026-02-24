@@ -1,6 +1,4 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { redisKeys } from '#src/core/infrastructure/redis/redis.keys.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { PrismaService, redisKeys, RedisService } from '#src/core/index.js';
 import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
 import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 import type { PermissionRepositoryPort } from '#src/modules/rbac/domain/ports/permission.repository.port.js';

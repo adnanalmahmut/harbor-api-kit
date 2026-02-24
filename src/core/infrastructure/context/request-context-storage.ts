@@ -1,4 +1,4 @@
-import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
+import type { RequestContext } from '#src/core/domain/index.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
@@ -17,7 +17,7 @@ export function getRequestContextStatic(): RequestContext | undefined {
 }
 
 /**
- * Static setter for RequestContext.
+ * Mutates the current request store (if present). Does not create a store.
  */
 export function setRequestContextStatic(patch: Partial<RequestContext>) {
   const store = requestContextStorage.getStore();

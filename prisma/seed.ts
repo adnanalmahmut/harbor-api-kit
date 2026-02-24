@@ -1,6 +1,6 @@
 /* prisma/seed.ts */
 // STRICT ENVIRONMENT GATING: Seed only runs in test environment
-if (process.env.APP_ENV !== 'test') {
+if (process.env.APP_ENV !== 'test' && process.env.APP_ENV !== 'development') {
   console.error('⛔  Seed can only run when APP_ENV=test');
   console.error('    Current APP_ENV:', process.env.APP_ENV || 'undefined');
   console.error('    Run with: APP_ENV=test npx prisma db seed');
@@ -349,7 +349,7 @@ async function seedTestUsersViaBetterAuth(prisma: PrismaClient) {
 
 async function main() {
   // Additional safety check (already checked at top of file)
-  if (process.env.APP_ENV !== 'test') {
+  if (process.env.APP_ENV !== 'test' && process.env.APP_ENV !== 'development') {
     console.error('⛔  Seed can only run when APP_ENV=test');
     process.exit(1);
   }

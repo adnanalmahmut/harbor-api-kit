@@ -1,6 +1,8 @@
-import { SecurityException } from '#src/core/domain/exceptions/security.exception.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { SecurityException } from '#src/core/domain/index.js';
+import {
+  AppConfigService,
+  RedisService,
+} from '#src/core/infrastructure/index.js';
 import {
   Injectable,
   type CallHandler,

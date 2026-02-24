@@ -1,4 +1,3 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import { PrismaClient } from '#src/generated/prisma/client.js';
 import {
   Injectable,
@@ -6,6 +5,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { AppConfigService } from '../../config/app-config.service.js';
 
 @Injectable()
 export class PrismaService

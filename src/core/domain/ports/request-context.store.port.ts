@@ -1,4 +1,4 @@
-import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
+import type { RequestContext } from '../context/request-context.type.js';
 
 export type CacheScope = 'request' | 'redis' | 'both';
 

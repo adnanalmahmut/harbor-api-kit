@@ -1,6 +1,8 @@
-import type { LoggerPort } from '#src/core/application/ports/logger.port.js';
-import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import type {
+  CacheManagerPort,
+  LoggerPort,
+  RequestContextStorePort,
+} from '#src/core/index.js';
 import { rbacCacheKeys } from '#src/modules/rbac/application/rbac.cache-keys.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';

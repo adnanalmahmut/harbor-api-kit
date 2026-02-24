@@ -1,6 +1,8 @@
-import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
-import type { LoggerPort } from '#src/core/application/ports/logger.port.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import type {
+  CacheManagerPort,
+  LoggerPort,
+  RequestContextStorePort,
+} from '#src/core/index.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';

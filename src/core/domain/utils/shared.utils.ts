@@ -1,18 +1,9 @@
-import {
-  buildI18nFallbacks,
-  SUPPORTED_LOCALES,
-} from '#src/core/domain/constants/locales.js';
+import { buildI18nFallbacks, SUPPORTED_LOCALES } from '../constants/locales.js';
 
 export function stripQuery(url: string | undefined): string {
   const u = url ?? '/';
   const i = u.indexOf('?');
   return i === -1 ? u : u.slice(0, i);
-}
-
-export function extractClientIp(xff?: string | string[]): string | undefined {
-  if (!xff) return undefined;
-  const val = Array.isArray(xff) ? xff[0] : xff;
-  return val.split(',')[0]?.trim() || undefined;
 }
 
 export function normalizeHeader(value: unknown): string | undefined {
@@ -30,6 +21,18 @@ export function isI18nKeyLike(s: any): s is string {
   return v.includes('.') && /^[a-zA-Z0-9_.:-]+$/.test(v);
 }
 
+const KNOWN_LOCALES: Set<string> = new Set([
+  ...SUPPORTED_LOCALES,
+  ...Object.keys(buildI18nFallbacks(SUPPORTED_LOCALES)),
+]);
+
+function isKnownLocale(tag: string): boolean {
+  if (KNOWN_LOCALES.has(tag)) return true;
+  // Check wildcard patterns like 'en-*' by matching the language prefix
+  const lang = tag.split('-')[0].toLowerCase();
+  return KNOWN_LOCALES.has(lang) || KNOWN_LOCALES.has(`${lang}-*`);
+}
+
 type LocaleSource = {
   headers?: Record<string, unknown>;
   query?: Record<string, unknown>;
@@ -43,29 +46,21 @@ export function resolveLocaleFromSource(
   src: LocaleSource,
   headerName: string,
   queryName: string,
+  opts?: { includeAcceptLanguage?: boolean },
 ): string | undefined {
   const headers = src.headers ?? {};
   const query = src.query ?? {};
 
   const q = query[queryName] as any;
   const h = headers[String(headerName).toLowerCase()] as any;
-  const a = headers['accept-language'] as any;
+
+  // only if enabled (default: true to keep backward compatibility)
+  const includeAL = opts?.includeAcceptLanguage !== false;
+  const a = includeAL ? (headers['accept-language'] as any) : undefined;
 
   const raw = normalizeHeader(q) ?? normalizeHeader(h) ?? normalizeHeader(a);
   if (!raw) return undefined;
 
   const tag = firstLanguageTag(raw);
   return isKnownLocale(tag) ? tag : undefined;
-}
-
-const KNOWN_LOCALES: Set<string> = new Set([
-  ...SUPPORTED_LOCALES,
-  ...Object.keys(buildI18nFallbacks(SUPPORTED_LOCALES)),
-]);
-
-function isKnownLocale(tag: string): boolean {
-  if (KNOWN_LOCALES.has(tag)) return true;
-  // Check wildcard patterns like 'en-*' by matching the language prefix
-  const lang = tag.split('-')[0].toLowerCase();
-  return KNOWN_LOCALES.has(lang) || KNOWN_LOCALES.has(`${lang}-*`);
 }

@@ -1,66 +1,45 @@
-import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
 import {
+  ApiResponses,
+  AppConfigService,
   assertAllowedRedirectURL,
-  InvalidRedirectURLError,
-} from '#src/core/domain/utils/url-validation.utils.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
-import {
   AuthRedirectInterceptor,
+  CORE_TOKENS,
+  InvalidRedirectURLError,
+  makeCsrfToken,
+  RateLimit,
   RedirectOnResult,
-} from '#src/core/presentation/http/interceptors/auth-redirect.interceptor.js';
-import { makeCsrfToken } from '#src/core/presentation/http/security/csrf/csrf.util.js';
-import { RateLimit } from '#src/core/presentation/http/security/rate-limit/rate-limit.decorators.js';
-import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
-import { ChangeEmailUseCase } from '#src/modules/auth/application/use-cases/change-email.use-case.js';
-import { ChangePasswordUseCase } from '#src/modules/auth/application/use-cases/change-password.use-case.js';
-import { CheckResetTokenUseCase } from '#src/modules/auth/application/use-cases/check-reset-token.use-case.js';
-import { DeleteUserUseCase } from '#src/modules/auth/application/use-cases/delete-user.use-case.js';
-import { ForgetPasswordUseCase } from '#src/modules/auth/application/use-cases/forget-password.use-case.js';
-import { GetSessionUseCase } from '#src/modules/auth/application/use-cases/get-session.use-case.js';
-import { LinkSocialUseCase } from '#src/modules/auth/application/use-cases/link-social.use-case.js';
-import { ListLinkedAccountsUseCase } from '#src/modules/auth/application/use-cases/list-linked-accounts.use-case.js';
-import { ListSessionsUseCase } from '#src/modules/auth/application/use-cases/list-sessions.use-case.js';
-import { LoginUserUseCase } from '#src/modules/auth/application/use-cases/login-user.use-case.js';
-import { ReactivateUserUseCase } from '#src/modules/auth/application/use-cases/reactivate-user.use-case.js';
-import { RegisterUserUseCase } from '#src/modules/auth/application/use-cases/register-user.use-case.js';
-import { ResetPasswordUseCase } from '#src/modules/auth/application/use-cases/reset-password.use-case.js';
-import { RevokeOtherSessionsUseCase } from '#src/modules/auth/application/use-cases/revoke-other-sessions.use-case.js';
-import { RevokeSessionUseCase } from '#src/modules/auth/application/use-cases/revoke-session.use-case.js';
-import { RevokeSessionsUseCase } from '#src/modules/auth/application/use-cases/revoke-sessions.use-case.js';
-import { SendVerificationEmailUseCase } from '#src/modules/auth/application/use-cases/send-verification-email.use-case.js';
-import { SignInSocialUseCase } from '#src/modules/auth/application/use-cases/sign-in-social.use-case.js';
-import { SignOutUseCase } from '#src/modules/auth/application/use-cases/sign-out.use-case.js';
-import { UnlinkAccountUseCase } from '#src/modules/auth/application/use-cases/unlink-account.use-case.js';
-import { UpdateUserUseCase } from '#src/modules/auth/application/use-cases/update-user.use-case.js';
-import { VerifyEmailUseCase } from '#src/modules/auth/application/use-cases/verify-email.use-case.js';
-import { VerifyPasswordUseCase } from '#src/modules/auth/application/use-cases/verify-password.use-case.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
-import { AUTH_RESPONSES } from '#src/modules/auth/presentation/http/api-responses.examples.js';
-import { applyCookies } from '#src/modules/auth/presentation/http/cookie.serializer.js';
-import { ChangeEmailDto } from '#src/modules/auth/presentation/http/dtos/change-email.dto.js';
-import { ChangePasswordDto } from '#src/modules/auth/presentation/http/dtos/change-password.dto.js';
-import { ForgetPasswordDto } from '#src/modules/auth/presentation/http/dtos/forget-password.dto.js';
-import { LoginDto } from '#src/modules/auth/presentation/http/dtos/login.dto.js';
-import { ReactivateUserDto } from '#src/modules/auth/presentation/http/dtos/reactivate-user.dto.js';
-import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
-import { ResetPasswordDto } from '#src/modules/auth/presentation/http/dtos/reset-password.dto.js';
-import { RevokeSessionDto } from '#src/modules/auth/presentation/http/dtos/revoke-session.dto.js';
-import { RevokeSessionsDto } from '#src/modules/auth/presentation/http/dtos/revoke-sessions.dto.js';
-import { SendVerificationEmailDto } from '#src/modules/auth/presentation/http/dtos/send-verification-email.dto.js';
+  type RequestContext,
+  type RequestContextStorePort,
+  ResponseMessage,
+} from '#src/core/index.js';
 import {
-  LinkSocialDto,
-  SignInSocialDto,
-  UnlinkAccountDto,
-} from '#src/modules/auth/presentation/http/dtos/social-auth.dto.js';
-import { UpdateUserDto } from '#src/modules/auth/presentation/http/dtos/update-user.dto.js';
-import { VerifyEmailDto } from '#src/modules/auth/presentation/http/dtos/verify-email.dto.js';
-import { VerifyPasswordDto } from '#src/modules/auth/presentation/http/dtos/verify-password.dto.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+  AuthException,
+  ChangeEmailUseCase,
+  ChangePasswordUseCase,
+  CheckResetTokenUseCase,
+  DeleteUserUseCase,
+  ForgetPasswordUseCase,
+  GetSessionUseCase,
+  LinkSocialUseCase,
+  ListLinkedAccountsUseCase,
+  ListSessionsUseCase,
+  LoginUserUseCase,
+  ReactivateUserUseCase,
+  RegisterUserUseCase,
+  ResetPasswordUseCase,
+  RevokeOtherSessionsUseCase,
+  RevokeSessionsUseCase,
+  RevokeSessionUseCase,
+  SendVerificationEmailUseCase,
+  SignInSocialUseCase,
+  SignOutUseCase,
+  UnlinkAccountUseCase,
+  UpdateUserUseCase,
+  VerifyEmailUseCase,
+  VerifyPasswordUseCase,
+} from '#src/modules/auth/application/index.js';
+import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/index.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import {
@@ -80,6 +59,26 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiExcludeEndpoint } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { AuthGuard } from './auth.guard.js';
+import {
+  ChangeEmailDto,
+  ChangePasswordDto,
+  ForgetPasswordDto,
+  LinkSocialDto,
+  LoginDto,
+  ReactivateUserDto,
+  RegisterDto,
+  ResetPasswordDto,
+  RevokeSessionDto,
+  RevokeSessionsDto,
+  SendVerificationEmailDto,
+  SignInSocialDto,
+  UnlinkAccountDto,
+  UpdateUserDto,
+  VerifyEmailDto,
+  VerifyPasswordDto,
+} from './auth.http.dtos.js';
+import { applyCookies, AUTH_RESPONSES } from './auth.http.js';
 
 @Controller('auth')
 export class AuthController {
@@ -122,9 +121,9 @@ export class AuthController {
 
   private validateCallbackURL(url?: string): void {
     try {
-      const frontendUrl = this.config.frontend().url;
-      const trustedOrigins = this.config.cors().trustedOrigins;
-      assertAllowedRedirectURL(url, [frontendUrl, ...trustedOrigins]);
+      const frontendPublicUrl = this.config.app().frontendPublicUrl;
+      const allowedOrigins = this.config.auth().redirectAllowlist;
+      assertAllowedRedirectURL(url, [frontendPublicUrl, ...allowedOrigins]);
     } catch (e) {
       if (e instanceof InvalidRedirectURLError) {
         throw AuthException.invalidRequest();

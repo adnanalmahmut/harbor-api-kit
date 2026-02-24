@@ -1,6 +1,5 @@
-import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+import { ApiResponses, ResponseMessage } from '#src/core/index.js';
+import { AuthGuard } from '#src/modules/auth/presentation/http/auth.guard.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import { UsersException } from '#src/modules/users/application/exceptions/users.exception.js';

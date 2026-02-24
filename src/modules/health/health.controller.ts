@@ -1,7 +1,9 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
-import { RateLimit } from '#src/core/presentation/http/security/rate-limit/rate-limit.decorators.js';
+import {
+  PrismaService,
+  RateLimit,
+  RedisService,
+  ResponseMessage,
+} from '#src/core/index.js';
 import { Controller, Get } from '@nestjs/common';
 
 @Controller()
@@ -12,7 +14,7 @@ export class HealthController {
   ) {}
 
   @ResponseMessage('messages.common.ok')
-  @RateLimit({ points: 2, durationSec: 10 })
+  @RateLimit({ points: 20, durationSec: 10 })
   @Get('/health')
   async health() {
     // 1. Check Database (Simple query)

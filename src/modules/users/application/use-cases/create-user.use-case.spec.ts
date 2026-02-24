@@ -1,4 +1,4 @@
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
+import { AppException } from '#src/core/index.js';
 import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
 import { User } from '#src/modules/users/domain/entities/user.entity.js';
 import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';

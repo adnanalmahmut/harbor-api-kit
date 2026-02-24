@@ -1,5 +1,4 @@
-import { redisKeys } from '#src/core/infrastructure/redis/redis.keys.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { redisKeys, RedisService } from '#src/core/index.js';
 import { Role } from '#src/modules/rbac/domain/entities/role.entity.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
 import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';

@@ -1,4 +1,4 @@
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
+import { FilesException } from '#src/modules/files/application/files.exception.js';
 import { Injectable } from '@nestjs/common';
 import path from 'node:path';
 import { Readable } from 'node:stream';

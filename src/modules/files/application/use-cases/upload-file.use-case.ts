@@ -1,11 +1,11 @@
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
-import type { IFileRepository } from '#src/modules/files/application/ports/file.repository.port.js';
-import type { IFilesConfig } from '#src/modules/files/application/ports/files-config.port.js';
-import type { IStorageDriver } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { StorageDriver } from '#src/modules/files/domain/enums/storage-driver.enum.js';
+import { StorageDriver } from '#src/modules/files/domain/index.js';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import { FilesException } from '../files.exception.js';
+import type { IFileRepository } from '../ports/file.repository.port.js';
+import type { IFilesConfig } from '../ports/files-config.port.js';
+import type { IStorageDriver } from '../ports/storage-driver.port.js';
 
 interface UploadFileCommand {
   file: Readable;

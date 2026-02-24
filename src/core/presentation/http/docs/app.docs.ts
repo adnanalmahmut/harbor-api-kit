@@ -1,5 +1,4 @@
-// src/core/presentation/http/docs/app.docs.ts
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AppConfigService } from '#src/core/infrastructure/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
@@ -19,7 +18,7 @@ export function setupApiDocs(
   app: NestFastifyApplication,
   config: AppConfigService,
 ) {
-  if (!config.app().enableDocs) return;
+  if (!config.docs().enabled) return;
 
   const appCfg = config.app();
 

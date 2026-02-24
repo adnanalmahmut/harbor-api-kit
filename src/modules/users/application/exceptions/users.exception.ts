@@ -1,5 +1,4 @@
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
+import { AppErrorCode, AppException } from '#src/core/domain/index.js';
 
 export class UsersException extends AppException {
   /**

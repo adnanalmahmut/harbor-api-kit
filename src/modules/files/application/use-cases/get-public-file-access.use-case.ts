@@ -1,6 +1,6 @@
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
-import type { IFileRepository } from '#src/modules/files/application/ports/file.repository.port.js';
-import type { IStorageDriver } from '#src/modules/files/application/ports/storage-driver.port.js';
+import { FilesException } from '../files.exception.js';
+import type { IFileRepository } from '../ports/file.repository.port.js';
+import type { IStorageDriver } from '../ports/storage-driver.port.js';
 
 type PublicUrlResult = {
   url: string;

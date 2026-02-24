@@ -1,8 +1,8 @@
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { createPinoOptions } from '#src/core/infrastructure/logger/pino-options.js';
 import { Global, Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
+import { AppConfigModule } from '../config/app-config.module.js';
+import { AppConfigService } from '../config/app-config.service.js';
+import { createPinoOptions } from './pino-options.js';
 
 @Global()
 @Module({

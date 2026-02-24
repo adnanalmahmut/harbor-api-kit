@@ -1,5 +1,4 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
 import { clearRedisCache } from './test-redis.helper.js';
 
 export class RbacHelper {

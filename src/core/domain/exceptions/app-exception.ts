@@ -1,7 +1,4 @@
-import {
-  AppErrorCode,
-  ERROR_DEFINITIONS,
-} from '#src/core/domain/exceptions/error-definitions.js';
+import { AppErrorCode, ERROR_DEFINITIONS } from './error-definitions.js';
 
 export class AppException extends Error {
   public readonly code: AppErrorCode;

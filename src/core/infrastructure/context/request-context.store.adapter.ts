@@ -1,15 +1,15 @@
-import { AppCacheService } from '#src/core/application/services/app-cache.service.js';
-import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
+import { AppCacheService } from '#src/core/application/index.js';
 import type {
   CacheScope,
+  RequestContext,
   RequestContextStorePort,
-} from '#src/core/domain/ports/request-context.store.port.js';
+} from '#src/core/domain/index.js';
+import { Injectable } from '@nestjs/common';
 import {
   getRequestContextStatic,
   requestContextStorage,
   setRequestContextStatic,
-} from '#src/core/infrastructure/context/request-context-storage.js';
-import { Injectable } from '@nestjs/common';
+} from './request-context-storage.js';
 
 @Injectable()
 export class RequestContextStoreAdapter implements RequestContextStorePort {

@@ -1,4 +1,4 @@
-import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import type { AuthProviderPort } from '#src/modules/auth/domain/auth.ports.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 import { z } from 'zod';
 

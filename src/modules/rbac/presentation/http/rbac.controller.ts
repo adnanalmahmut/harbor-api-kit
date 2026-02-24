@@ -1,6 +1,5 @@
-import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+import { ApiResponses, ResponseMessage } from '#src/core/index.js';
+import { AuthGuard } from '#src/modules/auth/presentation/index.js';
 import { AssignPermissionToRoleUseCase } from '#src/modules/rbac/application/use-cases/assign-permission-to-role.use-case.js';
 import { CreatePermissionUseCase } from '#src/modules/rbac/application/use-cases/create-permission.use-case.js';
 import { CreateRoleUseCase } from '#src/modules/rbac/application/use-cases/create-role.use-case.js';

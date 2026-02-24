@@ -1,6 +1,15 @@
-import { ApiResponses } from '#src/core/presentation/http/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/core/presentation/http/decorators/response-message.decorator.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+import {
+  ApiResponses,
+  AppConfigService,
+  ResponseMessage,
+} from '#src/core/index.js';
+import { AuthGuard } from '#src/modules/auth/index.js';
+import { FileResponseMapper } from '#src/modules/files/application/file-response.mapper.js';
+import { FilesException } from '#src/modules/files/application/files.exception.js';
+import { GetDownloadUrlUseCase } from '#src/modules/files/application/use-cases/get-download-url.use-case.js';
+import { GetFileMetaUseCase } from '#src/modules/files/application/use-cases/get-file-meta.use-case.js';
+import { SetVisibilityUseCase } from '#src/modules/files/application/use-cases/set-visibility.use-case.js';
+import { UploadFileUseCase } from '#src/modules/files/application/use-cases/upload-file.use-case.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
 import {
@@ -21,13 +30,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
-
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
-import { FileResponseMapper } from '#src/modules/files/application/mappers/file-response.mapper.js';
-import { GetDownloadUrlUseCase } from '#src/modules/files/application/use-cases/get-download-url.use-case.js';
-import { GetFileMetaUseCase } from '#src/modules/files/application/use-cases/get-file-meta.use-case.js';
-import { SetVisibilityUseCase } from '#src/modules/files/application/use-cases/set-visibility.use-case.js';
-import { UploadFileUseCase } from '#src/modules/files/application/use-cases/upload-file.use-case.js';
 import { FILES_RESPONSES } from './api-responses.examples.js';
 import {
   DownloadUrlDto,
@@ -60,6 +62,7 @@ export class FilesController {
     private readonly getDownloadUrlUseCase: GetDownloadUrlUseCase,
     private readonly getFileMetaUseCase: GetFileMetaUseCase,
     private readonly setVisibilityUseCase: SetVisibilityUseCase,
+    private readonly config: AppConfigService,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -102,7 +105,7 @@ export class FilesController {
       isPublic,
     });
 
-    return FileResponseMapper.map(file);
+    return FileResponseMapper.map(file, this.config.app().publicUrl);
   }
 
   @UseGuards(AuthGuard)
@@ -146,7 +149,8 @@ export class FilesController {
       throw FilesException.invalidRequest('no_file_uploaded');
     }
 
-    return files.map((file) => FileResponseMapper.map(file));
+    const publicUrl = this.config.app().publicUrl;
+    return files.map((file) => FileResponseMapper.map(file, publicUrl));
   }
 
   @Get(':id')
@@ -169,7 +173,7 @@ export class FilesController {
       actorUserId: userId,
       actorIsAdmin: isAdmin,
     });
-    return FileResponseMapper.map(file);
+    return FileResponseMapper.map(file, this.config.app().publicUrl);
   }
 
   @Get(':id/download')
@@ -216,6 +220,6 @@ export class FilesController {
       actorUserId: userId,
       actorIsAdmin: isAdmin,
     });
-    return FileResponseMapper.map(file);
+    return FileResponseMapper.map(file, this.config.app().publicUrl);
   }
 }

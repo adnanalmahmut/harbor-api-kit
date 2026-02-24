@@ -1,6 +1,8 @@
-import { SecurityException } from '#src/core/domain/exceptions/security.exception.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { SecurityException, stripQuery } from '#src/core/domain/index.js';
+import {
+  AppConfigService,
+  RedisService,
+} from '#src/core/infrastructure/index.js';
 import {
   Injectable,
   type CallHandler,
@@ -18,17 +20,15 @@ import {
 } from './rate-limit.types.js';
 import { getRealIp } from './rate-limit.util.js';
 
-function stripQuery(url: string) {
-  const i = url.indexOf('?');
-  return i >= 0 ? url.slice(0, i) : url;
-}
-
 function getRouteUrl(req: FastifyRequest): string {
   const routePattern = (req as any).routeOptions?.url as string | undefined;
   if (routePattern) return routePattern;
 
-  const raw = (req as any).raw?.url ?? req.url ?? '';
-  return stripQuery(String(raw));
+  const raw =
+    ((req as any).raw?.url as string | undefined) ??
+    (req.url as string | undefined);
+
+  return stripQuery(raw);
 }
 
 function parseRedisMultiValue<T = unknown>(entry: unknown): T | undefined {

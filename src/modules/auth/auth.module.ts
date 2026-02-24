@@ -1,42 +1,51 @@
-import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { RequestContextStoreAdapter } from '#src/core/infrastructure/context/request-context.store.adapter.js';
-import { PrismaModule } from '#src/core/infrastructure/db/prisma/prisma.module.js';
-import { NestLoggerAdapter } from '#src/core/infrastructure/logging/nest-logger.adapter.js';
-import { ChangeEmailUseCase } from '#src/modules/auth/application/use-cases/change-email.use-case.js';
-import { ChangePasswordUseCase } from '#src/modules/auth/application/use-cases/change-password.use-case.js';
-import { CheckResetTokenUseCase } from '#src/modules/auth/application/use-cases/check-reset-token.use-case.js';
-import { DeleteUserUseCase } from '#src/modules/auth/application/use-cases/delete-user.use-case.js';
-import { ForgetPasswordUseCase } from '#src/modules/auth/application/use-cases/forget-password.use-case.js';
-import { GetSessionUseCase } from '#src/modules/auth/application/use-cases/get-session.use-case.js';
-import { LinkSocialUseCase } from '#src/modules/auth/application/use-cases/link-social.use-case.js';
-import { ListLinkedAccountsUseCase } from '#src/modules/auth/application/use-cases/list-linked-accounts.use-case.js';
-import { ListSessionsUseCase } from '#src/modules/auth/application/use-cases/list-sessions.use-case.js';
-import { LoginUserUseCase } from '#src/modules/auth/application/use-cases/login-user.use-case.js';
-import { ReactivateUserUseCase } from '#src/modules/auth/application/use-cases/reactivate-user.use-case.js';
-import { RegisterUserUseCase } from '#src/modules/auth/application/use-cases/register-user.use-case.js';
-import { ResetPasswordUseCase } from '#src/modules/auth/application/use-cases/reset-password.use-case.js';
-import { RevokeOtherSessionsUseCase } from '#src/modules/auth/application/use-cases/revoke-other-sessions.use-case.js';
-import { RevokeSessionUseCase } from '#src/modules/auth/application/use-cases/revoke-session.use-case.js';
-import { RevokeSessionsUseCase } from '#src/modules/auth/application/use-cases/revoke-sessions.use-case.js';
-import { SendVerificationEmailUseCase } from '#src/modules/auth/application/use-cases/send-verification-email.use-case.js';
-import { SignInSocialUseCase } from '#src/modules/auth/application/use-cases/sign-in-social.use-case.js';
-import { SignOutUseCase } from '#src/modules/auth/application/use-cases/sign-out.use-case.js';
-import { UnlinkAccountUseCase } from '#src/modules/auth/application/use-cases/unlink-account.use-case.js';
-import { UpdateUserUseCase } from '#src/modules/auth/application/use-cases/update-user.use-case.js';
-import { VerifyEmailUseCase } from '#src/modules/auth/application/use-cases/verify-email.use-case.js';
-import { VerifyPasswordUseCase } from '#src/modules/auth/application/use-cases/verify-password.use-case.js';
+import {
+  AppConfigModule,
+  CORE_TOKENS,
+  PrismaModule,
+  RequestContextStoreAdapter,
+} from '#src/core/index.js';
+import {
+  ChangeEmailUseCase,
+  ChangePasswordUseCase,
+  CheckResetTokenUseCase,
+  DeleteUserUseCase,
+  ForgetPasswordUseCase,
+  GetSessionUseCase,
+  LinkSocialUseCase,
+  ListLinkedAccountsUseCase,
+  ListSessionsUseCase,
+  LoginUserUseCase,
+  ReactivateUserUseCase,
+  RegisterUserUseCase,
+  ResetPasswordUseCase,
+  RevokeOtherSessionsUseCase,
+  RevokeSessionsUseCase,
+  RevokeSessionUseCase,
+  SendVerificationEmailUseCase,
+  SignInSocialUseCase,
+  SignOutUseCase,
+  UnlinkAccountUseCase,
+  UpdateUserUseCase,
+  VerifyEmailUseCase,
+  VerifyPasswordUseCase,
+} from '#src/modules/auth/application/index.js';
 import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import type { AuthEmailSenderPort } from '#src/modules/auth/domain/ports/auth-email.sender.port.js';
-import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
-import type { CurrentSessionProviderPort } from '#src/modules/auth/domain/ports/current-session.provider.port.js';
-import { AuthConfigAdapter } from '#src/modules/auth/infrastructure/adapters/auth-config.adapter.js';
-import { RedisSessionTrackerAdapter } from '#src/modules/auth/infrastructure/adapters/redis-session-tracker.adapter.js';
-import { BetterAuthProvider } from '#src/modules/auth/infrastructure/better-auth/better-auth.provider.adapter.js';
-import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
-import { InfraCurrentSessionProvider } from '#src/modules/auth/infrastructure/context/infra-current-session.provider.js';
-import { AuthController } from '#src/modules/auth/presentation/http/auth.controller.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/guards/auth.guard.js';
+import type {
+  AuthEmailSenderPort,
+  AuthProviderPort,
+  CurrentSessionProviderPort,
+} from '#src/modules/auth/domain/index.js';
+import {
+  AuthConfigAdapter,
+  AuthEmailHooks,
+  BetterAuthProvider,
+  InfraCurrentSessionProvider,
+  RedisSessionTrackerAdapter,
+} from '#src/modules/auth/infrastructure/index.js';
+import {
+  AuthController,
+  AuthGuard,
+} from '#src/modules/auth/presentation/index.js';
 import { NotifyModule } from '#src/modules/notify/notify.module.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
@@ -92,7 +101,7 @@ import { Logger } from 'nestjs-pino';
           authProvider,
           roleRepo,
           effectivePermissions,
-          new NestLoggerAdapter(RegisterUserUseCase.name, logger),
+          logger,
         );
       },
       inject: [

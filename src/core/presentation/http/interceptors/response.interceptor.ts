@@ -1,8 +1,5 @@
 import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
-import { CONSTANTS_KEYS } from '#src/core/presentation/http/constants/metadata-keys.constants.js';
-import type { ApiSuccess } from '#src/core/presentation/http/types/api.types.js';
-import { translateIfKey } from '#src/core/presentation/http/utils/i18n.utils.js';
+import type { RequestContextStorePort } from '#src/core/domain/index.js';
 import {
   Inject,
   Injectable,
@@ -13,6 +10,9 @@ import {
 import { Reflector } from '@nestjs/core';
 import { I18nService } from 'nestjs-i18n';
 import { Observable, mergeMap } from 'rxjs';
+import { CONSTANTS_KEYS } from '../constants/metadata-keys.constants.js';
+import type { ApiSuccess } from '../types/api.types.js';
+import { translateIfKey } from '../utils/i18n.utils.js';
 
 @Injectable()
 export class ResponseInterceptor<T>

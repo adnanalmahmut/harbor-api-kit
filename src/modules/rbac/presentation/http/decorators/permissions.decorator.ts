@@ -1,4 +1,4 @@
-import { CONSTANTS_KEYS } from '#src/core/presentation/http/constants/metadata-keys.constants.js';
+import { CONSTANTS_KEYS } from '#src/core/presentation/index.js';
 import { SetMetadata } from '@nestjs/common';
 
 export const PERMISSIONS_KEY = CONSTANTS_KEYS.PERMISSIONS;

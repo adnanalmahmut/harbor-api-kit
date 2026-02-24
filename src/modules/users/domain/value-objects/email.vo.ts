@@ -1,4 +1,4 @@
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
+import { AppException } from '#src/core/index.js';
 
 export class EmailVO {
   private constructor(readonly value: string) {}

@@ -1,21 +1,15 @@
 import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
 import {
   AppErrorCode,
+  AppException,
   ERROR_DEFINITIONS,
-} from '#src/core/domain/exceptions/error-definitions.js';
-import { ValidationError } from '#src/core/domain/exceptions/validation.exception.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
-import type { ValidationIssue } from '#src/core/domain/types/validation-issue.type.js';
-import { stripQuery } from '#src/core/domain/utils/shared.utils.js';
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import type { ApiErrorResponse } from '#src/core/presentation/http/types/api.types.js';
-import {
+  ValidationError,
   isI18nKeyLike,
-  mapValidationIssuesToApi,
-  translateIfKey,
-} from '#src/core/presentation/http/utils/i18n.utils.js';
-import { isMalformedJsonError } from '#src/core/presentation/http/utils/json-error.utils.js';
+  stripQuery,
+  type RequestContextStorePort,
+  type ValidationIssue,
+} from '#src/core/domain/index.js';
+import { AppConfigService } from '#src/core/infrastructure/index.js';
 import {
   Catch,
   HttpException,
@@ -26,6 +20,12 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Logger } from 'nestjs-pino';
+import type { ApiErrorResponse } from '../types/api.types.js';
+import {
+  mapValidationIssuesToApi,
+  translateIfKey,
+} from '../utils/i18n.utils.js';
+import { isMalformedJsonError } from '../utils/json-error.utils.js';
 
 function codeByStatus(status: number): AppErrorCode {
   const found = (

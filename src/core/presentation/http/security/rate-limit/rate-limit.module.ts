@@ -1,5 +1,7 @@
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { RedisModule } from '#src/core/infrastructure/redis/redis.module.js';
+import {
+  AppConfigModule,
+  RedisModule,
+} from '#src/core/infrastructure/index.js';
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RateLimitInterceptor } from './rate-limit.interceptor.js';

@@ -1,5 +1,4 @@
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { QueueModule } from '#src/core/infrastructure/queue/queue.module.js';
+import { AppConfigModule, QueueModule } from '#src/core/index.js';
 import { BullMqEmailQueueAdapter } from '#src/modules/notify/infrastructure/bullmq/bullmq-email-queue.adapter.js';
 import { EmailProcessor } from '#src/modules/notify/infrastructure/bullmq/email.processor.js';
 import { ResendEmailProvider } from '#src/modules/notify/infrastructure/resend/resend.provider.js';
@@ -15,12 +14,12 @@ import { Module } from '@nestjs/common';
     }),
   ],
   providers: [
-    ResendEmailProvider, // The actual sender (used by processor)
-    EmailProcessor, // The consumer
-    BullMqEmailQueueAdapter, // The producer adapter
+    ResendEmailProvider,
+    EmailProcessor,
+    BullMqEmailQueueAdapter,
     {
       provide: 'EmailProviderPort',
-      useClass: BullMqEmailQueueAdapter, // Public API uses queue
+      useClass: BullMqEmailQueueAdapter,
     },
   ],
   exports: ['EmailProviderPort'],

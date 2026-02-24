@@ -1,18 +1,17 @@
 import {
   buildI18nFallbacks,
   SUPPORTED_LOCALES,
-} from '#src/core/domain/constants/locales.js';
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { ConfigLocaleResolver } from '#src/core/infrastructure/i18n/config-locale.resolver.js';
+} from '#src/core/domain/index.js';
 import { Module } from '@nestjs/common';
 import {
   AcceptLanguageResolver,
-  HeaderResolver,
   I18nModule as NestI18nModule,
   QueryResolver,
 } from 'nestjs-i18n';
 import * as path from 'node:path';
+import { AppConfigModule } from '../config/app-config.module.js';
+import { AppConfigService } from '../config/app-config.service.js';
+import { ConfigLocaleResolver } from './config-locale.resolver.js';
 
 function resolveLocalesPath() {
   return path.join(process.cwd(), 'locales');
@@ -32,10 +31,9 @@ function resolveLocalesPath() {
         },
       }),
       resolvers: [
+        ConfigLocaleResolver,
         { use: QueryResolver, options: ['lang', 'locale'] },
         AcceptLanguageResolver,
-        new HeaderResolver(['x-lang']),
-        ConfigLocaleResolver,
       ],
     }),
   ],

@@ -1,5 +1,5 @@
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
+import { AppException } from './app-exception.js';
+import { AppErrorCode } from './error-definitions.js';
 
 export class SecurityException extends AppException {
   static csrf() {

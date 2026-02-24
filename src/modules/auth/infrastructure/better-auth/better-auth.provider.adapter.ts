@@ -1,42 +1,45 @@
-import type { RequestContext } from '#src/core/domain/context/request-context.type.js';
-import { resolveLocaleFromSource } from '#src/core/domain/utils/shared.utils.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { AuthCacheKeys } from '#src/modules/auth/application/cache/auth-cache.keys.js';
-import { AuthException } from '#src/modules/auth/application/exceptions/auth.exception.js';
-import { LinkedAccount } from '#src/modules/auth/domain/entities/linked-account.entity.js';
-import { Session } from '#src/modules/auth/domain/entities/session.entity.js';
-import { User } from '#src/modules/auth/domain/entities/user.entity.js';
-import type {
-  ChangeEmailCommand,
-  ChangePasswordCommand,
-  ForgetPasswordCommand,
-  LinkSocialCommand,
-  ResetPasswordCommand,
-  SignInCommand,
-  SignInSocialCommand,
-  SignOutCommand,
-  SignUpCommand,
-  UnlinkAccountCommand,
-  VerifyEmailCommand,
-} from '#src/modules/auth/domain/ports/auth-commands.js';
-import type {
-  GetSessionResult,
-  SignInResultData,
-  SignUpResultData,
-  TokenResult,
-  User as UserDto,
-} from '#src/modules/auth/domain/ports/auth-dtos.js';
-import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
-import type { AuthResult } from '#src/modules/auth/domain/ports/auth-result.js';
-import type { CookieDirective } from '#src/modules/auth/domain/ports/cookie-directive.js';
-import { createBetterAuth } from '#src/modules/auth/infrastructure/better-auth/auth.js';
-import { mapBetterAuthError } from '#src/modules/auth/infrastructure/better-auth/better-auth-error.mapper.js';
-import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
+import {
+  AppConfigService,
+  PrismaService,
+  RedisService,
+  resolveLocaleFromSource,
+  type RequestContext,
+} from '#src/core/index.js';
+import {
+  AuthCacheKeys,
+  AuthException,
+} from '#src/modules/auth/application/index.js';
+import {
+  LinkedAccount,
+  Session,
+  User,
+  type AuthProviderPort,
+  type AuthResult,
+  type ChangeEmailCommand,
+  type ChangePasswordCommand,
+  type CookieDirective,
+  type ForgetPasswordCommand,
+  type GetSessionResult,
+  type LinkSocialCommand,
+  type ResetPasswordCommand,
+  type SignInCommand,
+  type SignInResultData,
+  type SignInSocialCommand,
+  type SignOutCommand,
+  type SignUpCommand,
+  type SignUpResultData,
+  type TokenResult,
+  type UnlinkAccountCommand,
+  type VerifyEmailCommand,
+} from '#src/modules/auth/domain/index.js';
 import { Injectable } from '@nestjs/common';
 import { toNodeHandler } from 'better-auth/node';
 import { PinoLogger } from 'nestjs-pino';
+import { createBetterAuth, type BetterAuthInstance } from './auth.js';
+import { mapBetterAuthError } from './better-auth-errors.js';
+import { AuthEmailHooks } from './hooks/auth-email.hooks.js';
+
+import { verifyPassword } from 'better-auth/crypto';
 
 function toHeadersFromContext(ctx: RequestContext): Record<string, string> {
   const h: Record<string, string> = {};
@@ -87,10 +90,32 @@ function parseAttributes(parts: string[]): CookieDirective['options'] {
   return options;
 }
 
+/** Minimal shape of a Fastify request for the BetterAuth node handler bridge. */
+interface FastifyLikeRequest {
+  raw: import('http').IncomingMessage;
+  ip: string;
+  cookies?: Record<string, string>;
+}
+
+/** Minimal shape of a Fastify reply for the BetterAuth node handler bridge. */
+interface FastifyLikeReply {
+  raw: import('http').ServerResponse;
+}
+
+/** Typed shape for errors thrown by BetterAuth API calls in catch blocks. */
+interface BetterAuthErrorLike {
+  status?: number;
+  statusCode?: number;
+  body?: { statusCode?: number };
+  url?: string;
+  response?: { url?: string };
+  headers?: Headers;
+}
+
 function readCookiesFromHeaders(headers: Headers): CookieDirective[] {
   if (!headers) return [];
   const directives: CookieDirective[] = [];
-  const anyHeaders = headers as unknown as { getSetCookie?: () => string[] };
+  const anyHeaders = headers as unknown as { getSetCookie?: () => string[] }; // Headers.getSetCookie() is not in all TS lib typings
   let cookies: string[] = [];
 
   if (typeof anyHeaders.getSetCookie === 'function') {
@@ -133,9 +158,46 @@ function safeErrorFields(e: unknown): { status?: number; code?: string } {
   };
 }
 
+/** Raw shape returned by BetterAuth API for user objects. */
+interface RawBetterAuthUser {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  image?: string | null;
+  locale?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  deletedAt?: string | Date | null;
+}
+
+/** Raw shape returned by BetterAuth API for session objects. */
+interface RawBetterAuthSession {
+  id: string;
+  userId: string;
+  expiresAt?: string | Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  city?: string | null;
+  country?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+/** Raw shape for linked account data. */
+interface RawBetterAuthLinkedAccount {
+  id: string;
+  provider: string;
+  providerId: string;
+  accountId: string;
+  createdAt?: string | Date;
+}
+
 @Injectable()
 export class BetterAuthProvider implements AuthProviderPort {
-  private readonly auth;
+  private readonly auth: BetterAuthInstance;
   private readonly nodeHandler;
 
   constructor(
@@ -151,21 +213,13 @@ export class BetterAuthProvider implements AuthProviderPort {
       this.config,
       this.authEmailHooks,
       this.logger,
-      {
-        socialProviders: {
-          google: {
-            clientId: this.config.auth().google.clientId,
-            clientSecret: this.config.auth().google.clientSecret,
-          },
-        },
-      },
     );
     this.nodeHandler = toNodeHandler(this.auth);
   }
 
   private hydrateUser(raw: unknown): User {
     if (!raw) return null as unknown as User;
-    const r = raw as Record<string, any>;
+    const r = raw as RawBetterAuthUser;
     return new User(
       r.id,
       r.email,
@@ -185,7 +239,7 @@ export class BetterAuthProvider implements AuthProviderPort {
 
   private hydrateSession(raw: unknown): Session {
     if (!raw) return null as unknown as Session;
-    const r = raw as Record<string, any>;
+    const r = raw as RawBetterAuthSession;
     return new Session(
       r.id,
       r.userId,
@@ -202,7 +256,7 @@ export class BetterAuthProvider implements AuthProviderPort {
 
   private hydrateLinkedAccount(raw: unknown): LinkedAccount {
     if (!raw) return null as unknown as LinkedAccount;
-    const r = raw as Record<string, any>;
+    const r = raw as RawBetterAuthLinkedAccount;
     return new LinkedAccount(
       r.id,
       r.provider,
@@ -213,9 +267,10 @@ export class BetterAuthProvider implements AuthProviderPort {
   }
 
   async handleRequest(req: unknown, res: unknown): Promise<void> {
-    const fastifyReq = req as any;
-    const request = fastifyReq.raw || req;
-    const response = (res as any).raw || res;
+    const fastifyReq = req as FastifyLikeRequest;
+    const request = fastifyReq.raw;
+    const fastifyRes = res as FastifyLikeReply;
+    const response = fastifyRes.raw;
 
     // Bridge: Ensure the IP detected by Fastify (respecting trustProxy)
     // is passed to BetterAuth via the x-forwarded-for header if not already present.
@@ -247,7 +302,7 @@ export class BetterAuthProvider implements AuthProviderPort {
       const { headerName, queryName } = this.config.i18n();
       const locale =
         resolveLocaleFromSource(
-          { headers: context.headers as any, query: context.query as any },
+          { headers: context.headers, query: context.query },
           headerName,
           queryName,
         ) || undefined;
@@ -275,11 +330,10 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(context),
       });
 
-      const data = response as any;
       return {
         data: {
           token: undefined as unknown as string,
-          user: this.hydrateUser(data.user),
+          user: this.hydrateUser(response.user),
         },
         cookies: readCookiesFromHeaders(headers),
       };
@@ -307,13 +361,12 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(context),
       });
 
-      const data = response as any;
       return {
         data: {
-          redirect: redirect ?? data.redirect ?? false,
+          redirect: redirect ?? response.redirect ?? false,
           token: undefined as unknown as string,
-          url: data.url,
-          user: this.hydrateUser(data.user),
+          url: response.url,
+          user: this.hydrateUser(response.user),
         },
         cookies: readCookiesFromHeaders(headers),
       };
@@ -328,6 +381,20 @@ export class BetterAuthProvider implements AuthProviderPort {
         returnHeaders: true,
         headers: toHeadersFromContext(cmd.context),
       });
+
+      // Invalidate all cached sessions for this user in Redis
+      if (cmd.context.userId) {
+        await this.invalidateUserSessions(cmd.context.userId);
+      }
+
+      // Also delete the specific session token cache key
+      if (cmd.context.sessionToken) {
+        const sessionKey = this.redisService.key(
+          AuthCacheKeys.session(cmd.context.sessionToken),
+        );
+        await this.redisService.raw().del(sessionKey);
+      }
+
       return { data: undefined, cookies: readCookiesFromHeaders(headers) };
     } catch (e) {
       this.rethrowAsAppException(e);
@@ -340,7 +407,7 @@ export class BetterAuthProvider implements AuthProviderPort {
   }): Promise<GetSessionResult> {
     try {
       const headers = cmd.headers
-        ? new Headers(cmd.headers as any)
+        ? new Headers(cmd.headers as Record<string, string>)
         : toHeadersFromContext(cmd.context);
 
       const result = await this.auth.api.getSession({
@@ -350,7 +417,10 @@ export class BetterAuthProvider implements AuthProviderPort {
       if (result) {
         const u = result.user;
         const s = result.session;
-        if ((u as any)?.deletedAt || (s as any)?.deletedAt) {
+        if (
+          (u as Record<string, unknown>)?.deletedAt ||
+          (s as Record<string, unknown>)?.deletedAt
+        ) {
           return null;
         }
         return {
@@ -372,8 +442,7 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(cmd.context),
         returnHeaders: true,
       });
-      const { headers } = res as any;
-      return { data: undefined, cookies: readCookiesFromHeaders(headers) };
+      return { data: undefined, cookies: readCookiesFromHeaders(res.headers) };
     } catch (e) {
       this.rethrowAsAppException(e);
     }
@@ -383,13 +452,13 @@ export class BetterAuthProvider implements AuthProviderPort {
     try {
       const { email, context } = cmd;
 
-      const res = await (this.auth.api as any).requestPasswordReset({
+      await this.auth.api.requestPasswordReset({
         body: { email },
         headers: toHeadersFromContext(context),
       });
 
-      const headers = res?.headers;
-      const cookies = headers ? readCookiesFromHeaders(headers) : [];
+      // requestPasswordReset returns { status, message } — no headers
+      const cookies: CookieDirective[] = [];
 
       return {
         data: undefined,
@@ -407,8 +476,7 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(cmd.context),
         returnHeaders: true,
       });
-      const { headers } = res as any;
-      return { data: undefined, cookies: readCookiesFromHeaders(headers) };
+      return { data: undefined, cookies: readCookiesFromHeaders(res.headers) };
     } catch (e) {
       this.rethrowAsAppException(e);
     }
@@ -425,8 +493,7 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(cmd.context),
         returnHeaders: true,
       });
-      const { headers } = res as any;
-      return { data: undefined, cookies: readCookiesFromHeaders(headers) };
+      return { data: undefined, cookies: readCookiesFromHeaders(res.headers) };
     } catch (e) {
       this.rethrowAsAppException(e);
     }
@@ -437,13 +504,15 @@ export class BetterAuthProvider implements AuthProviderPort {
       const res = await this.auth.api.changeEmail({
         body: { newEmail: cmd.newEmail, callbackURL: cmd.callbackURL },
         headers: toHeadersFromContext(cmd.context),
+        returnHeaders: true,
       });
 
-      const { headers, response } = res as any;
-
       return {
-        data: { token: response?.token || '' },
-        cookies: readCookiesFromHeaders(headers),
+        data: {
+          token:
+            ((res.response as Record<string, unknown>)?.token as string) || '',
+        },
+        cookies: readCookiesFromHeaders(res.headers),
       };
     } catch (e) {
       this.rethrowAsAppException(e);
@@ -458,7 +527,7 @@ export class BetterAuthProvider implements AuthProviderPort {
       });
 
       return {
-        data: (res as any[]).map((s) => this.hydrateSession(s)),
+        data: res.map((s) => this.hydrateSession(s)),
         cookies: [],
       };
     } catch (e) {
@@ -584,16 +653,16 @@ export class BetterAuthProvider implements AuthProviderPort {
       const account = await this.prisma.account.findFirst({
         where: {
           userId: context.userId,
-          providerId: 'email',
+          providerId: 'credential',
         },
         select: { password: true },
       });
 
       if (!account?.password) return { data: false, cookies: [] };
 
-      const isValid = await (this.auth as any).password.verifyPassword({
+      const isValid = await verifyPassword({
+        password,
         hash: account.password,
-        password: password,
       });
 
       return { data: isValid, cookies: [] };
@@ -627,11 +696,11 @@ export class BetterAuthProvider implements AuthProviderPort {
   }
 
   async updateUser(
-    input: Partial<UserDto>,
+    input: Partial<User>,
     context: RequestContext,
   ): Promise<AuthResult<User>> {
     try {
-      const res = await (this.auth.api as any).updateUser({
+      const res = await this.auth.api.updateUser({
         body: input,
         headers: toHeadersFromContext(context),
       });
@@ -641,7 +710,12 @@ export class BetterAuthProvider implements AuthProviderPort {
         await this.invalidateUserSessions(userId);
       }
 
-      return { data: this.hydrateUser(res), cookies: [] };
+      return {
+        data: { ...this.hydrateUser(res), status: true } as User & {
+          status: boolean;
+        },
+        cookies: [],
+      };
     } catch (e) {
       this.rethrowAsAppException(e);
     }
@@ -649,7 +723,7 @@ export class BetterAuthProvider implements AuthProviderPort {
 
   async deleteUser(context: RequestContext): Promise<AuthResult<void>> {
     try {
-      await (this.auth.api as any).deleteUser({
+      await this.auth.api.deleteUser({
         headers: toHeadersFromContext(context),
         body: {},
       });
@@ -699,7 +773,7 @@ export class BetterAuthProvider implements AuthProviderPort {
   ): Promise<AuthResult<SignInResultData>> {
     try {
       const { provider, callbackURL, context } = cmd;
-      const res = await (this.auth.api as any).signInSocial({
+      const res = await this.auth.api.signInSocial({
         body: { provider, callbackURL },
         headers: toHeadersFromContext(context),
         returnHeaders: true,
@@ -721,7 +795,7 @@ export class BetterAuthProvider implements AuthProviderPort {
         data: {
           redirect: data?.redirect ?? true,
           token: '',
-          url: data?.url || res?.url,
+          url: 'url' in data ? data.url : '',
           user: null as unknown as User,
         },
         cookies,
@@ -737,7 +811,7 @@ export class BetterAuthProvider implements AuthProviderPort {
     try {
       const { provider, callbackURL, context } = cmd;
 
-      const res = await (this.auth.api as any).linkSocialAccount({
+      const res = await this.auth.api.linkSocialAccount({
         body: { provider, callbackURL },
         headers: toHeadersFromContext(context),
         returnHeaders: true,
@@ -749,13 +823,13 @@ export class BetterAuthProvider implements AuthProviderPort {
         data: {
           redirect: true,
           token: '',
-          url: response?.url || res?.url,
+          url: response?.url || '',
           user: null as unknown as User,
         },
         cookies: readCookiesFromHeaders(headers),
       };
     } catch (e: unknown) {
-      const err = e as any;
+      const err = e as BetterAuthErrorLike;
       const status = Number(
         err?.status ?? err?.statusCode ?? err?.body?.statusCode,
       );

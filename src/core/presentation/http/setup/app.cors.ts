@@ -1,5 +1,5 @@
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AppException } from '#src/core/domain/index.js';
+import { AppConfigService } from '#src/core/infrastructure/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 export function setupCors(
@@ -11,14 +11,14 @@ export function setupCors(
   const csrfConfig = config.csrf();
   const requestIdConfig = config.requestId();
 
-  const trustedOrigins = new Set(corsConfig.trustedOrigins);
+  const allowedOrigins = new Set(corsConfig.originAllowlist);
 
   app.enableCors({
     credentials: true,
     origin: (origin, cb) => {
       if (!origin || origin === 'null') return cb(null, true);
 
-      if (trustedOrigins.has(origin)) {
+      if (allowedOrigins.has(origin)) {
         return cb(null, true);
       }
 

@@ -1,8 +1,8 @@
-import { createStrictZodDto } from '#src/core/presentation/http/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/core/index.js';
 import { z } from 'zod';
 
 const createUserSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   name: z.string().min(1),
   firstName: z.string().optional(),
   lastName: z.string().optional(),

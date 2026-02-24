@@ -1,6 +1,6 @@
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
 import { Module } from '@nestjs/common';
+import { AppConfigModule } from '../../config/app-config.module.js';
+import { PrismaService } from './prisma.service.js';
 
 @Module({
   imports: [AppConfigModule],

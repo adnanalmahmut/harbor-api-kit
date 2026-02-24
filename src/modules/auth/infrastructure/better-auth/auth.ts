@@ -1,10 +1,12 @@
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { getRequestContextStatic } from '#src/core/infrastructure/context/request-context-storage.js';
-import type { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { AuthEmailHooks } from '#src/modules/auth/infrastructure/better-auth/hooks/auth-email.hooks.js';
+import {
+  AppConfigService,
+  getRequestContextStatic,
+  type PrismaService,
+} from '#src/core/index.js';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import type { PinoLogger } from 'nestjs-pino';
+import type { AuthEmailHooks } from './hooks/auth-email.hooks.js';
 
 export type BetterAuthInstance = ReturnType<typeof betterAuth>;
 
@@ -13,7 +15,6 @@ export function createBetterAuth(
   config: AppConfigService,
   emailHooks: AuthEmailHooks,
   logger: PinoLogger,
-  socialConfig?: { socialProviders?: Record<string, any> },
 ): BetterAuthInstance {
   const {
     sessionTokenCookie,
@@ -23,7 +24,7 @@ export function createBetterAuth(
   } = config.auth();
 
   const isProd = config.isProd();
-  const trustedOrigins = config.cors().trustedOrigins;
+  const trustedOrigins = config.cors().originAllowlist;
   const COOKIE_DOMAIN = isProd ? getCookieDomain(trustedOrigins[0]) : undefined;
 
   const prismaWithSoftDelete = prisma.$extends({
@@ -185,42 +186,23 @@ export function createBetterAuth(
     verification: { modelName: 'Verification' },
     socialProviders: {
       google: {
-        clientId: config.auth().google.clientId || '',
-        clientSecret: config.auth().google.clientSecret || '',
-        enabled: !!config.auth().google.clientId,
+        clientId: config.auth().providers.google.clientId || '',
+        clientSecret: config.auth().providers.google.clientSecret || '',
+        enabled: !!config.auth().providers.google.clientId,
       },
       github: {
-        clientId: config.auth().github.clientId || '',
-        clientSecret: config.auth().github.clientSecret || '',
-        enabled: !!config.auth().github.clientId,
+        clientId: config.auth().providers.github.clientId || '',
+        clientSecret: config.auth().providers.github.clientSecret || '',
+        enabled: !!config.auth().providers.github.clientId,
       },
-      ...socialConfig?.socialProviders,
     },
 
     databaseHooks: {
       user: {
         create: {
           after: async (user) => {
-            const DEFAULT_ROLE_SLUG = 'user';
-
             try {
-              // 1. Assign default role
-              const role = await prisma.role.findUnique({
-                where: { slug: DEFAULT_ROLE_SLUG },
-              });
-              if (role) {
-                await prisma.userRole.create({
-                  data: {
-                    userId: user.id,
-                    roleId: role.id,
-                  },
-                });
-                logger.info(
-                  `Assigned default role '${DEFAULT_ROLE_SLUG}' to user ${user.id}`,
-                );
-              }
-
-              // 2. Extract firstName/lastName from name (for social auth)
+              // Extract firstName/lastName from name (for social auth)
               if (user.name && (!user.firstName || !user.lastName)) {
                 const nameParts = user.name.trim().split(/\s+/);
                 const firstName = nameParts[0] || null;
@@ -231,6 +213,7 @@ export function createBetterAuth(
                     where: { id: user.id },
                     data: { firstName, lastName },
                   });
+
                   logger.info(
                     `Extracted name parts for user ${user.id}: ${firstName} ${lastName}`,
                   );
@@ -242,6 +225,7 @@ export function createBetterAuth(
           },
         },
       },
+
       session: {
         create: {
           after: async (session) => {
@@ -258,6 +242,7 @@ export function createBetterAuth(
                       country: geo.country || null,
                     },
                   });
+
                   logger.debug(
                     `Session ${session.id}: geo ${geo.city}, ${geo.country}`,
                   );

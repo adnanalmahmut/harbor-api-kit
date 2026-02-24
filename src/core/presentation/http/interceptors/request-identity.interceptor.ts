@@ -1,5 +1,5 @@
 import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
+import type { RequestContextStorePort } from '#src/core/domain/index.js';
 import {
   Inject,
   Injectable,

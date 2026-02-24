@@ -1,6 +1,5 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
+import { RegisterDto } from '#src/modules/auth/index.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';

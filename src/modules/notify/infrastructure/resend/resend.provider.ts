@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AppConfigService } from '#src/core/index.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
@@ -20,7 +20,7 @@ export class ResendEmailProvider implements EmailProviderPort {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(ResendEmailProvider.name);
-    const apiKey = (this.config.resend() as any).apiKey;
+    const apiKey = this.config.email().resend.apiKey;
     this.resend = new Resend(apiKey);
   }
 
@@ -30,7 +30,7 @@ export class ResendEmailProvider implements EmailProviderPort {
     try {
       const html = await this.loadTemplate(template, locale, data);
 
-      const from = `${(this.config.resend() as any).fromName} <${(this.config.resend() as any).fromEmail}>`;
+      const from = `${this.config.email().from.name} <${this.config.email().from.email}>`;
 
       this.logger.info(
         `Sending email to ${to} [Template: ${template}, Locale: ${locale}]`,
@@ -71,11 +71,10 @@ export class ResendEmailProvider implements EmailProviderPort {
       let content = await fs.readFile(templatePath, 'utf-8');
 
       const defaults = {
-        brandName:
-          (this.config.resend() as any).fromName || this.config.app().name,
+        brandName: this.config.email().from.name || this.config.app().name,
         year: new Date().getFullYear(),
-        supportEmail: (this.config.resend() as any).fromEmail,
-        websiteUrl: this.config.frontend().url,
+        supportEmail: this.config.email().from.email,
+        websiteUrl: this.config.app().frontendPublicUrl,
       };
 
       const finalData: Record<string, any> = { ...defaults, ...data };

@@ -1,6 +1,6 @@
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
-import type { IFileRepository } from '#src/modules/files/application/ports/file.repository.port.js';
 import crypto from 'node:crypto';
+import { FilesException } from '../files.exception.js';
+import type { IFileRepository } from '../ports/file.repository.port.js';
 
 export class SetVisibilityUseCase {
   constructor(private readonly repository: IFileRepository) {}

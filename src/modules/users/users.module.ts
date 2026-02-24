@@ -1,8 +1,9 @@
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { PrismaModule } from '#src/core/infrastructure/db/prisma/prisma.module.js';
-import { AuthModule } from '#src/modules/auth/auth.module.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import type { AuthProviderPort } from '#src/modules/auth/domain/ports/auth-provider.port.js';
+import { AppConfigModule, PrismaModule } from '#src/core/index.js';
+import {
+  AUTH_TOKENS,
+  AuthModule,
+  type AuthProviderPort,
+} from '#src/modules/auth/index.js';
 import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
 import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';

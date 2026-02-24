@@ -1,8 +1,8 @@
-import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
 import { Global, Module } from '@nestjs/common';
 import type { Redis as RedisClient } from 'ioredis';
+import { AppConfigModule } from '../config/app-config.module.js';
+import { AppConfigService } from '../config/app-config.service.js';
+import { RedisService } from './redis.service.js';
 
 const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
@@ -26,7 +26,7 @@ function resolveRedisCtor(mod: any): RedisCtor {
 
         const { url } = cfg.redis();
         return new Redis(url, {
-          maxRetriesPerRequest: 2,
+          maxRetriesPerRequest: 20,
           enableReadyCheck: true,
         });
       },

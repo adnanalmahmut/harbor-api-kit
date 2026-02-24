@@ -1,6 +1,8 @@
 import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
-import type { EffectivePermissions } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
+import {
+  EffectivePermissionsService,
+  type EffectivePermissions,
+} from '#src/modules/rbac/application/services/effective-permissions.service.js';
 import { PERMISSIONS_KEY } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { ROLES_KEY } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
 import {

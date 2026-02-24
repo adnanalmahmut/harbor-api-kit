@@ -19,5 +19,6 @@
     "^#src/(.*)$": "<rootDir>/src/$1",
     "^#src$": "<rootDir>/src"
   },
-  "setupFiles": ["<rootDir>/test/jest-setup.ts"]
+  "setupFiles": ["<rootDir>/test/jest-setup.ts"],
+  "testTimeout": 30000
 }

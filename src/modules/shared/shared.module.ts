@@ -1,5 +1,4 @@
-import { AppCacheService } from '#src/core/application/services/app-cache.service.js';
-import { CORE_TOKENS } from '#src/core/core.tokens.js';
+import { AppCacheService, CORE_TOKENS } from '#src/core/index.js';
 import { Module } from '@nestjs/common';
 
 @Module({

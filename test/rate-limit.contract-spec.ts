@@ -1,5 +1,4 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { TestAppFactory, clearRedisCache, resetDb } from './test-utils.js';
@@ -35,8 +34,8 @@ describe('Rate Limit (contract)', () => {
       })
       .expect(201);
   });
-// english msg
-  it('s supposed to return 429 after exceeding the specified /auth/login limit', async() => {
+  // english msg
+  it('s supposed to return 429 after exceeding the specified /auth/login limit', async () => {
     const payload = { email: 'rate@test.com', password: 'WrongPass123!' };
 
     for (let i = 0; i < 5; i++) {

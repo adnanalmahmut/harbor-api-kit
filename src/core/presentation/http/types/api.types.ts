@@ -1,4 +1,4 @@
-import type { ApiValidationErrorBody } from '#src/core/domain/types/validation-issue.type.js';
+import type { ApiValidationErrorBody } from '#src/core/domain/index.js';
 
 export type ApiSuccess<T = unknown> = {
   success: true;

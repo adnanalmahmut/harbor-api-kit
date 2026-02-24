@@ -1,7 +1,5 @@
-// src/core/presentation/http/security/csrf/csrf.guard.ts
-import { AppException } from '#src/core/domain/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/core/domain/exceptions/error-definitions.js';
-import type { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AppErrorCode, AppException } from '#src/core/domain/index.js';
+import { AppConfigService } from '#src/core/infrastructure/index.js';
 import {
   Injectable,
   type CanActivate,

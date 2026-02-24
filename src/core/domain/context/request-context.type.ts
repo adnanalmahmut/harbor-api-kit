@@ -1,9 +1,8 @@
-import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
-
+import type { CacheManagerPort } from '../ports/cache-manager.port.js';
 import type {
   AuthenticatedSession,
   AuthenticatedUser,
-} from '#src/core/domain/types/auth.types.js';
+} from '../types/auth.types.js';
 
 export type RequestContext = {
   requestId?: string;

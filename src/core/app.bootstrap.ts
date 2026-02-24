@@ -1,17 +1,20 @@
 import { AppModule } from '#src/app.module.js';
-import { CORE_TOKENS } from '#src/core/core.tokens.js';
-import type { RequestContextStorePort } from '#src/core/domain/ports/request-context.store.port.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { validateEnv } from '#src/core/infrastructure/config/env.schema.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { setupApiDocs } from '#src/core/presentation/http/docs/app.docs.js';
-import { GlobalExceptionFilter } from '#src/core/presentation/http/filters/global-exception.filter.js';
-import { createRequestContextHook } from '#src/core/presentation/http/hooks/request-context.hook.js';
-import { RequestIdentityInterceptor } from '#src/core/presentation/http/interceptors/request-identity.interceptor.js';
-import { ResponseInterceptor } from '#src/core/presentation/http/interceptors/response.interceptor.js';
-import { CsrfGuard } from '#src/core/presentation/http/security/csrf/csrf.guard.js';
-import { setupCors } from '#src/core/presentation/http/setup/app.cors.js';
-import { GlobalValidationPipe } from '#src/core/presentation/http/validation/global-validation-pipe.js';
+import type { RequestContextStorePort } from '#src/core/domain/index.js';
+import {
+  AppConfigService,
+  RedisService,
+  validateEnv,
+} from '#src/core/infrastructure/index.js';
+import {
+  CsrfGuard,
+  GlobalExceptionFilter,
+  GlobalValidationPipe,
+  RequestIdentityInterceptor,
+  ResponseInterceptor,
+  createRequestContextHook,
+  setupApiDocs,
+  setupCors,
+} from '#src/core/presentation/index.js';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import {
@@ -26,6 +29,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { I18nService } from 'nestjs-i18n';
 import { Logger } from 'nestjs-pino';
+import { CORE_TOKENS } from './core.tokens.js';
 
 export async function createApp(opts?: {
   logger?: false | LogLevel[] | LoggerService;

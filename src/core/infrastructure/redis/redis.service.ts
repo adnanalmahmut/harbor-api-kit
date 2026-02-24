@@ -1,6 +1,5 @@
-import type { CacheManagerPort } from '#src/core/domain/ports/cache-manager.port.js';
-import type { OnApplicationShutdown } from '@nestjs/common';
-import { Injectable } from '@nestjs/common';
+import type { CacheManagerPort } from '#src/core/domain/index.js';
+import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 
 @Injectable()

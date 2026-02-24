@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AppConfigService } from '#src/core/infrastructure/index.js';
 import {
   Injectable,
   SetMetadata,
@@ -52,12 +52,12 @@ export class AuthRedirectInterceptor implements NestInterceptor {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<FastifyRequest>();
     const reply = httpContext.getResponse<FastifyReply>();
-    const frontendUrl = this.config.frontend().url;
+    const frontendPublicUrl = this.config.app().frontendPublicUrl;
 
     return next.handle().pipe(
       map(() => {
         // Build success URL
-        let successUrl = `${frontendUrl}${redirectConfig.successPath}`;
+        let successUrl = `${frontendPublicUrl}${redirectConfig.successPath}`;
 
         // If tokenParam is specified, append it to the URL
         if (redirectConfig.tokenParam) {
@@ -74,7 +74,7 @@ export class AuthRedirectInterceptor implements NestInterceptor {
       }),
       catchError(() => {
         // Error: redirect to error path with reason
-        const errorUrl = `${frontendUrl}${redirectConfig.errorPath}?reason=${redirectConfig.errorReason}`;
+        const errorUrl = `${frontendPublicUrl}${redirectConfig.errorPath}?reason=${redirectConfig.errorReason}`;
         reply.status(302).header('Location', errorUrl).send();
         return EMPTY;
       }),

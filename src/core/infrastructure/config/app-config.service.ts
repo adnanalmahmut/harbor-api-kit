@@ -1,18 +1,32 @@
-import type { EnvVars } from '#src/core/infrastructure/config/env.schema.js';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { EnvVars } from './env.schema.js';
 
 @Injectable()
 export class AppConfigService {
   constructor(private readonly config: ConfigService<EnvVars, true>) {}
 
+  private uniq<T>(arr: T[]): T[] {
+    return Array.from(new Set(arr));
+  }
+
+  private withTrailingSlash(origin: string): string {
+    return origin.endsWith('/') ? origin : `${origin}/`;
+  }
+
   app() {
     return {
       name: this.config.get('APP_NAME'),
       env: this.config.get('APP_ENV'),
+      publicUrl: this.config.get('APP_PUBLIC_URL'),
       port: this.config.get('APP_PORT'),
-      enableDocs: this.config.get('ENABLE_DOCS'),
-      frontendUrl: this.config.get('FRONTEND_URL'),
+      frontendPublicUrl: this.config.get('FRONTEND_PUBLIC_URL'),
+    };
+  }
+
+  docs() {
+    return {
+      enabled: this.config.get('ENABLE_DOCS'),
     };
   }
 
@@ -29,49 +43,6 @@ export class AppConfigService {
     };
   }
 
-  auth() {
-    return {
-      sessionTokenCookie: this.config.get('SESSION_TOKEN_COOKIE'),
-      sessionDataCookie: this.config.get('SESSION_DATA_COOKIE'),
-      betterAuthUrl: this.config.get('BETTER_AUTH_URL'),
-      betterAuthSecret: this.config.get('BETTER_AUTH_SECRET'),
-      google: {
-        clientId: this.config.get('GOOGLE_CLIENT_ID'),
-        clientSecret: this.config.get('GOOGLE_CLIENT_SECRET'),
-      },
-      github: {
-        clientId: this.config.get('GITHUB_CLIENT_ID'),
-        clientSecret: this.config.get('GITHUB_CLIENT_SECRET'),
-      },
-    };
-  }
-
-  frontend() {
-    return {
-      url: this.config.get('FRONTEND_URL'),
-    };
-  }
-
-  cors() {
-    return {
-      trustedOrigins: this.config.get<string[]>('CORS_TRUSTED_ORIGINS'),
-    };
-  }
-
-  db() {
-    return {
-      url: this.config.get('DATABASE_URL'),
-    };
-  }
-
-  resend() {
-    return {
-      apiKey: this.config.get('RESEND_API_KEY'),
-      fromEmail: this.config.get('RESEND_FROM_EMAIL'),
-      fromName: this.config.get('RESEND_FROM_NAME'),
-    };
-  }
-
   i18n() {
     return {
       defaultLocale: this.config.get('I18N_DEFAULT_LOCALE'),
@@ -81,12 +52,59 @@ export class AppConfigService {
   }
 
   isProd() {
-    return this.app().env === 'production';
+    return this.config.get('APP_ENV') === 'production';
   }
 
   fastify() {
     return {
       trustProxy: this.config.get('FASTIFY_TRUST_PROXY'),
+    };
+  }
+
+  cors(): { originAllowlist: string[] } {
+    return {
+      originAllowlist: this.uniq(
+        this.config.get<string[]>('WEB_ALLOWED_ORIGINS'),
+      ),
+    };
+  }
+
+  cookies() {
+    return {
+      domainAllowlist: this.uniq(
+        this.config.get<string[]>('COOKIE_ALLOWED_DOMAINS'),
+      ),
+    };
+  }
+
+  auth() {
+    return {
+      sessionTokenCookie: this.config.get('SESSION_TOKEN_COOKIE'),
+      sessionDataCookie: this.config.get('SESSION_DATA_COOKIE'),
+
+      redirectAllowlist: this.uniq(
+        this.config.get<string[]>('REDIRECT_ALLOWED_ORIGINS'),
+      ),
+
+      betterAuthUrl: this.config.get('BETTER_AUTH_URL'),
+      betterAuthSecret: this.config.get('BETTER_AUTH_SECRET'),
+
+      providers: {
+        google: {
+          clientId: this.config.get('GOOGLE_CLIENT_ID'),
+          clientSecret: this.config.get('GOOGLE_CLIENT_SECRET'),
+        },
+        github: {
+          clientId: this.config.get('GITHUB_CLIENT_ID'),
+          clientSecret: this.config.get('GITHUB_CLIENT_SECRET'),
+        },
+      },
+    };
+  }
+
+  db() {
+    return {
+      url: this.config.get('DATABASE_URL'),
     };
   }
 
@@ -99,8 +117,8 @@ export class AppConfigService {
   }
 
   csrf() {
-    const origins = this.config.get<string[]>('CORS_TRUSTED_ORIGINS');
-    const refererPrefixes = origins.map((o) => (o.endsWith('/') ? o : `${o}/`));
+    const origins = this.config.get<string[]>('WEB_ALLOWED_ORIGINS');
+    const refererAllowlist = origins.map((o) => this.withTrailingSlash(o));
 
     return {
       enabled: this.config.get('CSRF_ENABLED'),
@@ -108,8 +126,9 @@ export class AppConfigService {
       cookieName: this.config.get('COOKIE_CSRF_NAME'),
       sameSite: this.config.get('CSRF_SAMESITE'),
       cookieSecure: this.config.get('CSRF_COOKIE_SECURE'),
+
       originAllowlist: origins,
-      refererAllowlist: refererPrefixes,
+      refererAllowlist,
     };
   }
 
@@ -119,7 +138,7 @@ export class AppConfigService {
       points: this.config.get('RATE_LIMIT_POINTS'),
       durationSec: this.config.get('RATE_LIMIT_DURATION_SEC'),
       keyStrategy: this.config.get('RATE_LIMIT_KEY_STRATEGY'),
-      headerPrefix: this.config.get('RATE_LIMIT_HEADER_PREFIX').toLowerCase(),
+      headerPrefix: this.config.get('RATE_LIMIT_HEADER_PREFIX'),
     };
   }
 
@@ -128,6 +147,27 @@ export class AppConfigService {
       strategy: this.config.get('TENANT_STRATEGY'),
       required: this.config.get('TENANT_REQUIRED'),
       headerName: this.config.get('TENANT_HEADER_NAME').toLowerCase(),
+    };
+  }
+
+  email() {
+    return {
+      from: {
+        email: this.config.get('RESEND_FROM_EMAIL'),
+        name: this.config.get('RESEND_FROM_NAME'),
+      },
+      resend: {
+        apiKey: this.config.get('RESEND_API_KEY'),
+      },
+    };
+  }
+
+  notify() {
+    return {
+      email: {
+        retryAttempts: this.config.get('NOTIFY_EMAIL_RETRY_ATTEMPTS'),
+        retryDelayMs: this.config.get('NOTIFY_EMAIL_RETRY_DELAY_MS'),
+      },
     };
   }
 
@@ -149,12 +189,6 @@ export class AppConfigService {
       local: {
         path: this.config.get('LOCAL_STORAGE_PATH'),
       },
-    };
-  }
-  notify() {
-    return {
-      emailRetryAttempts: this.config.get('NOTIFY_EMAIL_RETRY_ATTEMPTS'),
-      emailRetryDelayMs: this.config.get('NOTIFY_EMAIL_RETRY_DELAY_MS'),
     };
   }
 }

@@ -1,8 +1,8 @@
-import { resolveLocaleFromSource } from '#src/core/domain/utils/shared.utils.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { resolveLocaleFromSource } from '#src/core/domain/index.js';
 import { Injectable, type ExecutionContext } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { type I18nResolver } from 'nestjs-i18n';
+import { AppConfigService } from '../config/app-config.service.js';
 
 @Injectable()
 export class ConfigLocaleResolver implements I18nResolver {
@@ -16,6 +16,7 @@ export class ConfigLocaleResolver implements I18nResolver {
       { headers: req.headers, query: req.query as Record<string, unknown> },
       i18nCfg.headerName,
       i18nCfg.queryName,
+      { includeAcceptLanguage: false },
     );
   }
 }

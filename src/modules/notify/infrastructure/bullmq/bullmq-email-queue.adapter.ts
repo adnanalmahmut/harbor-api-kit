@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
+import { AppConfigService } from '#src/core/index.js';
 import {
   type EmailProviderPort,
   type SendEmailParams,
@@ -19,14 +19,14 @@ export class BullMqEmailQueueAdapter implements EmailProviderPort {
   }
 
   async sendEmail(params: SendEmailParams): Promise<void> {
-    const { emailRetryAttempts, emailRetryDelayMs } = this.config.notify();
+    const { retryAttempts, retryDelayMs } = this.config.notify().email;
     this.logger.info(`Enqueuing email to ${params.to}`);
     await this.emailQueue.add('send-email', params, {
       removeOnComplete: true, // Auto remove on success
-      attempts: emailRetryAttempts,
+      attempts: retryAttempts,
       backoff: {
         type: 'exponential',
-        delay: emailRetryDelayMs,
+        delay: retryDelayMs,
       },
     });
   }

@@ -1,5 +1,5 @@
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
-import { FilesException } from '#src/modules/files/application/exceptions/files.exception.js';
+import { AppConfigService } from '#src/core/index.js';
+import { FilesException } from '#src/modules/files/application/files.exception.js';
 import type {
   FileMetadata,
   IStorageDriver,
@@ -21,7 +21,7 @@ export class LocalDriver implements IStorageDriver {
   constructor(configService: AppConfigService) {
     const storageConfig = configService.storage();
     this.storagePath = path.resolve(storageConfig.local.path);
-    this.appUrl = configService.app().frontendUrl; // Fallback for public URL base
+    this.appUrl = configService.app().publicUrl;
 
     if (!fs.existsSync(this.storagePath)) {
       fs.mkdirSync(this.storagePath, { recursive: true });
@@ -72,7 +72,7 @@ export class LocalDriver implements IStorageDriver {
     const _options = options;
     // Local driver doesn't support real signed URLs.
     // We return a proxy URL that requires authentication via the main API.
-    return `/api/v1/files/${key}/download`;
+    return `${this.appUrl}/api/v1/files/${key}/download`;
   }
 
   async delete(key: string): Promise<void> {

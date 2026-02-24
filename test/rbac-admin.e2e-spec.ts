@@ -1,6 +1,5 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
-import { RegisterDto } from '#src/modules/auth/presentation/http/dtos/register.dto.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
+import { RegisterDto } from '#src/modules/auth/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { TestAppFactory, clearRedisCache, resetDb } from './test-utils.js';
@@ -124,7 +123,8 @@ describe('RBAC Admin & User APIs (E2E)', () => {
       .get('/api/v1/auth/me')
       .set('Cookie', adminCookies)
       .expect(200);
-    const found = extractCsrf(meRes.get('Set-Cookie') || []) ?? extractCsrf(adminCookies);
+    const found =
+      extractCsrf(meRes.get('Set-Cookie') || []) ?? extractCsrf(adminCookies);
     adminCsrfCookie = found?.cookie ?? adminCsrfCookie;
     adminCsrfToken = found?.token ?? adminCsrfToken;
   }

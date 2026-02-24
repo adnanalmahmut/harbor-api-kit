@@ -1,5 +1,4 @@
-import { PrismaService } from '#src/core/infrastructure/db/prisma/prisma.service.js';
-import { RedisService } from '#src/core/infrastructure/redis/redis.service.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
 import { HttpStatus } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
@@ -524,7 +523,7 @@ describe('Auth API Contract (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/revoke-session')
         .set(headers)
-        .send({ token: 'invalid-token' })
+        .send({ sessionId: 'invalid-token' })
         .expect(404)
         .expect((res) => {
           expect(res.body.success).toBe(false);
