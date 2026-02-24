@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: core_platform_api_db
     env_file:
-      - .env.production
+      - .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -18,8 +18,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    mem_limit: 3g
-    cpus: '2.0'
+    mem_limit: 512m
+    cpus: '0.75'
     logging:
       driver: json-file
       options:
@@ -35,7 +35,7 @@ services:
         '--appendonly',
         'yes',
         '--maxmemory',
-        '1gb',
+        '192mb',
         '--maxmemory-policy',
         'allkeys-lru',
       ]
@@ -49,8 +49,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
-    mem_limit: 1200m
-    cpus: '1.0'
+    mem_limit: 256m
+    cpus: '0.50'
     logging:
       driver: json-file
       options:
@@ -63,7 +63,7 @@ services:
       dockerfile: Dockerfile
     container_name: core_platform_api
     env_file:
-      - .env.production
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,8 +72,11 @@ services:
     networks:
       - prod_network
     restart: unless-stopped
-    mem_limit: 1g
-    cpus: '1.0'
+    mem_limit: 512m
+    cpus: '1.00'
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=384
     logging:
       driver: json-file
       options:
@@ -94,8 +97,8 @@ services:
     networks:
       - prod_network
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: '0.5'
+    mem_limit: 128m
+    cpus: '0.25'
     logging:
       driver: json-file
       options:
