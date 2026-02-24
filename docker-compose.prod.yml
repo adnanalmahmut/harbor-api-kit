@@ -57,6 +57,29 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: core_platform_api
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - prod_network
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
   nginx:
     image: nginx:alpine
     container_name: core_platform_api_nginx
@@ -64,11 +87,10 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      # put your production nginx conf here (reverse proxy to your API container/service)
       - ./ops/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-
-      # TLS certs (example paths - adjust)
       - ./ops/certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
     networks:
       - prod_network
     restart: unless-stopped

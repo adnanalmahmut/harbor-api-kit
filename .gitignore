@@ -77,3 +77,4 @@ test-uploads
 # TypeScript build cache
 *.tsbuildinfo
 
+\n# ops/certs\nops/certs/*.pem
