@@ -38,6 +38,9 @@ COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/locales ./locales
 
+RUN mkdir -p /app/uploads \
+  && chown -R node:node /app/uploads /app/prisma /app/dist /app/locales
+  
 USER node
 
 EXPOSE 5000
