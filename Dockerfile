@@ -3,21 +3,22 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Prisma on Alpine often needs openssl
-RUN apk add --no-cache openssl
+# Build-time args (needed by Prisma config in prisma generate)
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 
 # Install dependencies (including dev for build tools)
 COPY package*.json ./
 RUN npm ci
 
 # Copy source and configs needed for build
-COPY tsconfig.json tsconfig.build.json nest-cli.json prisma.config.ts ./
+COPY tsconfig.json nest-cli.json ./
 COPY prisma ./prisma
 COPY src ./src
 COPY locales ./locales
 
 # Generate Prisma client + compile TypeScript
-RUN npx prisma generate
+RUN npx prisma generate --schema=prisma/schema.prisma
 RUN npm run build
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
@@ -27,25 +28,21 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Runtime deps for Prisma engine
-RUN apk add --no-cache openssl
+# Runtime arg/env (optional but useful for prisma commands in CMD)
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 
-# Install production dependencies
+# Install only production dependencies
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy compiled app
+# Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy Prisma assets/config
+# Copy Prisma schema + generated client
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# If `prisma` CLI is in devDependencies, uncomment the next 2 lines
-# COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-# COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 # Copy i18n locale files
 COPY --from=builder /app/locales ./locales
@@ -55,5 +52,5 @@ USER node
 
 EXPOSE 5000
 
-# Run migrations then start d
+# Run migrations then start
 CMD ["sh", "-lc", "npx prisma migrate deploy --schema=prisma/schema.prisma && exec node dist/src/main.js"]

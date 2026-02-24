@@ -61,6 +61,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     container_name: core_platform_api
     env_file:
       - .env
