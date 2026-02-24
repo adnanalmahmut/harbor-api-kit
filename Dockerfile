@@ -56,4 +56,4 @@ USER node
 EXPOSE 5000
 
 # Run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+CMD ["sh", "-lc", "npx prisma migrate deploy --schema=prisma/schema.prisma && exec node dist/src/main.js"]
