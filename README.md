@@ -71,7 +71,10 @@ core/
 
 - `presentation -> application -> domain` (allowed)
 - `infrastructure -> application/domain` (implements ports)
-- Cross-feature imports: via feature module's public API (index.ts) or NestJS module imports
+- Layer isolation enforced via ESLint (domain/application cannot import from wrong layers)
+- Cross-feature imports use NestJS module imports + token injection for services, and direct imports for guards/decorators
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency map and enforcement details.
 
 ### Folder Structure
 

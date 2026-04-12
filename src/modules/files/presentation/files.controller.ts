@@ -101,6 +101,8 @@ export class FilesController {
       file: filePart.file as any, // Cast to Readable
       fileName: filePart.filename,
       mimeType: filePart.mimetype,
+      // Size unknown at stream start; actual size is measured by the storage
+      // driver after upload completes and stored from UploadResult.size.
       size: 0,
       uploadedById: req.user?.id,
       isPublic,

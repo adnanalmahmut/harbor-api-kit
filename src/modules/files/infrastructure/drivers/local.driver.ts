@@ -70,8 +70,9 @@ export class LocalDriver implements IStorageDriver {
   async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _options = options;
-    // Local driver doesn't support real signed URLs.
-    // We return a proxy URL that requires authentication via the main API.
+    // Local driver returns a placeholder URL with storage key. The caller
+    // (GetDownloadUrlUseCase.normalizeDownloadUrl) detects the relative path
+    // and rewrites it to use the file's UUID id before returning to the client.
     return `${this.appUrl}/api/v1/files/${key}/download`;
   }
 
