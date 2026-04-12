@@ -1,12 +1,12 @@
 import { AppConfigService } from '#src/core/index.js';
-import { FilesException } from '#src/modules/files/application/files.exception.js';
-import type {
-  FileMetadata,
-  IStorageDriver,
-  ReadStreamOptions,
-  SignedUrlOptions,
-  UploadResult,
-} from '#src/modules/files/application/ports/storage-driver.port.js';
+import {
+  FilesException,
+  type FileMetadata,
+  type IStorageDriver,
+  type ReadStreamOptions,
+  type SignedUrlOptions,
+  type UploadResult,
+} from '#src/modules/files/application/index.js';
 import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';

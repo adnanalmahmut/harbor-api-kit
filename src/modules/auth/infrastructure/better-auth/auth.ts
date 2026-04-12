@@ -5,17 +5,16 @@ import {
 } from '#src/core/index.js';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { organization } from 'better-auth/plugins';
 import type { PinoLogger } from 'nestjs-pino';
 import type { AuthEmailHooks } from './hooks/auth-email.hooks.js';
-
-export type BetterAuthInstance = ReturnType<typeof betterAuth>;
 
 export function createBetterAuth(
   prisma: PrismaService,
   config: AppConfigService,
   emailHooks: AuthEmailHooks,
   logger: PinoLogger,
-): BetterAuthInstance {
+) {
   const {
     sessionTokenCookie,
     sessionDataCookie,
@@ -24,8 +23,8 @@ export function createBetterAuth(
   } = config.auth();
 
   const isProd = config.isProd();
-  const trustedOrigins = config.cors().originAllowlist;
-  const COOKIE_DOMAIN = isProd ? getCookieDomain(trustedOrigins[0]) : undefined;
+  const domainAllowlist = config.cookies().domainAllowlist;
+  const COOKIE_DOMAIN = isProd ? domainAllowlist[0] : undefined;
 
   const prismaWithSoftDelete = prisma.$extends({
     query: {
@@ -110,20 +109,22 @@ export function createBetterAuth(
       provider: 'postgresql',
     }),
 
+    // ✅ plugins inline (بدون متغير)
+    plugins: [organization()],
+
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
       async sendResetPassword(data: { user: any; url: string; token: string }) {
-        // data usually contains { user, url, token }
         const ctx = getRequestContextStatic();
         if (ctx) {
           await emailHooks.sendResetPasswordEmail(data, ctx);
         } else {
-          // If no context (e.g. background job?), we log error.
           logger.error('Missing RequestContext in sendResetPassword hook');
         }
       },
     },
+
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
@@ -140,7 +141,6 @@ export function createBetterAuth(
 
     advanced: {
       cookiePrefix: isProd ? 'core' : 'core-dev',
-      // Headers to check for real client IP (in order of priority)
       ipAddressHeaders: ['x-forwarded-for', 'x-real-ip', 'cf-connecting-ip'],
       cookies: {
         session_token: {
@@ -182,8 +182,10 @@ export function createBetterAuth(
         country: { type: 'string', required: false },
       },
     },
+
     account: { modelName: 'Account' },
     verification: { modelName: 'Verification' },
+
     socialProviders: {
       google: {
         clientId: config.auth().providers.google.clientId || '',
@@ -202,7 +204,6 @@ export function createBetterAuth(
         create: {
           after: async (user) => {
             try {
-              // Extract firstName/lastName from name (for social auth)
               if (user.name && (!user.firstName || !user.lastName)) {
                 const nameParts = user.name.trim().split(/\s+/);
                 const firstName = nameParts[0] || null;
@@ -229,7 +230,6 @@ export function createBetterAuth(
       session: {
         create: {
           after: async (session) => {
-            // Populate city and country from IP geolocation
             if (session.ipAddress) {
               try {
                 const geoip = await import('geoip-lite');
@@ -261,14 +261,5 @@ export function createBetterAuth(
   });
 }
 
-function getCookieDomain(origin?: string): string | undefined {
-  if (!origin) return undefined;
-  try {
-    const u = new URL(origin);
-    const host = u.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') return undefined;
-    return `.${host}`;
-  } catch {
-    return undefined;
-  }
-}
+// ✅ النوع الصحيح يُستنتج من createBetterAuth نفسها
+export type BetterAuthInstance = ReturnType<typeof createBetterAuth>;

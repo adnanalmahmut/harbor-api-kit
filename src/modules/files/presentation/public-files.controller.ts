@@ -1,4 +1,4 @@
-import { GetPublicFileAccessUseCase } from '#src/modules/files/application/use-cases/get-public-file-access.use-case.js';
+import { GetPublicFileAccessUseCase } from '#src/modules/files/application/index.js';
 import { Controller, Get, Param } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 

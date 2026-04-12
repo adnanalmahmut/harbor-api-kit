@@ -1,9 +1,11 @@
 import { AppConfigService } from '#src/core/index.js';
-import type { IStorageDriver } from '#src/modules/files/application/ports/storage-driver.port.js';
+import type { IStorageDriver } from '#src/modules/files/application/index.js';
 import { FILES_TOKENS } from '#src/modules/files/files.tokens.js';
-import { GCSDriver } from '#src/modules/files/infrastructure/drivers/gcs.driver.js';
-import { LocalDriver } from '#src/modules/files/infrastructure/drivers/local.driver.js';
-import { S3Driver } from '#src/modules/files/infrastructure/drivers/s3.driver.js';
+import {
+  GCSDriver,
+  LocalDriver,
+  S3Driver,
+} from '#src/modules/files/infrastructure/index.js';
 import type { FactoryProvider } from '@nestjs/common';
 
 export const StorageDriverProvider: FactoryProvider<IStorageDriver> = {

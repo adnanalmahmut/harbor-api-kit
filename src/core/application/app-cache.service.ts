@@ -13,8 +13,8 @@ export class AppCacheService {
     // 1. Check Request Cache (Memoization)
     if (scope === 'request' || scope === 'both') {
       if (!context.cache) context.cache = new Map<string, unknown>();
-      const cached = context.cache.get(key);
-      if (cached !== undefined) return cached as T;
+      const has = context.cache.has(key);
+      if (has) return context.cache.get(key) as T;
     }
 
     // 2. Check Redis

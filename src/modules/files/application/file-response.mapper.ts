@@ -1,5 +1,16 @@
 import { FileEntity } from '#src/modules/files/domain/index.js';
-import type { FileResponse } from './file.response.js';
+
+interface FileResponse {
+  id: string;
+  fileName: string;
+  originalName: string;
+  mimeType: string | null;
+  size: number | null;
+  isPublic: boolean;
+  createdAt: Date;
+  downloadUrl: string;
+  publicUrl?: string;
+}
 
 export class FileResponseMapper {
   static map(file: FileEntity, appUrl: string): FileResponse {

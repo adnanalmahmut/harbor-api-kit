@@ -8,15 +8,19 @@ export function assertAllowedRedirectURL(
 ): void {
   if (!url) return;
 
-  if (url.startsWith('/')) return;
-
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
+  const u = url.trim();
+  // Allow only safe relative paths, disallow scheme-relative URLs like //evil.com
+  if (u.startsWith('/') && !u.startsWith('//')) return;
+  if (u.startsWith('//') || u.startsWith('\\')) {
     throw new InvalidRedirectURLError(url);
   }
 
+  let parsed: URL;
+  try {
+    parsed = new URL(u);
+  } catch {
+    throw new InvalidRedirectURLError(url);
+  }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new InvalidRedirectURLError(url);
   }

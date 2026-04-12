@@ -7,7 +7,7 @@ import type {
   AuthEmailSenderPort,
   ChangeEmailVerificationParams,
 } from '#src/modules/auth/domain/index.js';
-import type { EmailProviderPort } from '#src/modules/notify/domain/ports/email.provider.port.js';
+import type { EmailProviderPort } from '#src/modules/notify/domain/email.provider.port.js';
 import { Inject, Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PinoLogger } from 'nestjs-pino';

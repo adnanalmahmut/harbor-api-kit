@@ -158,6 +158,16 @@ function safeErrorFields(e: unknown): { status?: number; code?: string } {
   };
 }
 
+/** Safe JSON parse helper (for roles/permissions stored as JSON string). */
+function safeJsonParse<T>(v: unknown, fallback: T): T {
+  if (typeof v !== 'string') return fallback;
+  try {
+    return JSON.parse(v) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Raw shape returned by BetterAuth API for user objects. */
 interface RawBetterAuthUser {
   id: string;
@@ -168,6 +178,11 @@ interface RawBetterAuthUser {
   lastName?: string | null;
   image?: string | null;
   locale?: string | null;
+
+  // ✅ added: stored as string in better-auth additionalFields
+  roles?: string | null;
+  permissions?: string | null;
+
   createdAt?: string | Date;
   updatedAt?: string | Date;
   deletedAt?: string | Date | null;
@@ -220,6 +235,11 @@ export class BetterAuthProvider implements AuthProviderPort {
   private hydrateUser(raw: unknown): User {
     if (!raw) return null as unknown as User;
     const r = raw as RawBetterAuthUser;
+
+    // ✅ parse roles/permissions from JSON-string (or fallback [])
+    const roles = safeJsonParse<string[]>(r.roles, []);
+    const permissions = safeJsonParse<string[]>(r.permissions, []);
+
     return new User(
       r.id,
       r.email,
@@ -229,8 +249,8 @@ export class BetterAuthProvider implements AuthProviderPort {
       r.lastName || null,
       r.image || null,
       r.locale || null,
-      [], // roles
-      [], // permissions
+      roles,
+      permissions,
       r.createdAt ? new Date(r.createdAt) : new Date(),
       r.updatedAt ? new Date(r.updatedAt) : new Date(),
       r.deletedAt ? new Date(r.deletedAt) : null,
@@ -272,8 +292,6 @@ export class BetterAuthProvider implements AuthProviderPort {
     const fastifyRes = res as FastifyLikeReply;
     const response = fastifyRes.raw;
 
-    // Bridge: Ensure the IP detected by Fastify (respecting trustProxy)
-    // is passed to BetterAuth via the x-forwarded-for header if not already present.
     let clientIp = fastifyReq.ip;
 
     if (this.config.app().env === 'test') {
@@ -382,12 +400,10 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(cmd.context),
       });
 
-      // Invalidate all cached sessions for this user in Redis
       if (cmd.context.userId) {
         await this.invalidateUserSessions(cmd.context.userId);
       }
 
-      // Also delete the specific session token cache key
       if (cmd.context.sessionToken) {
         const sessionKey = this.redisService.key(
           AuthCacheKeys.session(cmd.context.sessionToken),
@@ -457,7 +473,6 @@ export class BetterAuthProvider implements AuthProviderPort {
         headers: toHeadersFromContext(context),
       });
 
-      // requestPasswordReset returns { status, message } — no headers
       const cookies: CookieDirective[] = [];
 
       return {
@@ -700,8 +715,19 @@ export class BetterAuthProvider implements AuthProviderPort {
     context: RequestContext,
   ): Promise<AuthResult<User>> {
     try {
+      // ✅ important: better-auth expects roles/permissions as string (per additionalFields type)
+      const body = {
+        ...input,
+        ...(Array.isArray((input as any).roles)
+          ? { roles: JSON.stringify((input as any).roles) }
+          : {}),
+        ...(Array.isArray((input as any).permissions)
+          ? { permissions: JSON.stringify((input as any).permissions) }
+          : {}),
+      };
+
       const res = await this.auth.api.updateUser({
-        body: input,
+        body: body as any,
         headers: toHeadersFromContext(context),
       });
 
@@ -783,7 +809,7 @@ export class BetterAuthProvider implements AuthProviderPort {
       const data = response;
       const cookies = readCookiesFromHeaders(headers);
 
-      if (context.ip) {
+      if (this.config.app().env === 'test' && context.ip) {
         cookies.push({
           name: 'x-test-ip',
           value: context.ip,

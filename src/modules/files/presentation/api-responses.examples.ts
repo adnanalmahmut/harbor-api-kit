@@ -6,7 +6,7 @@ import {
   createApiSuccess,
 } from '#src/core/index.js';
 import { HttpStatus } from '@nestjs/common';
-import { DownloadUrlDto, FileResponseDto } from './dtos/files.dto.js';
+import { DownloadUrlDto, FileResponseDto } from './files.dto.js';
 
 export const FILES_RESPONSES = {
   upload: createApiResponseConfig(

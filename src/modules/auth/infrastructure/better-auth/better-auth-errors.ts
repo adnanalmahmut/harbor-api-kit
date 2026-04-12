@@ -2,7 +2,7 @@ import { ValidationError, type ValidationIssue } from '#src/core/index.js';
 import { Prisma } from '#src/generated/prisma/client.js';
 import { AuthException } from '#src/modules/auth/application/index.js';
 
-export const BETTER_AUTH_CODE_MAP: Record<string, () => AuthException> = {
+const BETTER_AUTH_CODE_MAP: Record<string, () => AuthException> = {
   INVALID_EMAIL_OR_PASSWORD: () => AuthException.invalidCredentials(),
   EMAIL_NOT_VERIFIED: () => AuthException.emailNotVerified(),
   TOO_MANY_REQUESTS: () => AuthException.tooManyRequests(),

@@ -16,8 +16,8 @@ export function setupCors(
   app.enableCors({
     credentials: true,
     origin: (origin, cb) => {
-      if (!origin || origin === 'null') return cb(null, true);
-
+      if (!origin) return cb(null, true);
+      if (origin === 'null') return cb(AppException.notAllowedByCORS(), false);
       if (allowedOrigins.has(origin)) {
         return cb(null, true);
       }

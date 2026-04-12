@@ -1,8 +1,10 @@
-import { FilesException } from '#src/modules/files/application/files.exception.js';
+import {
+  FilesException,
+  FileValidatorPort,
+} from '#src/modules/files/application/index.js';
 import { Injectable } from '@nestjs/common';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { FileValidatorPort } from '../../application/ports/file-validator.port.js';
 
 @Injectable()
 export class FileSignatureValidator implements FileValidatorPort {

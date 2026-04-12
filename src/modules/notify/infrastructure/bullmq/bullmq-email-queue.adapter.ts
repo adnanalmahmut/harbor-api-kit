@@ -2,11 +2,34 @@ import { AppConfigService } from '#src/core/index.js';
 import {
   type EmailProviderPort,
   type SendEmailParams,
-} from '#src/modules/notify/domain/ports/email.provider.port.js';
+} from '#src/modules/notify/domain/email.provider.port.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
+
+function maskEmail(email: string): string {
+  const [localPart = '', domain = ''] = email.split('@');
+  if (!domain) return '[invalid-email]';
+
+  const localMasked =
+    localPart.length <= 2
+      ? `${localPart[0] ?? '*'}*`
+      : `${localPart.slice(0, 2)}***`;
+
+  const domainParts = domain.split('.');
+  const domainName = domainParts[0] ?? '';
+  const tld = domainParts.slice(1).join('.') || '';
+
+  const domainMasked =
+    domainName.length <= 2
+      ? `${domainName[0] ?? '*'}*`
+      : `${domainName.slice(0, 2)}***`;
+
+  return tld
+    ? `${localMasked}@${domainMasked}.${tld}`
+    : `${localMasked}@${domainMasked}`;
+}
 
 @Injectable()
 export class BullMqEmailQueueAdapter implements EmailProviderPort {
@@ -20,7 +43,12 @@ export class BullMqEmailQueueAdapter implements EmailProviderPort {
 
   async sendEmail(params: SendEmailParams): Promise<void> {
     const { retryAttempts, retryDelayMs } = this.config.notify().email;
-    this.logger.info(`Enqueuing email to ${params.to}`);
+    this.logger.debug({
+      msg: 'Enqueuing email job',
+      toMasked: maskEmail(params.to),
+      retryAttempts,
+      retryDelayMs,
+    });
     await this.emailQueue.add('send-email', params, {
       removeOnComplete: true, // Auto remove on success
       attempts: retryAttempts,

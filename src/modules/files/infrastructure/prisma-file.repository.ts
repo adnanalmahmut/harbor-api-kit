@@ -1,14 +1,14 @@
 import { PrismaService } from '#src/core/index.js';
 import type { Prisma } from '#src/generated/prisma/client.js';
-import { FilesException } from '#src/modules/files/application/files.exception.js';
+import {
+  type CreateFileProps,
+  type FileFilterParams,
+  FilesException,
+  type IFileRepository,
+  type UpdateFileProps,
+} from '#src/modules/files/application/index.js';
 import { FileEntity } from '#src/modules/files/domain/index.js';
 import { Injectable } from '@nestjs/common';
-import type {
-  CreateFileProps,
-  FileFilterParams,
-  IFileRepository,
-  UpdateFileProps,
-} from '../application/ports/file.repository.port.js';
 
 @Injectable()
 export class PrismaFileRepository implements IFileRepository {

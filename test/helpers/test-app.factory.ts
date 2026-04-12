@@ -1,7 +1,7 @@
 import { AppModule } from '#src/app.module.js';
+import { configureApp } from '#src/core/app.bootstrap.js';
 import {
   AppConfigService,
-  configureApp,
   PrismaService,
   RedisService,
 } from '#src/core/index.js';

@@ -4,14 +4,17 @@ import {
   ResponseMessage,
 } from '#src/core/index.js';
 import { AuthGuard } from '#src/modules/auth/index.js';
-import { FileResponseMapper } from '#src/modules/files/application/file-response.mapper.js';
-import { FilesException } from '#src/modules/files/application/files.exception.js';
-import { GetDownloadUrlUseCase } from '#src/modules/files/application/use-cases/get-download-url.use-case.js';
-import { GetFileMetaUseCase } from '#src/modules/files/application/use-cases/get-file-meta.use-case.js';
-import { SetVisibilityUseCase } from '#src/modules/files/application/use-cases/set-visibility.use-case.js';
-import { UploadFileUseCase } from '#src/modules/files/application/use-cases/upload-file.use-case.js';
+import {
+  FileResponseMapper,
+  FilesException,
+  GetDownloadUrlUseCase,
+  GetFileMetaUseCase,
+  SetVisibilityUseCase,
+  UploadFileUseCase,
+} from '#src/modules/files/application/index.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+import type { MultipartFile } from '@fastify/multipart';
 import {
   Body,
   Controller,
@@ -37,9 +40,7 @@ import {
   SetVisibilityDto,
   UploadFileDto,
   UploadFilesDto,
-} from './dtos/files.dto.js';
-
-import type { MultipartFile } from '@fastify/multipart';
+} from './files.dto.js';
 
 interface FastifyMultipartRequest extends FastifyRequest {
   isMultipart: () => boolean;

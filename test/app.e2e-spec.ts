@@ -1,4 +1,4 @@
-import { configureApp, createApp } from '#src/core/index.js';
+import { configureApp, createApp } from '#src/core/app.bootstrap.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 

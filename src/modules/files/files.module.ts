@@ -4,23 +4,29 @@ import {
   PrismaModule,
 } from '#src/core/index.js';
 import { AuthModule } from '#src/modules/auth/index.js';
-import { FileValidatorPort } from '#src/modules/files/application/ports/file-validator.port.js';
-import type { IFileRepository } from '#src/modules/files/application/ports/file.repository.port.js';
-import type { IStorageDriver } from '#src/modules/files/application/ports/storage-driver.port.js';
-import { GetDownloadUrlUseCase } from '#src/modules/files/application/use-cases/get-download-url.use-case.js';
-import { GetFileMetaUseCase } from '#src/modules/files/application/use-cases/get-file-meta.use-case.js';
-import { GetPublicFileAccessUseCase } from '#src/modules/files/application/use-cases/get-public-file-access.use-case.js';
-import { SetVisibilityUseCase } from '#src/modules/files/application/use-cases/set-visibility.use-case.js';
-import { UploadFileUseCase } from '#src/modules/files/application/use-cases/upload-file.use-case.js';
+import {
+  FileValidatorPort,
+  GetDownloadUrlUseCase,
+  GetFileMetaUseCase,
+  GetPublicFileAccessUseCase,
+  SetVisibilityUseCase,
+  UploadFileUseCase,
+  type IFileRepository,
+  type IStorageDriver,
+} from '#src/modules/files/application/index.js';
 import { FILES_TOKENS } from '#src/modules/files/files.tokens.js';
-import { GCSDriver } from '#src/modules/files/infrastructure/drivers/gcs.driver.js';
-import { LocalDriver } from '#src/modules/files/infrastructure/drivers/local.driver.js';
-import { S3Driver } from '#src/modules/files/infrastructure/drivers/s3.driver.js';
-import { PrismaFileRepository } from '#src/modules/files/infrastructure/prisma-file.repository.js';
-import { StorageDriverProvider } from '#src/modules/files/infrastructure/storage-driver.factory.js';
-import { FileSignatureValidator } from '#src/modules/files/infrastructure/validation/file-signature.validator.js';
-import { FilesController } from '#src/modules/files/presentation/http/files.controller.js';
-import { PublicFilesController } from '#src/modules/files/presentation/http/public-files.controller.js';
+import {
+  FileSignatureValidator,
+  GCSDriver,
+  LocalDriver,
+  PrismaFileRepository,
+  S3Driver,
+  StorageDriverProvider,
+} from '#src/modules/files/infrastructure/index.js';
+import {
+  FilesController,
+  PublicFilesController,
+} from '#src/modules/files/presentation/index.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 import { Module } from '@nestjs/common';
 

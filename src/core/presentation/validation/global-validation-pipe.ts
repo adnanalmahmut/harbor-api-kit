@@ -2,7 +2,7 @@ import { ERROR_DEFINITIONS, ValidationError } from '#src/core/domain/index.js';
 import { Injectable, type ArgumentMetadata } from '@nestjs/common';
 import { ZodValidationException, ZodValidationPipe } from 'nestjs-zod';
 import type { ZodError } from 'zod';
-import { normalizeFieldPath } from '../utils/i18n.utils.js';
+import { normalizeFieldPath } from './../utils/i18n.utils.js';
 
 function isZodError(x: unknown): x is ZodError<unknown> {
   return (

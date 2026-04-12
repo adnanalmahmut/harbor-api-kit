@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Readable } from 'stream';
-import { FilesException } from '../../application/files.exception.js';
+import { FilesException } from '../../application/index.js';
 import { FileSignatureValidator } from './file-signature.validator.js';
 
 describe('FileSignatureValidator', () => {

@@ -1,5 +1,6 @@
 import { AppModule } from '#src/app.module.js';
-import { configureApp, PrismaService, RedisService } from '#src/core/index.js';
+import { configureApp } from '#src/core/app.bootstrap.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
 import { AuthGuard } from '#src/modules/auth/index.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
 import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';

@@ -2,7 +2,7 @@ import { AppConfigService } from '#src/core/index.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
-} from '#src/modules/notify/domain/ports/email.provider.port.js';
+} from '#src/modules/notify/domain/email.provider.port.js';
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import { PinoLogger } from 'nestjs-pino';
@@ -10,6 +10,29 @@ import * as path from 'path';
 import { Resend } from 'resend';
 
 import { NotifyException } from '#src/modules/notify/domain/exceptions/notify.exception.js';
+
+function maskEmail(email: string): string {
+  const [localPart = '', domain = ''] = email.split('@');
+  if (!domain) return '[invalid-email]';
+
+  const localMasked =
+    localPart.length <= 2
+      ? `${localPart[0] ?? '*'}*`
+      : `${localPart.slice(0, 2)}***`;
+
+  const domainParts = domain.split('.');
+  const domainName = domainParts[0] ?? '';
+  const tld = domainParts.slice(1).join('.') || '';
+
+  const domainMasked =
+    domainName.length <= 2
+      ? `${domainName[0] ?? '*'}*`
+      : `${domainName.slice(0, 2)}***`;
+
+  return tld
+    ? `${localMasked}@${domainMasked}.${tld}`
+    : `${localMasked}@${domainMasked}`;
+}
 
 @Injectable()
 export class ResendEmailProvider implements EmailProviderPort {
@@ -26,15 +49,19 @@ export class ResendEmailProvider implements EmailProviderPort {
 
   async sendEmail(params: SendEmailParams): Promise<void> {
     const { to, subject, template, data, locale = 'en-US' } = params;
+    const toMasked = maskEmail(to);
 
     try {
       const html = await this.loadTemplate(template, locale, data);
 
       const from = `${this.config.email().from.name} <${this.config.email().from.email}>`;
 
-      this.logger.info(
-        `Sending email to ${to} [Template: ${template}, Locale: ${locale}]`,
-      );
+      this.logger.info({
+        msg: 'Sending email',
+        toMasked,
+        template,
+        locale,
+      });
 
       await this.resend.emails.send({
         from,
@@ -43,10 +70,27 @@ export class ResendEmailProvider implements EmailProviderPort {
         html,
       });
 
-      this.logger.info(`Email sent successfully to ${to}`);
+      this.logger.info({
+        msg: 'Email sent successfully',
+        toMasked,
+        template,
+        locale,
+      });
     } catch (error) {
-      this.logger.error(error, `Failed to send email to ${to}`);
+      // لا تضع البريد الخام داخل الرسالة النصية
+      this.logger.error({
+        msg: 'Failed to send email',
+        toMasked,
+        template,
+        locale,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      // اختياري: فقط على debug إذا احتجت تتبع أعمق (قد يحتوي PII حسب مزود الخدمة)
+      // this.logger.debug({ err: error }, 'Email provider raw error');
+
       if (error instanceof NotifyException) throw error;
+
       throw NotifyException.providerError(
         error instanceof Error ? error.message : 'Unknown error',
       );
@@ -84,13 +128,25 @@ export class ResendEmailProvider implements EmailProviderPort {
         if (val !== undefined) {
           return String(val);
         }
-        this.logger.warn(`Missing template variable: ${key}`);
+        this.logger.warn({
+          msg: 'Missing template variable',
+          key,
+          templateName,
+          locale,
+        });
         return match;
       });
 
       return content;
     } catch (error) {
-      this.logger.warn(error, `Template not found: ${templatePath}.`);
+      // الأفضل عدم كشف المسار الكامل في الإنتاج
+      this.logger.warn({
+        msg: 'Email template not found',
+        templateName,
+        locale,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+
       throw NotifyException.templateNotFound(templateName);
     }
   }
