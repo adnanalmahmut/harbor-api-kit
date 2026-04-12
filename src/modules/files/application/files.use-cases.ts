@@ -86,9 +86,20 @@ async function signReadUrl(
   });
 }
 
+function isLocalDriverUrl(url: string): boolean {
+  return url.startsWith('/local/');
+}
+
 function normalizeDownloadUrl(url: string, fileId: string): string {
-  // For local driver (relative path), expose API download endpoint
-  return url.startsWith('/') ? `/api/v1/files/${fileId}/download` : url;
+  // Local driver returns a relative path marker (/local/...).
+  // Replace with the authenticated download endpoint using the file's UUID.
+  return isLocalDriverUrl(url) ? `/api/v1/files/${fileId}/download` : url;
+}
+
+function normalizePublicUrl(url: string, publicToken: string): string {
+  // Local driver returns a relative path marker (/local/...).
+  // Replace with the public access endpoint using the file's public token.
+  return isLocalDriverUrl(url) ? `/api/v1/public/files/${publicToken}` : url;
 }
 
 function mapDriverEnum(driver: string): StorageDriver {
@@ -146,7 +157,7 @@ export class GetPublicFileAccessUseCase {
   async execute(token: string): Promise<PublicUrlResult> {
     const file = await getPublicFileOrThrow(this.repository, token);
 
-    const urlOrPath = await signReadUrl(
+    const rawUrl = await signReadUrl(
       this.storage,
       file.filePath,
       file.mimeType,
@@ -154,7 +165,7 @@ export class GetPublicFileAccessUseCase {
     );
 
     return {
-      url: urlOrPath,
+      url: normalizePublicUrl(rawUrl, token),
       expiresIn: PUBLIC_URL_EXPIRES_IN,
       mimeType: file.mimeType || undefined,
       isPublic: true,
