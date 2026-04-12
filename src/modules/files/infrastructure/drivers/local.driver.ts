@@ -93,8 +93,21 @@ export class LocalDriver implements IStorageDriver {
   }
 
   private getFilePath(key: string): string {
-    // Prevent path traversal
-    const safeKey = path.basename(key);
-    return path.join(this.storagePath, safeKey);
+    // Normalize and prevent path traversal while preserving subdirectory structure
+    const normalized = path.normalize(key).replace(/^(\.\.[/\\])+/, '');
+    const fullPath = path.resolve(this.storagePath, normalized);
+
+    // Ensure resolved path is still within the storage root
+    if (!fullPath.startsWith(this.storagePath)) {
+      throw FilesException.storageError(new Error('Path traversal detected'));
+    }
+
+    // Ensure parent directory exists for nested keys (e.g., files/2026/01/uuid.jpg)
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    return fullPath;
   }
 }

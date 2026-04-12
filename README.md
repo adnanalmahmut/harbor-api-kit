@@ -71,7 +71,7 @@ core/
 
 - `presentation -> application -> domain` (allowed)
 - `infrastructure -> application/domain` (implements ports)
-- Cross-feature imports: only via `shared/contracts/` or feature public API
+- Cross-feature imports: via feature module's public API (index.ts) or NestJS module imports
 
 ### Folder Structure
 
@@ -87,24 +87,25 @@ src/
       queue/         # BullMQ setup
     domain/          # AppException, types, ports
     presentation/
+      constants/     # Metadata keys
       decorators/    # @ResponseMessage, @SkipEnvelope, @ApiErrors
-      filters/       # GlobalExceptionFilter
-      guards/        # CsrfGuard
-      interceptors/  # RequestIdentity, Response, RateLimit
-      hooks/         # RequestContextHook (Fastify)
-      pipes/         # GlobalValidationPipe (Zod)
-      security/      # CSRF, rate limiting
-      validation/    # Strict Zod DTO helpers
       docs/          # Swagger/Scalar setup
+      filters/       # GlobalExceptionFilter
+      hooks/         # RequestContextHook (Fastify)
+      interceptors/  # RequestIdentity, Response, RateLimit
+      security/      # CSRF guard, rate limiting
       setup/         # CORS, bootstrap
+      types/         # API response types
+      utils/         # i18n helpers
+      validation/    # GlobalValidationPipe, Strict Zod DTO helpers
   modules/
     auth/            # Authentication (better-auth, OAuth, sessions)
-    users/           # User CRUD + identity contracts
+    users/           # User CRUD, profile, role/permission assignment
     rbac/            # Roles, permissions, grants, guards
     files/           # File upload/download (S3, GCS, Local)
     notify/          # Email notifications (BullMQ + Resend)
     health/          # Health checks
-    shared/          # Cross-feature contracts
+    shared/          # Shared services (cache)
 prisma/
   schema.prisma      # Database schema (12 models)
   migrations/        # Migration history
@@ -205,15 +206,28 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 - **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, users, RBAC, files, security)
 - **E2E tests** (`test/*.e2e-spec.ts`): Full integration with database and Redis
 
-Tests use a separate environment (`.env.test`): PostgreSQL on port 5435, Redis on port 6380.
+### Test environment setup
+
+Tests use a separate environment with PostgreSQL on port 5435 and Redis on port 6380.
 
 ```bash
-# Unit tests
+# 1. Copy test environment template (if .env.test doesn't exist)
+cp .env.test.example .env.test
+
+# 2. Start test infrastructure
+docker compose -f docker-compose.test.yml up -d
+
+# 3. Run database migrations for test DB
+npx prisma migrate deploy
+
+# 4. Run unit tests (no Docker required)
 npm run test
 
-# E2E tests (starts Docker test services automatically)
+# 5. Run E2E/contract tests (requires Docker services)
 npm run test:e2e
 ```
+
+Note: `npm run test:e2e` automatically runs `test:e2e:prepare` which starts Docker services and runs migrations.
 
 ## Configuration
 

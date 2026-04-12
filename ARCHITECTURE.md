@@ -27,90 +27,70 @@ Forbidden:
 - `application` importing from `presentation/infrastructure`
 - Any `feature A` importing internal files of `feature B` (except via `shared/contracts` or `feature B` public API)
 
-## 3) Cross-feature integration decision tree
+## 3) Cross-feature integration pattern
+
+Modules integrate with each other through two mechanisms:
+
+### NestJS Module imports + Injection tokens
+
+The primary integration pattern uses NestJS module imports combined with injection tokens:
+
+- Feature B exports its services/ports via its NestJS module
+- Feature A imports Feature B's module and injects the exported providers via tokens
+- Cross-feature dependencies are wired through `useFactory` + `inject` in module providers
+
+Example: Auth module imports UsersModule and injects `UserRepositoryPort` via token.
+
+### Port interfaces for cross-cutting services
+
+Services needed by multiple features (e.g., `EffectivePermissionsService`, `AuthProviderPort`) are:
+
+- Defined as interfaces/ports in the providing module's domain layer
+- Implemented in the providing module's infrastructure layer
+- Exported via the NestJS module system
+- Injected by consuming modules via tokens
+
+### Decision tree
 
 Does Feature A need something from Feature B?
 
 - Yes, synchronous and required for the request result
-  - Use `shared/contracts/` + adapter in B (provider) + A consumes via token
+  - Feature A imports Feature B's NestJS module and injects exported providers via tokens
 - Yes, but not required for the request result (async / eventual)
-  - Use a domain event published by B; A handles it in an event handler
+  - Use a domain event or job queue (e.g., BullMQ for email notifications)
 - No
   - Do nothing (no coupling)
 
-## 4) `shared/contracts/` rule (strict)
+### Current cross-feature dependencies
 
-`shared/contracts/` is ONLY for cross-feature contracts where:
+| Consumer | Provider | What is consumed | Mechanism |
+|----------|----------|-----------------|-----------|
+| Auth | Users | UserRepositoryPort | Token injection |
+| Auth | RBAC | EffectivePermissionsService | Token injection |
+| Auth | Notify | EmailProviderPort | Token injection |
+| Users | Auth | AuthProviderPort | Token injection (forwardRef) |
+| Users | RBAC | RoleRepositoryPort, GrantsRepositoryPort, EffectivePermissionsService | Token injection |
+| Files | Auth | AuthGuard | Guard import |
+| Files | RBAC | RbacGuard, Permissions decorator | Guard/decorator import |
 
-1. There is a clear consumer feature (A) and provider feature (B)
-2. The call is synchronous and required for request correctness
-3. The contract is a minimal integration surface (not internal models)
-4. There is no simpler option inside a single feature boundary
+### Future improvement: shared contracts
 
-Anything that does not cross feature boundaries MUST NOT go to `shared/contracts/`.
+For stricter boundary enforcement, cross-feature types can be moved to a `shared/contracts/` directory with neutral interfaces. This is not yet implemented but is the recommended direction for reducing coupling.
 
-## 5) Reference implementation: Auth <-> Users
+## 4) PR checklist (enforced in review)
 
-### 5.1 Contract (neutral)
-
-Path:
-
-- `src/shared/contracts/user-identity.contract.ts`
-
-Contains:
-
-- `USER_IDENTITY_CONTRACT` token
-- `UserIdentityContract` interface
-- Minimal types for inputs/outputs (plain types, no decorators)
-
-### 5.2 Provider (Users)
-
-Path:
-
-- `src/modules/users/infrastructure/adapters/users-auth.adapter.ts`
-
-Responsibilities:
-
-- Implements `UserIdentityContract`
-- Uses Users persistence internally (Prisma/TypeORM/etc.)
-- No Auth imports (except the shared contract)
-
-Users wiring:
-
-- `src/modules/users/users.module.ts`
-  - Binds `USER_IDENTITY_CONTRACT` to `UsersAuthAdapter`
-  - Exports `USER_IDENTITY_CONTRACT` only (not the adapter class)
-
-### 5.3 Consumer (Auth)
-
-Path:
-
-- `src/modules/auth/application/use-cases/login/*`
-
-Responsibilities:
-
-- Injects `USER_IDENTITY_CONTRACT` and calls it
-- Does not import Users internals (no repositories, no Prisma)
-
-Auth wiring:
-
-- `src/modules/auth/auth.module.ts`
-  - Imports `UsersModule`
-  - Registers Auth use-cases
-
-## 6) PR checklist (enforced in review)
-
-- No feature imports another feature’s internals
-- Any new cross-feature call follows the decision tree
-- Any new `shared/contracts/` addition meets all 4 conditions
+- Cross-feature dependencies use NestJS module imports + token injection
+- Avoid importing another feature’s internal files directly when possible
 - Domain stays framework-free (no decorators, no ORM types)
-- Any new alias is rejected (only `#src/` is allowed)
+- Prisma types stay in infrastructure layer only
+- No direct `process.env` reads outside config/bootstrap
+- Only `#src/` path alias is allowed (no `@/`, `~/`, etc.)
 
-## 7) Optional: automated boundary enforcement
+## 5) Automated boundary enforcement
 
 This section is self-contained: convention + ESLint + tsconfig + rationale.
 
-### 7.1 Import convention (required for enforcement to work correctly)
+### 5.1 Import convention (required for enforcement to work correctly)
 
 The ESLint rule below assumes a strict import convention to avoid false positives:
 
@@ -134,7 +114,7 @@ Why this matters:
 - If a developer uses a path alias inside the same feature, the rule may fail the build even though the import is intra-feature.
 - Using relative imports inside a feature keeps the rule focused on cross-feature imports only.
 
-### 7.2 tsconfig setup (single alias)
+### 5.2 tsconfig setup (single alias)
 
 In `tsconfig.json`:
 
@@ -153,9 +133,9 @@ Any PR introducing a new alias will be rejected in review.
 Note: `#src/` uses `#` prefix (not `@`) to avoid collision with npm scoped
 packages (`@nestjs/...`, `@prisma/...`). This prevents editor and bundler confusion.
 
-### 7.3 ESLint rule (enforces section 2)
+### 5.3 ESLint rules (enforces section 2)
 
-Add to `.eslintrc`:
+Configured in `eslint.config.mjs` (ESLint 9+ flat config format). Key rules:
 
 {
 "rules": {
@@ -182,7 +162,7 @@ Allowed cross-feature imports:
 
 This converts social rules (PR review) into technical rules (CI failure).
 
-### 7.4 Runtime note (ESM/NodeNext)
+### 5.4 Runtime note (ESM/NodeNext)
 
 The `paths` mapping in `tsconfig.json` is a TypeScript compile-time feature.
 If the project runs in ESM/NodeNext, ensure the runtime/bundler also resolves `#src/*`.
