@@ -18,11 +18,14 @@ import {
   type ExecutionContext,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     @Inject(AUTH_TOKENS.AUTH_PROVIDER)
     private readonly authProvider: AuthProviderPort,
@@ -68,7 +71,6 @@ export class AuthGuard implements CanActivate {
     if (!sessionResult?.session) throw AuthException.authenticationRequired();
 
     // Check if user is still allowed to login (not deleted/suspended)
-    // Check if user is still allowed to login (not deleted/suspended)
     // NOTE: When coming from cache, the user object might be a plain object,
     // so we cannot rely on class getters like .canLogin or .isActive.
     const isDeleted = !!sessionResult.user.deletedAt;
@@ -86,11 +88,15 @@ export class AuthGuard implements CanActivate {
       session: sessionResult.session,
     });
 
-    // Track session key for invalidation using injected SessionTrackerPort
+    // Track session key for invalidation (fire-and-forget, must not block auth)
     if (token && sessionResult.user.id) {
       this.sessionTracker
         .trackSession(sessionResult.user.id, cacheKey)
-        .catch(() => {});
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to track session for user ${sessionResult.user.id}: ${err?.message ?? err}`,
+          );
+        });
     }
 
     req.user = sessionResult.user;

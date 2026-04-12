@@ -84,7 +84,7 @@ export class CsrfGuard implements CanActivate {
   ) {
     if (!this.cfg.isProd()) return;
 
-    const secFetchSite = req.headers?.['sec-fetch-site'] as string | undefined;
+    const secFetchSite = req.headers?.['sec-fetch-site'];
     if (typeof secFetchSite === 'string') {
       const s = secFetchSite.toLowerCase();
       if (s !== 'same-origin' && s !== 'same-site') {

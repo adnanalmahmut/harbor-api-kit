@@ -1,173 +1,246 @@
-````md
 # saas-core-platform-api
 
-Enterprise-style API starter built with NestJS (Fastify adapter). Designed for government/enterprise-grade patterns: strict config boundaries, clean layering, and security-first roadmap (sessions, CSRF, rate limiting, RBAC, refresh rotation).
+Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, RBAC, file storage, i18n).
 
-## Goals
+## Tech Stack
 
-- Provide a credible, reviewable backend starter that looks and behaves like a real institutional codebase.
-- Keep runtime configuration centralized (no process.env drift).
-- Keep persistence swappable (DB ports + ORM adapters).
-- Build the security perimeter early (Redis locks, CSRF, rate limiting) before heavy auth/RBAC flows.
+| Category | Technology |
+|----------|-----------|
+| Runtime | Node.js 22, TypeScript 5.9, NestJS 11, Fastify 5 |
+| Database | PostgreSQL (via Prisma 7) |
+| Cache / Queue | Redis (ioredis), BullMQ |
+| Auth | better-auth (sessions, OAuth: Google/GitHub) |
+| Validation | Zod v4 (strict DTOs) |
+| i18n | nestjs-i18n (ar-SY, en-US) |
+| Logging | Pino (structured, request-scoped context) |
+| Email | Resend (via BullMQ async queue) |
+| File Storage | S3-compatible, Google Cloud Storage, Local filesystem |
+| API Docs | Swagger (OpenAPI) + Scalar UI |
+| Testing | Jest + Supertest (unit, contract, e2e) |
+| CI | GitHub Actions |
 
-## Tech stack
+## Implemented Features
 
-- Runtime: Node.js, TypeScript, NestJS, Fastify
-- DB: PostgreSQL (via Prisma)
-- i18n: nestjs-i18n
-- Logging: Pino (structured logs)
-- Tests: Jest + Supertest (e2e)
+- **Authentication** - Session-based auth via better-auth, OAuth (Google, GitHub), email/password with verification, session management (list/revoke/logout-all), geolocation tracking (IP, city, country)
+- **RBAC** - Role-based access control with permission inheritance. Roles, permissions, user-level grants (ALLOW/DENY), effective permissions computation with Redis caching (L1 request-scoped + L2 Redis)
+- **Users** - Full CRUD, profile management, role/permission assignment, soft deletes
+- **File Storage** - Multi-driver upload (S3/R2/Spaces, GCS, Local), magic bytes validation, presigned download URLs, public/private visibility toggle, public token-based access
+- **Notifications** - Async email delivery via BullMQ + Resend, retry with exponential backoff, HTML email templates
+- **Security** - CSRF double-submit cookies, rate limiting (global + per-route, IP/user/session strategies), application-level security headers, input validation (Zod strict mode), origin/referer allowlists
+- **i18n** - Full internationalization (Arabic ar-SY default, English en-US), locale negotiation via header/query, translated error messages and email templates
+- **API Documentation** - Auto-generated OpenAPI/Swagger at `/documentation` (Scalar UI), CSRF token injection for interactive testing
+- **Health** - `GET /health` with database + Redis connectivity checks
+- **Observability** - Pino structured logging with request ID, user ID, locale context injection
 
-## Current status
+## Planned (Not Yet Implemented)
 
-Implemented (Phase 0 + Phase 1):
+- MFA/TOTP + step-up authentication
+- Distributed tracing (OpenTelemetry)
+- Prometheus metrics endpoint
+- Audit logging (security-sensitive operations)
 
-- App bootstrap and module structure
-- Health endpoint: `GET /health`
-- Global exception handling + response envelope
-- i18n setup and message keys
-- Prisma integration (module/service)
-- Minimal DB Ports (Application layer) + Prisma Adapters (Infra layer)
-  - Users repository
-  - Sessions repository
-  - RBAC repositories (roles/permissions)
-- e2e test coverage for `/health`
+## Architecture
 
-Planned next (high-level roadmap):
+This project follows **Clean Architecture** with strict layer boundaries enforced via ESLint.
 
-- Phase 2: Redis core + CSRF double-submit + rate limiting
-- Phase 3: RBAC engine (registry bootstrap, bitset, cache, guards)
-- Phase 4: Auth core (sessions, refresh rotation, reuse detection)
-- Phase 5: Action tokens + email queue + templates
-- Phase 6: MFA (TOTP) + step-up
-- Phase 7: Social login (provider-swappable)
-- Phase 8: Observability + audit + hardening tests
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architectural rules (single source of truth).
 
-## Architecture overview
+### Layer Structure
 
-This repository follows a Ports/Adapters approach:
+Each feature module follows this structure:
 
-- Application layer defines repository ports (interfaces) that represent what the app needs.
-- Infrastructure layer implements these ports using Prisma.
-- Prisma types must not leak outside infra; mapping is done in adapters.
+```
+modules/<feature>/
+  domain/          # Pure business logic (no framework deps)
+  application/     # Use-cases + orchestration
+  infrastructure/  # Adapters (Prisma, external providers)
+  presentation/    # Controllers, DTOs, guards
+```
 
-This keeps the domain/application logic stable even if the ORM changes later.
+Cross-cutting concerns live in `core/`:
 
-## Folder structure (simplified)
+```
+core/
+  domain/          # Shared exceptions, types, ports
+  application/     # Cache service, logger port
+  infrastructure/  # Config, Prisma, Redis, Logger, i18n, Queue
+  presentation/    # Filters, guards, interceptors, decorators, docs, validation
+```
 
-- `src/core/`
-  - `config/` - centralized configuration (AppConfigService)
-  - `exceptions/` - typed errors and error definitions
-  - `filters/` - global exception filter
-  - `i18n/` - locales and i18n setup
-  - `db/prisma/` - PrismaModule + PrismaService
-- `src/modules/`
-  - `users/`
-    - `domain/` - entities, ports
-    - `infra/` - prisma repositories + mappers
-  - `sessions/` (or shared under infra if currently minimal)
-  - `health/` - /health endpoint
+### Dependency Direction
 
-## API conventions
+- `presentation -> application -> domain` (allowed)
+- `infrastructure -> application/domain` (implements ports)
+- Cross-feature imports: only via `shared/contracts/` or feature public API
 
-- Responses are wrapped in a consistent envelope (success and error).
-- Errors use message keys (i18n) and stable error codes.
-- Logging is structured and intended for production observability.
+### Folder Structure
 
-## Run locally
+```
+src/
+  core/
+    infrastructure/
+      config/        # AppConfigService (centralized, no process.env drift)
+      db/prisma/     # PrismaModule + PrismaService
+      redis/         # RedisModule + RedisService
+      logger/        # Pino setup
+      i18n/          # nestjs-i18n setup
+      queue/         # BullMQ setup
+    domain/          # AppException, types, ports
+    presentation/
+      decorators/    # @ResponseMessage, @SkipEnvelope, @ApiErrors
+      filters/       # GlobalExceptionFilter
+      guards/        # CsrfGuard
+      interceptors/  # RequestIdentity, Response, RateLimit
+      hooks/         # RequestContextHook (Fastify)
+      pipes/         # GlobalValidationPipe (Zod)
+      security/      # CSRF, rate limiting
+      validation/    # Strict Zod DTO helpers
+      docs/          # Swagger/Scalar setup
+      setup/         # CORS, bootstrap
+  modules/
+    auth/            # Authentication (better-auth, OAuth, sessions)
+    users/           # User CRUD + identity contracts
+    rbac/            # Roles, permissions, grants, guards
+    files/           # File upload/download (S3, GCS, Local)
+    notify/          # Email notifications (BullMQ + Resend)
+    health/          # Health checks
+    shared/          # Cross-feature contracts
+prisma/
+  schema.prisma      # Database schema (12 models)
+  migrations/        # Migration history
+  seed.ts            # Development seed
+  seed.production.ts # Production seed (gated)
+locales/             # i18n translation files (ar-SY, en-US)
+ops/                 # Nginx config, SSL certs
+test/                # E2E/contract tests + helpers
+```
 
-### 1) Install
+## API Conventions
+
+### Response Envelope
+
+All responses are wrapped in a consistent envelope:
+
+```json
+// Success
+{ "success": true, "message": "Translated message", "data": { ... } }
+
+// Error
+{ "success": false, "message": "Translated error", "code": "ERROR_CODE", "requestId": "uuid", "errors": [...] }
+```
+
+### Versioning
+
+URI-based: `/api/v1/{endpoint}`
+
+### Error Handling
+
+- All exceptions extend `AppException` with i18n message keys
+- Validation errors return structured field-level errors
+- No stack traces in production responses
+
+## Run Locally
+
+### Prerequisites
+
+- Node.js 22+
+- Docker & Docker Compose (for PostgreSQL + Redis)
+
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
-````
 
-### 2) Configure environment
+### 2. Configure environment
 
-- Copy `.env.example` to `.env`
-- Ensure `DATABASE_URL` is set (Postgres connection string)
+```bash
+cp .env.example .env
+```
 
-### 3) Database
+Edit `.env` with your values. Required: `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME`.
+
+### 3. Start infrastructure
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+### 4. Database setup
 
 ```bash
 npx prisma migrate dev
 npx prisma db seed
 ```
 
-### 4) Start dev server
+### 5. Start dev server
 
 ```bash
 npm run start:dev
 ```
 
-## Scripts (typical)
+The API will be available at `http://localhost:5000/api/v1/`.
+API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOCS=true`).
 
-- `npm run start:dev` - dev mode
-- `npm run build` - production build
-- `npm run start:prod` - run compiled build
-- `npm run test:e2e` - e2e tests
+## Scripts
 
-(Exact scripts depend on `package.json`.)
+| Script | Description |
+|--------|-------------|
+| `npm run start:dev` | Development mode (watch) |
+| `npm run build` | Production build |
+| `npm run start:prod` | Run compiled build |
+| `npm run lint` | ESLint with auto-fix |
+| `npm run format` | Prettier formatting |
+| `npm run test` | Unit tests |
+| `npm run test:e2e` | E2E + contract tests (starts Docker services) |
+| `npm run test:cov` | Unit tests with coverage |
+| `npm run prisma:generate` | Regenerate Prisma client |
+| `npm run prisma:migrate` | Create new migration |
+| `npm run prisma:seed` | Run development seed |
+| `npm run prisma:studio` | Open Prisma Studio |
 
 ## Testing
 
-### e2e
+- **Unit tests** (`src/**/*.spec.ts`): Domain logic, use-cases, validators
+- **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, users, RBAC, files, security)
+- **E2E tests** (`test/*.e2e-spec.ts`): Full integration with database and Redis
 
-- `/health` is used as a stable, dependency-light endpoint for e2e validation.
+Tests use a separate environment (`.env.test`): PostgreSQL on port 5435, Redis on port 6380.
 
 ```bash
+# Unit tests
+npm run test
+
+# E2E tests (starts Docker test services automatically)
 npm run test:e2e
 ```
 
-## Config boundaries (important)
+## Configuration
 
-- Runtime code must not read `process.env` directly.
-- Runtime configuration must go through `AppConfigService` (and config modules).
-- Prisma CLI and seed are allowed to read `DATABASE_URL` directly for tooling only.
+All runtime configuration is centralized through `AppConfigService`. Direct `process.env` reads are forbidden in application code.
 
-This rule is intentional to prevent hidden config drift and to keep production configuration auditable.
+Key configuration sections: `app`, `db`, `redis`, `auth`, `cors`, `csrf`, `rateLimit`, `storage`, `logger`, `i18n`, `cookies`, `fastify`.
 
-## Prisma notes
+See `.env.example` for the full list of environment variables with descriptions.
 
-- `prisma/schema.prisma` defines minimal core tables (users, sessions, roles, permissions).
-- Migrations represent the database history.
-- Seed creates initial roles/permissions for local development.
+## Production Deployment
 
-## Roadmap details (phases)
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
 
-### Phase 2 - Security perimeter
+The production stack includes: PostgreSQL, Redis, API (multi-stage Docker build), and Nginx reverse proxy with SSL.
 
-- Redis module + key prefixes
-- CSRF double-submit:
-  - cookie: `__Host-csrf`
-  - header: `x-csrf-token`
-  - enforced on POST/PUT/PATCH/DELETE
-  - origin/referer allowlist as an extra guard
+Note: `prisma` is included as a production dependency because database migrations run at container startup (`npx prisma migrate deploy`). For multi-replica deployments, consider running migrations in a separate init container.
 
-- Rate limiting:
-  - global defaults + per-route overrides
-  - key strategy configurable (ip/userId/sid)
+## Production Seeding
 
-### Phase 3 - RBAC engine
+Production seeding is a separate, explicitly gated operation:
 
-- Permission registry bootstrap from DB at startup (strict mode)
-- Effective permissions builder (roles -> bitset) + caching (L1 + Redis)
-- Guards/decorators like `@RequirePerm('users:read')`
-- Invalidation strategy on RBAC changes
-
-### Phase 4 - Auth core
-
-- Register/login with session-backed refresh tokens
-- Refresh rotation on every refresh
-- Redis lock to prevent refresh race
-- Reuse detection (family revoke + logout)
-- Session management endpoints (list/revoke/logout-all)
+```bash
+APP_ENV=production ALLOW_PROD_SEED=true npx tsx ./prisma/seed.production.ts
+```
 
 ## License
 
 Private/internal (adjust as needed).
-
-```
-
-```

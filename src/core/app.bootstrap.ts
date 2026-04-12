@@ -96,6 +96,24 @@ export function configureApp(app: NestFastifyApplication) {
   );
   adapter.addHook('onRequest', requestContextHook);
 
+  // Defense-in-depth: security headers at application level
+  // (nginx also sets these, but this protects dev/staging without nginx)
+  adapter.addHook(
+    'onSend',
+    (
+      _request: unknown,
+      reply: { header: (k: string, v: string) => void },
+      _payload: unknown,
+      done: () => void,
+    ) => {
+      reply.header('X-Content-Type-Options', 'nosniff');
+      reply.header('X-Frame-Options', 'DENY');
+      reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+      reply.header('X-XSS-Protection', '0');
+      done();
+    },
+  );
+
   app.useGlobalPipes(new GlobalValidationPipe());
 
   app.useGlobalInterceptors(

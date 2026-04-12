@@ -15,9 +15,10 @@ import type { ApiSuccess } from '../types/api.types.js';
 import { translateIfKey } from '../utils/i18n.utils.js';
 
 @Injectable()
-export class ResponseInterceptor<T>
-  implements NestInterceptor<T, T | ApiSuccess<T>>
-{
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  T | ApiSuccess<T>
+> {
   constructor(
     private readonly reflector: Reflector,
     private readonly i18n: I18nService<Record<string, any>>,

@@ -46,7 +46,7 @@ Canonical rules for saas-core-platform. Source of truth for boundaries, contract
 
 ## 1) Tech stack (pinned)
 
-Node.js (ESM), NestJS+Fastify, Pino, Prisma 7.2.0+PostgreSQL, Redis (ioredis), Zod v4+nestjs-zod, nestjs-i18n, Swagger+Scalar, BullMQ (planned). Pin exact versions; version bumps must update tests/docs.
+Node.js (ESM), NestJS+Fastify, Pino, Prisma 7+PostgreSQL, Redis (ioredis), Zod v4+nestjs-zod, nestjs-i18n, Swagger+Scalar, BullMQ, better-auth, Resend. Pin exact versions; version bumps must update tests/docs.
 
 ## 2) TypeScript + imports
 
