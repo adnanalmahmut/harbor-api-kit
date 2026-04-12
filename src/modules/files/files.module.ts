@@ -10,6 +10,8 @@ import {
   GetFileMetaUseCase,
   GetPublicFileAccessUseCase,
   SetVisibilityUseCase,
+  StreamFileUseCase,
+  StreamPublicFileUseCase,
   UploadFileUseCase,
   type IFileRepository,
   type IStorageDriver,
@@ -104,6 +106,18 @@ import { Module } from '@nestjs/common';
       useFactory: (repo: IFileRepository, storage: IStorageDriver) =>
         new GetPublicFileAccessUseCase(repo, storage),
       inject: [FILES_TOKENS.FILE_REPOSITORY, FILES_TOKENS.STORAGE_DRIVER],
+    },
+    {
+      provide: StreamFileUseCase,
+      useFactory: (storage: IStorageDriver, repo: IFileRepository) =>
+        new StreamFileUseCase(storage, repo),
+      inject: [FILES_TOKENS.STORAGE_DRIVER, FILES_TOKENS.FILE_REPOSITORY],
+    },
+    {
+      provide: StreamPublicFileUseCase,
+      useFactory: (storage: IStorageDriver, repo: IFileRepository) =>
+        new StreamPublicFileUseCase(storage, repo),
+      inject: [FILES_TOKENS.STORAGE_DRIVER, FILES_TOKENS.FILE_REPOSITORY],
     },
   ],
   exports: [UploadFileUseCase, GetFileMetaUseCase],

@@ -91,15 +91,17 @@ function isLocalDriverUrl(url: string): boolean {
 }
 
 function normalizeDownloadUrl(url: string, fileId: string): string {
-  // Local driver returns a relative path marker (/local/...).
-  // Replace with the authenticated download endpoint using the file's UUID.
-  return isLocalDriverUrl(url) ? `/api/v1/files/${fileId}/download` : url;
+  // Local driver returns a marker (/local/...). Rewrite to the file-stream
+  // endpoint that serves binary content — NOT the download-url endpoint
+  // (which returns JSON metadata and would create a self-referential loop).
+  return isLocalDriverUrl(url) ? `/api/v1/files/${fileId}/stream` : url;
 }
 
 function normalizePublicUrl(url: string, publicToken: string): string {
-  // Local driver returns a relative path marker (/local/...).
-  // Replace with the public access endpoint using the file's public token.
-  return isLocalDriverUrl(url) ? `/api/v1/public/files/${publicToken}` : url;
+  // Same pattern for public files — point to the public stream endpoint.
+  return isLocalDriverUrl(url)
+    ? `/api/v1/public/files/${publicToken}/stream`
+    : url;
 }
 
 function mapDriverEnum(driver: string): StorageDriver {
@@ -250,5 +252,56 @@ export class UploadFileUseCase {
 
       throw FilesException.storageError(error);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stream file content (for local driver — S3/GCS use presigned URLs instead)
+// ---------------------------------------------------------------------------
+
+export interface StreamFileResult {
+  stream: Readable;
+  mimeType: string | null;
+  size: bigint | null;
+  fileName: string;
+}
+
+export class StreamFileUseCase {
+  constructor(
+    private readonly storage: IStorageDriver,
+    private readonly repository: IFileRepository,
+  ) {}
+
+  async execute(id: string, actor: FilesActor): Promise<StreamFileResult> {
+    const file = await getAccessibleFileOrThrow(this.repository, id, actor);
+
+    const stream = await this.storage.getReadStream(file.filePath);
+
+    return {
+      stream,
+      mimeType: file.mimeType,
+      size: file.size,
+      fileName: file.fileName,
+    };
+  }
+}
+
+export class StreamPublicFileUseCase {
+  constructor(
+    private readonly storage: IStorageDriver,
+    private readonly repository: IFileRepository,
+  ) {}
+
+  async execute(token: string): Promise<StreamFileResult> {
+    const file = await getPublicFileOrThrow(this.repository, token);
+
+    const stream = await this.storage.getReadStream(file.filePath);
+
+    return {
+      stream,
+      mimeType: file.mimeType,
+      size: file.size,
+      fileName: file.fileName,
+    };
   }
 }

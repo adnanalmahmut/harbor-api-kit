@@ -10,6 +10,7 @@ import {
   GetDownloadUrlUseCase,
   GetFileMetaUseCase,
   SetVisibilityUseCase,
+  StreamFileUseCase,
   UploadFileUseCase,
 } from '#src/modules/files/application/index.js';
 import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
@@ -23,8 +24,10 @@ import {
   Patch,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -63,6 +66,7 @@ export class FilesController {
     private readonly getDownloadUrlUseCase: GetDownloadUrlUseCase,
     private readonly getFileMetaUseCase: GetFileMetaUseCase,
     private readonly setVisibilityUseCase: SetVisibilityUseCase,
+    private readonly streamFileUseCase: StreamFileUseCase,
     private readonly config: AppConfigService,
   ) {}
 
@@ -200,6 +204,38 @@ export class FilesController {
       actorIsAdmin: isAdmin,
     });
     return { url: result.url, expiresIn: result.expiresIn };
+  }
+
+  @Get(':id/stream')
+  @UseGuards(AuthGuard, RbacGuard)
+  @Permissions(['files:read'])
+  @ApiOperation({ summary: 'Stream file content (local storage)' })
+  async stream(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw FilesException.accessDenied();
+    }
+    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+
+    const result = await this.streamFileUseCase.execute(id, {
+      actorUserId: userId,
+      actorIsAdmin: isAdmin,
+    });
+
+    reply.header('Content-Type', result.mimeType || 'application/octet-stream');
+    reply.header(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(result.fileName)}"`,
+    );
+    if (result.size != null) {
+      reply.header('Content-Length', String(result.size));
+    }
+
+    await reply.send(result.stream);
   }
 
   @Patch(':id/visibility')

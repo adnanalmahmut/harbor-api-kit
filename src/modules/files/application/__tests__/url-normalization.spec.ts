@@ -17,12 +17,12 @@ function isLocalDriverUrl(url: string): boolean {
 }
 
 function normalizeDownloadUrl(url: string, fileId: string): string {
-  return isLocalDriverUrl(url) ? `/api/v1/files/${fileId}/download` : url;
+  return isLocalDriverUrl(url) ? `/api/v1/files/${fileId}/stream` : url;
 }
 
 function normalizePublicUrl(url: string, publicToken: string): string {
   return isLocalDriverUrl(url)
-    ? `/api/v1/public/files/${publicToken}`
+    ? `/api/v1/public/files/${publicToken}/stream`
     : url;
 }
 
@@ -38,13 +38,17 @@ describe('URL normalization helpers', () => {
 
     it('rejects absolute S3 presigned URL', () => {
       expect(
-        isLocalDriverUrl('https://bucket.s3.amazonaws.com/files/2026/4/x.jpg?X-Amz-Signature=abc'),
+        isLocalDriverUrl(
+          'https://bucket.s3.amazonaws.com/files/2026/4/x.jpg?X-Amz-Signature=abc',
+        ),
       ).toBe(false);
     });
 
     it('rejects absolute GCS presigned URL', () => {
       expect(
-        isLocalDriverUrl('https://storage.googleapis.com/bucket/files/2026/4/x.jpg?X-Goog-Signature=abc'),
+        isLocalDriverUrl(
+          'https://storage.googleapis.com/bucket/files/2026/4/x.jpg?X-Goog-Signature=abc',
+        ),
       ).toBe(false);
     });
 
@@ -54,10 +58,10 @@ describe('URL normalization helpers', () => {
   });
 
   describe('normalizeDownloadUrl', () => {
-    it('rewrites local driver URL to authenticated download route with file id', () => {
+    it('rewrites local driver URL to file stream endpoint with file id', () => {
       const localUrl = `/local/${STORAGE_KEY}`;
       const result = normalizeDownloadUrl(localUrl, FILE_ID);
-      expect(result).toBe(`/api/v1/files/${FILE_ID}/download`);
+      expect(result).toBe(`/api/v1/files/${FILE_ID}/stream`);
     });
 
     it('does NOT contain storage key in output', () => {
@@ -83,10 +87,10 @@ describe('URL normalization helpers', () => {
   });
 
   describe('normalizePublicUrl', () => {
-    it('rewrites local driver URL to public access route with token', () => {
+    it('rewrites local driver URL to public stream endpoint with token', () => {
       const localUrl = `/local/${STORAGE_KEY}`;
       const result = normalizePublicUrl(localUrl, PUBLIC_TOKEN);
-      expect(result).toBe(`/api/v1/public/files/${PUBLIC_TOKEN}`);
+      expect(result).toBe(`/api/v1/public/files/${PUBLIC_TOKEN}/stream`);
     });
 
     it('does NOT contain storage key in output', () => {
@@ -104,16 +108,27 @@ describe('URL normalization helpers', () => {
   });
 
   describe('route matching', () => {
-    it('download URL matches expected controller route pattern', () => {
+    it('download URL matches stream controller route pattern', () => {
       const url = normalizeDownloadUrl(`/local/${STORAGE_KEY}`, FILE_ID);
-      // Controller route: @Get(':id/download') under prefix /api/v1/files
-      expect(url).toMatch(/^\/api\/v1\/files\/[0-9a-f-]+\/download$/);
+      // Controller route: @Get(':id/stream') under prefix /api/v1/files
+      expect(url).toMatch(/^\/api\/v1\/files\/[0-9a-f-]+\/stream$/);
     });
 
-    it('public URL matches expected controller route pattern', () => {
+    it('public URL matches public stream controller route pattern', () => {
       const url = normalizePublicUrl(`/local/${STORAGE_KEY}`, PUBLIC_TOKEN);
-      // Controller route: @Get(':token') under prefix /api/v1/public/files
-      expect(url).toMatch(/^\/api\/v1\/public\/files\/[0-9a-f-]+$/);
+      // Controller route: @Get(':token/stream') under prefix /api/v1/public/files
+      expect(url).toMatch(/^\/api\/v1\/public\/files\/[0-9a-f-]+\/stream$/);
+    });
+
+    it('download URL is NOT self-referential (not /download endpoint)', () => {
+      const url = normalizeDownloadUrl(`/local/${STORAGE_KEY}`, FILE_ID);
+      expect(url).not.toContain('/download');
+    });
+
+    it('public URL is NOT self-referential (different from metadata endpoint)', () => {
+      const url = normalizePublicUrl(`/local/${STORAGE_KEY}`, PUBLIC_TOKEN);
+      // The metadata endpoint is /api/v1/public/files/:token (no /stream)
+      expect(url).toContain('/stream');
     });
   });
 });
