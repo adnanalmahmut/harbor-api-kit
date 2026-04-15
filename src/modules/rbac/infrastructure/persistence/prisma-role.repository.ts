@@ -1,7 +1,7 @@
 import { PrismaService, redisKeys, RedisService } from '#src/core/index.js';
-import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
-import { Role } from '#src/modules/rbac/domain/entities/role.entity.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+import { RbacException } from '../../application/exceptions/rbac.exception.js';
+import { Role } from '../../domain/entities/role.entity.js';
+import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

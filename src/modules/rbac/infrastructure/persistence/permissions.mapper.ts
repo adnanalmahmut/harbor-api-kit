@@ -1,5 +1,5 @@
 import type { Prisma } from '#src/generated/prisma/client.js';
-import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
+import { Permission } from '../../domain/entities/permission.entity.js';
 
 export const permissionSelect = {
   id: true,

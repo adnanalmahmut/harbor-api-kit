@@ -6,8 +6,8 @@ import {
   FilesException,
   type IFileRepository,
   type UpdateFileProps,
-} from '#src/modules/files/application/index.js';
-import { FileEntity } from '#src/modules/files/domain/index.js';
+} from '../application/index.js';
+import { FileEntity } from '../domain/index.js';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

@@ -1,6 +1,6 @@
 import { CORE_TOKENS } from '#src/core/index.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import { AuthGuard } from '#src/modules/auth/presentation/index.js';
+import { AUTH_TOKENS } from './auth.tokens.js';
+import { AuthGuard } from './presentation/index.js';
 
 import {
   CheckResetTokenUseCase,
@@ -21,7 +21,7 @@ import {
   UnlinkAccountUseCase,
   UpdateUserUseCase,
   VerifyPasswordUseCase,
-} from '#src/modules/auth/application/index.js';
+} from './application/index.js';
 
 export const authExports = [
   AuthGuard,

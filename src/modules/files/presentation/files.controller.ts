@@ -12,9 +12,9 @@ import {
   SetVisibilityUseCase,
   StreamFileUseCase,
   UploadFileUseCase,
-} from '#src/modules/files/application/index.js';
-import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
-import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+} from '../application/index.js';
+import { Permissions } from '#src/modules/rbac/index.js';
+import { RbacGuard } from '#src/modules/rbac/index.js';
 import type { MultipartFile } from '@fastify/multipart';
 import {
   Body,

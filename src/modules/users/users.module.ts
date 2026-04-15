@@ -1,32 +1,31 @@
 import { AppConfigModule, PrismaModule } from '#src/core/index.js';
-import {
-  AUTH_TOKENS,
-  AuthModule,
-  type AuthProviderPort,
-} from '#src/modules/auth/index.js';
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+import { AuthModule } from '#src/modules/auth/auth.module.js';
+import { AUTH_TOKENS, type AuthProviderPort } from '#src/modules/auth/index.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
-import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
-import { AddRoleToUserUseCase } from '#src/modules/users/application/use-cases/add-role-to-user.use-case.js';
-import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
-import { GetAllUserUseCase } from '#src/modules/users/application/use-cases/get-all-users.use-case.js';
-import { GetUserEffectivePermissionsUseCase } from '#src/modules/users/application/use-cases/get-user-effective-permissions.use-case.js';
-import { GetUserPermissionsUseCase } from '#src/modules/users/application/use-cases/get-user-permissions.use-case.js';
-import { GetUserRolesUseCase } from '#src/modules/users/application/use-cases/get-user-roles.use-case.js';
-import { GetUserByIdUseCase } from '#src/modules/users/application/use-cases/get-users.use-case.js';
-import { RemoveRoleFromUserUseCase } from '#src/modules/users/application/use-cases/remove-role-from-user.use-case.js';
-import { RemoveUserPermissionOverrideUseCase } from '#src/modules/users/application/use-cases/remove-user-permission-override.use-case.js';
-import { ReplaceUserPermissionsUseCase } from '#src/modules/users/application/use-cases/replace-user-permissions.use-case.js';
-import { ReplaceUserRolesUseCase } from '#src/modules/users/application/use-cases/replace-user-roles.use-case.js';
-import { SetUserPermissionOverrideUseCase } from '#src/modules/users/application/use-cases/set-user-permission-override.use-case.js';
-import { UpdateUserByIdUseCase } from '#src/modules/users/application/use-cases/update-user-by-id.use-case.js';
-import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
-import { PrismaUserRepository } from '#src/modules/users/infrastructure/persistence/prisma-user.repository.js';
-import { UsersController } from '#src/modules/users/presentation/http/users.controller.js';
-import { USERS_TOKENS } from '#src/modules/users/users.tokens.js';
+import {
+  EffectivePermissionsService,
+  type GrantsRepositoryPort,
+  RBAC_TOKENS,
+  type RoleRepositoryPort,
+} from '#src/modules/rbac/index.js';
 import { Module, forwardRef } from '@nestjs/common';
+import { AddRoleToUserUseCase } from './application/use-cases/add-role-to-user.use-case.js';
+import { CreateUserUseCase } from './application/use-cases/create-user.use-case.js';
+import { GetAllUserUseCase } from './application/use-cases/get-all-users.use-case.js';
+import { GetUserEffectivePermissionsUseCase } from './application/use-cases/get-user-effective-permissions.use-case.js';
+import { GetUserPermissionsUseCase } from './application/use-cases/get-user-permissions.use-case.js';
+import { GetUserRolesUseCase } from './application/use-cases/get-user-roles.use-case.js';
+import { GetUserByIdUseCase } from './application/use-cases/get-users.use-case.js';
+import { RemoveRoleFromUserUseCase } from './application/use-cases/remove-role-from-user.use-case.js';
+import { RemoveUserPermissionOverrideUseCase } from './application/use-cases/remove-user-permission-override.use-case.js';
+import { ReplaceUserPermissionsUseCase } from './application/use-cases/replace-user-permissions.use-case.js';
+import { ReplaceUserRolesUseCase } from './application/use-cases/replace-user-roles.use-case.js';
+import { SetUserPermissionOverrideUseCase } from './application/use-cases/set-user-permission-override.use-case.js';
+import { UpdateUserByIdUseCase } from './application/use-cases/update-user-by-id.use-case.js';
+import type { UserRepositoryPort } from './domain/ports/user.repository.port.js';
+import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.repository.js';
+import { UsersController } from './presentation/http/users.controller.js';
+import { USERS_TOKENS } from './users.tokens.js';
 
 @Module({
   imports: [

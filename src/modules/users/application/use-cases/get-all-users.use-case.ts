@@ -1,5 +1,5 @@
-import type { User } from '#src/modules/users/domain/entities/user.entity.js';
-import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
+import type { User } from '../../domain/entities/user.entity.js';
+import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
 
 export class GetAllUserUseCase {
   constructor(private readonly userRepo: UserRepositoryPort) {}

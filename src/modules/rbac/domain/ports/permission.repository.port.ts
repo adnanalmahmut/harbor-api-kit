@@ -1,4 +1,4 @@
-import type { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
+import type { Permission } from '../entities/permission.entity.js';
 
 export interface PermissionRepositoryPort {
   listAll(): Promise<Permission[]>;

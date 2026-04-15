@@ -4,8 +4,8 @@ import {
   RateLimitModule,
   RedisModule,
 } from '#src/core/index.js';
-import { AuthModule } from '#src/modules/auth/index.js';
-import { HealthController } from '#src/modules/health/health.controller.js';
+import { AuthModule } from '#src/modules/auth/auth.module.js';
+import { HealthController } from './health.controller.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 import { Module } from '@nestjs/common';
 

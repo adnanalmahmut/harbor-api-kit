@@ -1,6 +1,6 @@
 import { PrismaService, RedisService } from '#src/core/index.js';
 import { RegisterDto } from '#src/modules/auth/index.js';
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { TestAppFactory, clearRedisCache, resetDb } from './test-utils.js';

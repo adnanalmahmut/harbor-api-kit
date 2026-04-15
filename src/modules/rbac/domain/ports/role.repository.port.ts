@@ -1,4 +1,4 @@
-import type { Role } from '#src/modules/rbac/domain/entities/role.entity.js';
+import type { Role } from '../entities/role.entity.js';
 
 export interface RoleRepositoryPort {
   findAll(): Promise<Role[]>;

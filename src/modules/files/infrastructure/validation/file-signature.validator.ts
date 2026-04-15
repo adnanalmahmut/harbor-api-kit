@@ -1,7 +1,4 @@
-import {
-  FilesException,
-  FileValidatorPort,
-} from '#src/modules/files/application/index.js';
+import { FilesException, FileValidatorPort } from '../../application/index.js';
 import { Injectable } from '@nestjs/common';
 import path from 'node:path';
 import { Readable } from 'node:stream';

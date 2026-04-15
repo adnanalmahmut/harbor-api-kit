@@ -1,5 +1,5 @@
-import type { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
-import type { UserPermissionOverride } from '#src/modules/rbac/domain/value-objects/user-permission-override.vo.js';
+import type { Permission } from '../entities/permission.entity.js';
+import type { UserPermissionOverride } from '../value-objects/user-permission-override.vo.js';
 
 export interface GrantsRepositoryPort {
   listPermissionsForRoleIds(roleIds: string[]): Promise<Permission[]>;

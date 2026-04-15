@@ -1,27 +1,27 @@
 import { ApiResponses, ResponseMessage } from '#src/core/index.js';
-import { AuthGuard } from '#src/modules/auth/presentation/http/auth.guard.js';
-import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
-import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
-import { UsersException } from '#src/modules/users/application/exceptions/users.exception.js';
-import { AddRoleToUserUseCase } from '#src/modules/users/application/use-cases/add-role-to-user.use-case.js';
-import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
-import { GetAllUserUseCase } from '#src/modules/users/application/use-cases/get-all-users.use-case.js';
-import { GetUserEffectivePermissionsUseCase } from '#src/modules/users/application/use-cases/get-user-effective-permissions.use-case.js';
-import { GetUserPermissionsUseCase } from '#src/modules/users/application/use-cases/get-user-permissions.use-case.js';
-import { GetUserRolesUseCase } from '#src/modules/users/application/use-cases/get-user-roles.use-case.js';
-import { GetUserByIdUseCase } from '#src/modules/users/application/use-cases/get-users.use-case.js';
-import { RemoveRoleFromUserUseCase } from '#src/modules/users/application/use-cases/remove-role-from-user.use-case.js';
-import { RemoveUserPermissionOverrideUseCase } from '#src/modules/users/application/use-cases/remove-user-permission-override.use-case.js';
-import { ReplaceUserPermissionsUseCase } from '#src/modules/users/application/use-cases/replace-user-permissions.use-case.js';
-import { ReplaceUserRolesUseCase } from '#src/modules/users/application/use-cases/replace-user-roles.use-case.js';
-import { SetUserPermissionOverrideUseCase } from '#src/modules/users/application/use-cases/set-user-permission-override.use-case.js';
-import { UpdateUserByIdUseCase } from '#src/modules/users/application/use-cases/update-user-by-id.use-case.js';
-import { AddRoleToUserDto } from '#src/modules/users/presentation/http/dtos/add-role-to-user.dto.js';
-import { CreateUserDto } from '#src/modules/users/presentation/http/dtos/create-user.dto.js';
-import { ReplaceUserPermissionsDto } from '#src/modules/users/presentation/http/dtos/replace-user-permissions.dto.js';
-import { ReplaceUserRolesDto } from '#src/modules/users/presentation/http/dtos/replace-user-roles.dto.js';
-import { SetPermissionOverrideDto } from '#src/modules/users/presentation/http/dtos/set-permission-override.dto.js';
-import { UpdateUserAdminDto } from '#src/modules/users/presentation/http/dtos/update-user-admin.dto.js';
+import { AuthGuard } from '#src/modules/auth/index.js';
+import { Roles } from '#src/modules/rbac/index.js';
+import { RbacGuard } from '#src/modules/rbac/index.js';
+import { UsersException } from '../../application/exceptions/users.exception.js';
+import { AddRoleToUserUseCase } from '../../application/use-cases/add-role-to-user.use-case.js';
+import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
+import { GetAllUserUseCase } from '../../application/use-cases/get-all-users.use-case.js';
+import { GetUserEffectivePermissionsUseCase } from '../../application/use-cases/get-user-effective-permissions.use-case.js';
+import { GetUserPermissionsUseCase } from '../../application/use-cases/get-user-permissions.use-case.js';
+import { GetUserRolesUseCase } from '../../application/use-cases/get-user-roles.use-case.js';
+import { GetUserByIdUseCase } from '../../application/use-cases/get-users.use-case.js';
+import { RemoveRoleFromUserUseCase } from '../../application/use-cases/remove-role-from-user.use-case.js';
+import { RemoveUserPermissionOverrideUseCase } from '../../application/use-cases/remove-user-permission-override.use-case.js';
+import { ReplaceUserPermissionsUseCase } from '../../application/use-cases/replace-user-permissions.use-case.js';
+import { ReplaceUserRolesUseCase } from '../../application/use-cases/replace-user-roles.use-case.js';
+import { SetUserPermissionOverrideUseCase } from '../../application/use-cases/set-user-permission-override.use-case.js';
+import { UpdateUserByIdUseCase } from '../../application/use-cases/update-user-by-id.use-case.js';
+import { AddRoleToUserDto } from './dtos/add-role-to-user.dto.js';
+import { CreateUserDto } from './dtos/create-user.dto.js';
+import { ReplaceUserPermissionsDto } from './dtos/replace-user-permissions.dto.js';
+import { ReplaceUserRolesDto } from './dtos/replace-user-roles.dto.js';
+import { SetPermissionOverrideDto } from './dtos/set-permission-override.dto.js';
+import { UpdateUserAdminDto } from './dtos/update-user-admin.dto.js';
 import {
   Body,
   Controller,
@@ -35,7 +35,7 @@ import {
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import { UserResponseMapper } from '../../application/mappers/user-response.mapper.js';
 
-import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
+import { Permissions } from '#src/modules/rbac/index.js';
 import { USERS_RESPONSES } from './api-responses.examples.js';
 
 @ApiTags('Users')

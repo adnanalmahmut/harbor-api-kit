@@ -1,15 +1,12 @@
 import { CORE_TOKENS, type RequestContextStorePort } from '#src/core/index.js';
-import {
-  AuthCacheKeys,
-  AuthException,
-} from '#src/modules/auth/application/index.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import { AuthCacheKeys, AuthException } from '../../application/index.js';
+import { AUTH_TOKENS } from '../../auth.tokens.js';
 import type {
   AuthConfigPort,
   AuthProviderPort,
   CookieDirective,
   SessionTrackerPort,
-} from '#src/modules/auth/domain/index.js';
+} from '../../domain/index.js';
 import {
   type CanActivate,
   type ExecutionContext,

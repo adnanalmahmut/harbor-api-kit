@@ -37,11 +37,11 @@ import {
   UpdateUserUseCase,
   VerifyEmailUseCase,
   VerifyPasswordUseCase,
-} from '#src/modules/auth/application/index.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import type { AuthProviderPort } from '#src/modules/auth/domain/index.js';
-import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
-import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+} from '../../application/index.js';
+import { AUTH_TOKENS } from '../../auth.tokens.js';
+import type { AuthProviderPort } from '../../domain/index.js';
+import { Roles } from '#src/modules/rbac/index.js';
+import { RbacGuard } from '#src/modules/rbac/index.js';
 import {
   Body,
   Controller,

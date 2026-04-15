@@ -1,4 +1,4 @@
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
+import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
 import { z } from 'zod';
 
 export const AssignPermissionToRoleSchema = z.object({

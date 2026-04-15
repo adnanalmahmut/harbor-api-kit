@@ -1,5 +1,5 @@
-import { Role } from '#src/modules/rbac/domain/entities/role.entity.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+import { Role } from '../../domain/entities/role.entity.js';
+import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
 import { z } from 'zod';
 
 export const CreateRoleSchema = z.object({

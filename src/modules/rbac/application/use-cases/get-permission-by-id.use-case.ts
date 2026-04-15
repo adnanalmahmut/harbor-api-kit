@@ -1,5 +1,5 @@
-import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
-import type { PermissionRepositoryPort } from '#src/modules/rbac/domain/ports/permission.repository.port.js';
+import { RbacException } from '../exceptions/rbac.exception.js';
+import type { PermissionRepositoryPort } from '../../domain/ports/permission.repository.port.js';
 
 export class GetPermissionByIdUseCase {
   constructor(private readonly permissionRepo: PermissionRepositoryPort) {}

@@ -1,6 +1,6 @@
 import { SUPPORTED_LOCALES, createStrictZodDto } from '#src/core/index.js';
-import type { User } from '#src/modules/auth/domain/index.js';
-import { UserResponseDto } from '#src/modules/users/presentation/http/dtos/users-response.dto.js';
+import type { User } from '../../domain/index.js';
+import { UserResponseDto } from '#src/modules/users/index.js';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { z } from 'zod';
 export { UserResponseDto };

@@ -5,7 +5,7 @@ import type {
   ChangePasswordCommand,
   ForgetPasswordCommand,
   ResetPasswordCommand,
-} from '#src/modules/auth/domain/index.js';
+} from '../../domain/index.js';
 
 export class ChangePasswordUseCase {
   constructor(private readonly authProvider: AuthProviderPort) {}

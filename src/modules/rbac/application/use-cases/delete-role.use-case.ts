@@ -1,4 +1,4 @@
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
 
 export class DeleteRoleUseCase {
   constructor(private readonly roleRepo: RoleRepositoryPort) {}

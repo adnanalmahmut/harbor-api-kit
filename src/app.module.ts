@@ -6,7 +6,7 @@ import {
   RateLimitModule,
   RedisModule,
 } from '#src/core/index.js';
-import { AuthModule } from '#src/modules/auth/index.js';
+import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { FilesModule } from '#src/modules/files/files.module.js';
 import { HealthModule } from '#src/modules/health/health.module.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';

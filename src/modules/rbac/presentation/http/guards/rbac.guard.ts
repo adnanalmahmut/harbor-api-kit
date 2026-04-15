@@ -1,10 +1,10 @@
-import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
+import { RbacException } from '../../../application/exceptions/rbac.exception.js';
 import {
   EffectivePermissionsService,
   type EffectivePermissions,
-} from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import { PERMISSIONS_KEY } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
-import { ROLES_KEY } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
+} from '../../../application/services/effective-permissions.service.js';
+import { PERMISSIONS_KEY } from '../decorators/permissions.decorator.js';
+import { ROLES_KEY } from '../decorators/roles.decorator.js';
 import {
   Injectable,
   type CanActivate,

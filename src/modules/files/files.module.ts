@@ -3,7 +3,7 @@ import {
   AppConfigService,
   PrismaModule,
 } from '#src/core/index.js';
-import { AuthModule } from '#src/modules/auth/index.js';
+import { AuthModule } from '#src/modules/auth/auth.module.js';
 import {
   FileValidatorPort,
   GetDownloadUrlUseCase,
@@ -15,8 +15,8 @@ import {
   UploadFileUseCase,
   type IFileRepository,
   type IStorageDriver,
-} from '#src/modules/files/application/index.js';
-import { FILES_TOKENS } from '#src/modules/files/files.tokens.js';
+} from './application/index.js';
+import { FILES_TOKENS } from './files.tokens.js';
 import {
   FileSignatureValidator,
   GCSDriver,
@@ -24,11 +24,9 @@ import {
   PrismaFileRepository,
   S3Driver,
   StorageDriverProvider,
-} from '#src/modules/files/infrastructure/index.js';
-import {
-  FilesController,
-  PublicFilesController,
-} from '#src/modules/files/presentation/index.js';
+} from './infrastructure/index.js';
+import { FilesController } from './presentation/files.controller.js';
+import { PublicFilesController } from './presentation/public-files.controller.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 import { Module } from '@nestjs/common';
 

@@ -2,9 +2,7 @@ import { AppModule } from '#src/app.module.js';
 import { configureApp } from '#src/core/app.bootstrap.js';
 import { PrismaService, RedisService } from '#src/core/index.js';
 import { AuthGuard } from '#src/modules/auth/index.js';
-import { Permissions } from '#src/modules/rbac/presentation/http/decorators/permissions.decorator.js';
-import { Roles } from '#src/modules/rbac/presentation/http/decorators/roles.decorator.js';
-import { RbacGuard } from '#src/modules/rbac/presentation/http/guards/rbac.guard.js';
+import { Permissions, Roles, RbacGuard } from '#src/modules/rbac/index.js';
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import {
   FastifyAdapter,
@@ -17,7 +15,7 @@ import { RbacHelper } from './helpers/rbac.helper.js';
 import { resetDb } from './helpers/test-db.helper.js';
 import { clearRedisCache } from './helpers/test-redis.helper.js';
 
-import { AuthModule } from '#src/modules/auth/index.js';
+import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 
 import { AppConfigModule } from '#src/core/index.js';

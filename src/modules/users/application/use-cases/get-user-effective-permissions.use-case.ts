@@ -1,4 +1,4 @@
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/index.js';
 
 export class GetUserEffectivePermissionsUseCase {
   constructor(

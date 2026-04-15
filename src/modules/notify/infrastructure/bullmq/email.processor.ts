@@ -1,5 +1,5 @@
-import type { SendEmailParams } from '#src/modules/notify/domain/email.provider.port.js';
-import { ResendEmailProvider } from '#src/modules/notify/infrastructure/resend/resend.provider.js';
+import type { SendEmailParams } from '../../domain/email.provider.port.js';
+import { ResendEmailProvider } from '../resend/resend.provider.js';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';

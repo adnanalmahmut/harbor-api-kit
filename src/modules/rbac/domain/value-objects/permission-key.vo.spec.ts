@@ -1,4 +1,4 @@
-import { RbacDomainException } from '#src/modules/rbac/domain/exceptions/rbac-domain.exception.js';
+import { RbacDomainException } from '../exceptions/rbac-domain.exception.js';
 import {
   PERMISSION_KEY_PATTERN,
   PermissionKeyVO,

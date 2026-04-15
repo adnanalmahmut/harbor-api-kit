@@ -1,10 +1,10 @@
 import { PrismaService, redisKeys, RedisService } from '#src/core/index.js';
 import { GrantEffect } from '#src/generated/prisma/enums.js';
-import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
-import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
-import { PermissionKeyVO } from '#src/modules/rbac/domain/value-objects/permission-key.vo.js';
-import { UserPermissionOverride } from '#src/modules/rbac/domain/value-objects/user-permission-override.vo.js';
+import { RbacException } from '../../application/exceptions/rbac.exception.js';
+import { Permission } from '../../domain/entities/permission.entity.js';
+import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
+import { PermissionKeyVO } from '../../domain/value-objects/permission-key.vo.js';
+import { UserPermissionOverride } from '../../domain/value-objects/user-permission-override.vo.js';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

@@ -2,7 +2,7 @@ import { AppConfigService } from '#src/core/index.js';
 import {
   type EmailProviderPort,
   type SendEmailParams,
-} from '#src/modules/notify/domain/email.provider.port.js';
+} from '../../domain/email.provider.port.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';

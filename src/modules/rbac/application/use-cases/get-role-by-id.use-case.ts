@@ -1,5 +1,5 @@
-import { RbacException } from '#src/modules/rbac/application/exceptions/rbac.exception.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+import { RbacException } from '../exceptions/rbac.exception.js';
+import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
 
 export class GetRoleByIdUseCase {
   constructor(private readonly roleRepo: RoleRepositoryPort) {}

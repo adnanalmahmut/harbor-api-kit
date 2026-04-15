@@ -7,7 +7,7 @@ import type {
   SignInResultData,
   SignInSocialCommand,
   UnlinkAccountCommand,
-} from '#src/modules/auth/domain/index.js';
+} from '../../domain/index.js';
 
 export class LinkSocialUseCase {
   constructor(private readonly authProvider: AuthProviderPort) {}

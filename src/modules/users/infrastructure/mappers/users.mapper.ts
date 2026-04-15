@@ -1,5 +1,5 @@
 import type { Permission, Role } from '#src/generated/prisma/client.js';
-import { User } from '#src/modules/users/domain/entities/user.entity.js';
+import { User } from '../../domain/entities/user.entity.js';
 
 export type PrismaUserRecord = {
   id: string;

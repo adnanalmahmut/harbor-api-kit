@@ -5,8 +5,8 @@ import type {
   AuthResult,
   ChangeEmailCommand,
   User,
-} from '#src/modules/auth/domain/index.js';
-import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
+} from '../../domain/index.js';
+import type { UserRepositoryPort } from '#src/modules/users/index.js';
 
 export class ChangeEmailUseCase {
   constructor(

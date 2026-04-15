@@ -1,7 +1,4 @@
-import type {
-  FileEntity,
-  StorageDriver,
-} from '#src/modules/files/domain/index.js';
+import type { FileEntity, StorageDriver } from '../domain/index.js';
 import type { Readable } from 'node:stream';
 
 /* -------------------------------------------------------------------------- */

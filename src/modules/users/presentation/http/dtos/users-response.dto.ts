@@ -50,7 +50,7 @@ export class ListUsersResponseDto {
 }
 
 // Role Response (for user roles)
-import { RoleResponseDto } from '#src/modules/rbac/presentation/http/dtos/rbac-response.dto.js';
+import { RoleResponseDto } from '#src/modules/rbac/index.js';
 
 export { RoleResponseDto };
 

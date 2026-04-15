@@ -4,9 +4,9 @@ import type {
   AuthResult,
   CurrentSessionProviderPort,
   Session,
-} from '#src/modules/auth/domain/index.js';
-import type { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
+} from '../../domain/index.js';
+import type { EffectivePermissionsService } from '#src/modules/rbac/index.js';
+import type { RoleRepositoryPort } from '#src/modules/rbac/index.js';
 
 export class GetSessionUseCase {
   constructor(

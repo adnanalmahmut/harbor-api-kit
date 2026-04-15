@@ -1,8 +1,5 @@
 import { AppConfigService, CacheTTL, RedisService } from '#src/core/index.js';
-import type {
-  AuthConfigPort,
-  SessionTrackerPort,
-} from '#src/modules/auth/domain/index.js';
+import type { AuthConfigPort, SessionTrackerPort } from '../domain/index.js';
 import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { AuthCacheKeys } from '../application/index.js';

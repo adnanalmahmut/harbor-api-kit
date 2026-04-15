@@ -1,6 +1,6 @@
-import { UsersException } from '#src/modules/users/application/exceptions/users.exception.js';
-import { User } from '#src/modules/users/domain/entities/user.entity.js';
-import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
+import { UsersException } from '../exceptions/users.exception.js';
+import { User } from '../../domain/entities/user.entity.js';
+import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
 import { z } from 'zod';
 
 // We can define a schema locally or reuse one.

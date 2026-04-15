@@ -1,4 +1,4 @@
-import { RbacDomainException } from '#src/modules/rbac/domain/exceptions/rbac-domain.exception.js';
+import { RbacDomainException } from '../exceptions/rbac-domain.exception.js';
 
 /**
  * Permission key format: subject:action (e.g., user:read, role:manage)

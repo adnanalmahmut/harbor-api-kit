@@ -123,10 +123,12 @@ infrastructure ┘                       ▲
 - Globally: `class-validator` and `class-transformer` are forbidden in all of `src/`.
 - Prisma (`@prisma/client`, generated types) MUST NOT be imported outside `infrastructure/` or `core/db/prisma/`.
 
-### 4.2 Convention (reviewer-enforced)
+### 4.2 Cross-module public API enforcement (ESLint-enforced)
 
-- Cross-module imports MUST go through the consumed module's root `index.ts` (see §6). ESLint enforcement of this rule is planned; until then, reviewers reject deep cross-module imports in new code.
-- Avoid circular module dependencies. When unavoidable (e.g., `users` ↔ `auth`), use `forwardRef()` and document the cycle in [AGENTS.md](AGENTS.md) or the relevant module file.
+- Cross-module imports MUST go through the consumed module's root `index.ts` barrel (see §6). This is now **enforced by ESLint** via `crossModuleDeepRestricted` patterns in [eslint.config.mjs](eslint.config.mjs) — deep imports into `#src/modules/<feature>/<layer>/...` from outside that feature will fail CI.
+- **NestJS module classes** (`<feature>.module.ts`) are NOT re-exported from barrels to avoid ESM circular initialization. Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
+- **One documented exception**: [src/core/infrastructure/redis/redis.keys.ts](src/core/infrastructure/redis/redis.keys.ts) imports cache-key constants directly from `auth/application/auth.cache.js` and `rbac/application/rbac.cache-keys.js` because barrel imports would create a circular dependency (core → module barrel → module.ts → core). This file is exempt from the cross-module ESLint rule.
+- Avoid circular module dependencies. When unavoidable (e.g., `users` ↔ `auth`), use `forwardRef()` and document the cycle.
 
 ---
 
@@ -134,59 +136,54 @@ infrastructure ┘                       ▲
 
 When feature A needs something from feature B:
 
-1. **Feature B exports** the public surface (module class, tokens, port interfaces, application services, response DTOs, guards, decorators) from its root `index.ts`.
-2. **Feature A imports** Feature B's NestJS module (`imports: [BModule]`) and injects exported providers via tokens declared in `b.tokens.ts`.
-3. **Feature A imports types and references** only from `#src/modules/B` (the barrel) — never from `#src/modules/B/<layer>/...`.
+1. **Feature B exports** the public surface (tokens, port interfaces, application services, response DTOs, guards, decorators) from its root `index.ts`. The **NestJS module class** is imported directly from `<feature>.module.js` (not from the barrel — see §4.2).
+2. **Feature A imports** Feature B's NestJS module class (`imports: [BModule]`) directly from `#src/modules/B/B.module.js` and injects exported providers via tokens declared in `b.tokens.js`.
+3. **Feature A imports types, services, guards, and decorators** only from `#src/modules/B/index.js` (the barrel) — never from `#src/modules/B/<layer>/...`.
 
 For asynchronous, eventual cross-feature work (notifications, audit), use a job queue (BullMQ) instead of a synchronous import.
 
-### 5.1 Current cross-module dependency map (migration target)
+### 5.1 Cross-module dependency map
 
-The table below inventories cross-module dependencies. Entries marked **deep import** are *legacy* — they exist in current code but are forbidden for new code under §6. They will be migrated to barrel imports in a dedicated pass.
+All cross-module imports now use barrel imports. ESLint enforcement is active. No legacy deep imports remain.
 
 | Consumer | Provider | What is consumed | Style |
 |----------|----------|------------------|-------|
-| Auth | Users | `UserRepositoryPort` | Token via barrel |
-| Auth | RBAC | `EffectivePermissionsService` | Token via barrel |
-| Auth | Notify | `EmailProviderPort` | Token via barrel |
-| Auth | RBAC | `RbacGuard`, `Roles` decorator | Deep import (legacy) |
-| Auth | Users | `UserResponseDto` | Deep import (legacy) |
-| Users | Auth | `AuthProviderPort`, `AuthGuard` | Mixed (token via barrel + deep import for guard) |
-| Users | RBAC | `RoleRepositoryPort`, `GrantsRepositoryPort`, `EffectivePermissionsService`, `RbacGuard`, `Roles`/`Permissions` decorators, `RoleResponseDto` | Deep imports (legacy) |
-| Files | Auth | `AuthGuard` | Deep import (legacy) |
-| Files | RBAC | `RbacGuard`, `Permissions` decorator | Deep imports (legacy) |
-| Core | Auth, RBAC | `AuthCacheKeys`, `rbacCacheKeys` | Deep import (legacy) |
-
-### 5.2 Planned enforcement upgrade
-
-A future pass will:
-1. Extend the barrel of each module to export its full public surface (guards, decorators, response DTOs, cache key constants).
-2. Migrate all deep imports listed above to barrel imports.
-3. Add an ESLint `no-restricted-imports` pattern that forbids `#src/modules/<other>/<anything>/<more>` from outside that module.
-
-Until then: **new code MUST use barrel imports**. Legacy deep imports are tolerated only because removal requires the migration above.
+| Auth | Users | `UserRepositoryPort`, `UserResponseDto` | Barrel (`users/index.js`) |
+| Auth | RBAC | `EffectivePermissionsService`, `RoleRepositoryPort`, `RbacGuard`, `Roles` | Barrel (`rbac/index.js`) |
+| Auth | Notify | `EmailProviderPort` | Barrel (`notify/index.js`) |
+| Users | Auth | `AuthProviderPort`, `AUTH_TOKENS`, `AuthGuard` | Barrel (`auth/index.js`) |
+| Users | RBAC | `EffectivePermissionsService`, `RoleRepositoryPort`, `GrantsRepositoryPort`, `RBAC_TOKENS`, `RbacGuard`, `Roles`, `Permissions`, `RoleResponseDto` | Barrel (`rbac/index.js`) |
+| Files | RBAC | `RbacGuard`, `Permissions` | Barrel (`rbac/index.js`) |
+| RBAC | Auth | `AuthGuard` | Barrel (`auth/index.js`) |
+| Core | Auth, RBAC | `AuthCacheKeys`, `rbacCacheKeys` | Justified deep import (documented exception, §4.2) |
+| All `.module.ts` | Other modules | `XModule` class | Direct file import (`<feature>.module.js`) |
 
 ---
 
 ## 6. Public API boundary
 
-**Every feature module MUST expose exactly one `index.ts` at the module root.** Cross-module consumers MUST import only from `#src/modules/<feature>` — never from a sub-path.
+**Every feature module MUST expose exactly one `index.ts` at the module root.** Cross-module consumers MUST import types, services, guards, decorators, and DTOs only from `#src/modules/<feature>/index.js` — never from a sub-path. This is **ESLint-enforced** (§4.2).
+
+**NestJS module classes** are the ONE exception: they are NOT re-exported from the barrel (to avoid ESM circular initialization). Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
 
 ```ts
-// ✅ Correct — barrel import
-import { UsersModule, USERS_TOKENS } from '#src/modules/users/index.js';
+// ✅ Correct — public API via barrel
+import { USERS_TOKENS, type UserRepositoryPort } from '#src/modules/users/index.js';
 
-// ❌ Forbidden in new code — deep import past the barrel
+// ✅ Correct — NestJS module class via direct file (exception)
 import { UsersModule } from '#src/modules/users/users.module.js';
+
+// ❌ Forbidden — deep import past the barrel (ESLint will reject)
 import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
 ```
 
 Rules for the barrel itself:
 
-- **MUST** re-export `<feature>.module.ts` and `<feature>.tokens.ts` (when tokens exist).
+- **MUST** re-export `<feature>.tokens.ts` (when tokens exist).
 - **MUST** re-export every type and runtime symbol that other modules need: port interfaces, application services, response DTOs, guards, decorators, public exception types.
-- **MUST NOT** re-export internal helpers, mappers, infrastructure adapters, or anything that should not be reachable from outside.
-- **MAY** re-export via intermediate layer barrels (`./application/index.js`, `./domain/index.js`) when that grouping is cleaner, as in [src/modules/auth/index.ts](src/modules/auth/index.ts).
+- **MUST NOT** re-export the NestJS module class (to prevent ESM circular initialization through controller → guard → barrel chains).
+- **MUST NOT** re-export internal helpers, mappers, infrastructure adapters, controllers, or anything that should not be reachable from outside.
+- **MAY** re-export via intermediate layer barrels (`./application/index.js`, `./domain/index.js`) when that grouping is cleaner, as in [src/modules/auth/index.ts](src/modules/auth/index.ts). Layer barrels MUST NOT include controllers.
 
 Inside a feature, code MUST use **relative imports**:
 
@@ -276,7 +273,7 @@ The following are **forbidden** in new code. A code review or AI agent finding a
 - **Deep cross-module imports** (`#src/modules/<other>/<layer>/...`) in new code. Use the module barrel.
 - **Prisma in `application/` or `presentation/`** — Prisma belongs in `infrastructure/` only.
 - **`class-validator` or `class-transformer` anywhere.** Validation is Zod via `createStrictZodDto`.
-- **`process.env` reads outside `core/infrastructure/config/`.** Use the injected `AppConfigService`.
+- **`process.env` reads in runtime application code.** Use the injected `AppConfigService`. The only legitimate `process.env` usage is in bootstrap/config-loader code (`core/app.bootstrap.ts`, `core/infrastructure/config/app-config.module.ts`) where `AppConfigService` does not yet exist, and in seed/test scripts outside `src/`.
 - **`console.log/info/warn/error` anywhere in `src/`.** Use the injected Pino logger.
 - **`@SkipEnvelope()` outside documented webhook handlers.** Every other endpoint MUST use the global response envelope.
 - **Catching `AppException` to swallow it.** Let it propagate to the global exception filter.

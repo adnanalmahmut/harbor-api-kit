@@ -1,4 +1,4 @@
-import { StorageDriver } from '#src/modules/files/domain/index.js';
+import { StorageDriver } from '../domain/index.js';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { Readable } from 'node:stream';

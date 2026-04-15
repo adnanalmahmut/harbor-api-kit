@@ -1,5 +1,5 @@
-import type { AuthProviderPort } from '#src/modules/auth/domain/auth.ports.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
+import type { AuthProviderPort } from '#src/modules/auth/index.js';
+import type { GrantsRepositoryPort } from '#src/modules/rbac/index.js';
 import { z } from 'zod';
 
 export const SetUserPermissionOverrideSchema = z.object({
@@ -11,7 +11,7 @@ export type SetUserPermissionOverrideCommand = {
   userId: string;
 } & z.infer<typeof SetUserPermissionOverrideSchema>;
 
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/index.js';
 
 export class SetUserPermissionOverrideUseCase {
   constructor(

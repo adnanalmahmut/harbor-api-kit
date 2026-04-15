@@ -1,5 +1,5 @@
-import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
-import type { PermissionRepositoryPort } from '#src/modules/rbac/domain/ports/permission.repository.port.js';
+import { Permission } from '../../domain/entities/permission.entity.js';
+import type { PermissionRepositoryPort } from '../../domain/ports/permission.repository.port.js';
 import { z } from 'zod';
 
 export const CreatePermissionSchema = z.object({

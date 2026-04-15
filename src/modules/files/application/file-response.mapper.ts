@@ -1,4 +1,4 @@
-import { FileEntity } from '#src/modules/files/domain/index.js';
+import { FileEntity } from '../domain/index.js';
 
 interface FileResponse {
   id: string;

@@ -1,4 +1,4 @@
-export * from './api-responses.examples.js';
-export * from './files.controller.js';
+// Public presentation surface for cross-module consumption.
+// Controllers and internal API-response examples are NOT exported — they
+// are module-internal.
 export * from './files.dto.js';
-export * from './public-files.controller.js';

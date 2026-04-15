@@ -3,12 +3,12 @@ import type {
   LoggerPort,
   RequestContextStorePort,
 } from '#src/core/index.js';
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
-import { PermissionKeyVO } from '#src/modules/rbac/domain/value-objects/permission-key.vo.js';
-import { UserPermissionOverride } from '#src/modules/rbac/domain/value-objects/user-permission-override.vo.js';
+import { EffectivePermissionsService } from './effective-permissions.service.js';
+import { Permission } from '../../domain/entities/permission.entity.js';
+import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
+import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
+import { PermissionKeyVO } from '../../domain/value-objects/permission-key.vo.js';
+import { UserPermissionOverride } from '../../domain/value-objects/user-permission-override.vo.js';
 import { jest } from '@jest/globals';
 
 describe('EffectivePermissionsService', () => {

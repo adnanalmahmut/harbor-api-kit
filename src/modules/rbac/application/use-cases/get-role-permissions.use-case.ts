@@ -1,5 +1,5 @@
-import type { Permission } from '#src/modules/rbac/domain/entities/permission.entity.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
+import type { Permission } from '../../domain/entities/permission.entity.js';
+import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
 
 export class GetRolePermissionsUseCase {
   constructor(private readonly grantsRepo: GrantsRepositoryPort) {}

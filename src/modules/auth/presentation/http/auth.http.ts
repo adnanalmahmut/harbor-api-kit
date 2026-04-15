@@ -5,7 +5,7 @@ import {
   createApiSuccess,
   type ApiResponseConfig,
 } from '#src/core/index.js';
-import type { CookieDirective } from '#src/modules/auth/domain/index.js';
+import type { CookieDirective } from '../../domain/index.js';
 import { HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import {

@@ -4,7 +4,7 @@ import {
   User,
   type CurrentSessionProviderPort,
   type SessionContext,
-} from '#src/modules/auth/domain/index.js';
+} from '../domain/index.js';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()

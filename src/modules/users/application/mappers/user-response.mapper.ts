@@ -1,4 +1,4 @@
-import { User } from '#src/modules/users/domain/entities/user.entity.js';
+import { User } from '../../domain/entities/user.entity.js';
 
 export class UserResponseMapper {
   static map(user: User) {

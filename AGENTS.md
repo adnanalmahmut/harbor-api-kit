@@ -35,14 +35,14 @@ Node.js 22 (ESM) · TypeScript 5.9 · NestJS 11 (Fastify 5) · Prisma 7 + Postgr
 
 ---
 
-## 3. Public API boundary — MUST
+## 3. Public API boundary — MUST (ESLint-enforced)
 
 - Every module MUST expose its public API through its root `index.ts`.
-- Cross-module imports MUST target `#src/modules/<feature>/index.js` (or equivalently `#src/modules/<feature>`). Importing past the barrel — e.g., `#src/modules/users/application/use-cases/create-user.use-case.js` — is **forbidden in new code**.
-- When a needed symbol is not yet exported by a target module's barrel, the correct fix is to **add the export to that module's `index.ts`** — never to deep-import as a workaround.
+- Cross-module imports MUST target `#src/modules/<feature>/index.js`. Importing past the barrel — e.g., `#src/modules/users/application/use-cases/create-user.use-case.js` — is **forbidden and ESLint-enforced** (CI will fail).
+- **NestJS module classes** are the one exception: they are NOT in the barrel (to avoid ESM circular initialization). Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
+- When a needed symbol is not yet exported by a target module's barrel, the correct fix is to **add the export to that module's `index.ts`** — never to deep-import.
 - Inside a module, use **relative imports** for in-feature references. Do not self-reference via `#src/modules/<own-feature>/...`.
-
-Legacy deep imports listed in [ARCHITECTURE.md §5.1](ARCHITECTURE.md#51-current-cross-module-dependency-map-migration-target) exist in current code and are tolerated only until the migration pass. New code does not get this exemption.
+- The single documented deep-import exception is [src/core/infrastructure/redis/redis.keys.ts](src/core/infrastructure/redis/redis.keys.ts) — see [ARCHITECTURE.md §4.2](ARCHITECTURE.md#42-cross-module-public-api-enforcement-eslint-enforced).
 
 ---
 

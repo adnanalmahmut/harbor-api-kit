@@ -1,7 +1,7 @@
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import { RBAC_TOKENS } from '#src/modules/rbac/rbac.tokens.js';
-import { USERS_TOKENS } from '#src/modules/users/users.tokens.js';
+import { AUTH_TOKENS } from './auth.tokens.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/index.js';
+import { RBAC_TOKENS } from '#src/modules/rbac/index.js';
+import { USERS_TOKENS } from '#src/modules/users/index.js';
 import {
   type FactoryProvider,
   type InjectionToken,
@@ -33,7 +33,7 @@ import {
   UpdateUserUseCase,
   VerifyEmailUseCase,
   VerifyPasswordUseCase,
-} from '#src/modules/auth/application/index.js';
+} from './application/index.js';
 
 type Ctor<T> = new (...args: any[]) => T;
 

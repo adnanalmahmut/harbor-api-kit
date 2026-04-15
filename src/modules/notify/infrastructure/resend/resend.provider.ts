@@ -2,14 +2,14 @@ import { AppConfigService, resolveSupportedLocale } from '#src/core/index.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
-} from '#src/modules/notify/domain/email.provider.port.js';
+} from '../../domain/email.provider.port.js';
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import { PinoLogger } from 'nestjs-pino';
 import * as path from 'path';
 import { Resend } from 'resend';
 
-import { NotifyException } from '#src/modules/notify/domain/exceptions/notify.exception.js';
+import { NotifyException } from '../../domain/exceptions/notify.exception.js';
 
 function maskEmail(email: string): string {
   const [localPart = '', domain = ''] = email.split('@');

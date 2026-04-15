@@ -5,10 +5,7 @@ import {
   resolveLocaleFromSource,
   type RequestContext,
 } from '#src/core/index.js';
-import {
-  AuthCacheKeys,
-  AuthException,
-} from '#src/modules/auth/application/index.js';
+import { AuthCacheKeys, AuthException } from '../../application/index.js';
 import {
   LinkedAccount,
   Session,
@@ -32,7 +29,7 @@ import {
   type TokenResult,
   type UnlinkAccountCommand,
   type VerifyEmailCommand,
-} from '#src/modules/auth/domain/index.js';
+} from '../../domain/index.js';
 import { Injectable } from '@nestjs/common';
 import { toNodeHandler } from 'better-auth/node';
 import { PinoLogger } from 'nestjs-pino';

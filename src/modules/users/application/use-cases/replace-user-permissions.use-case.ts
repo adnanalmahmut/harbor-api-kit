@@ -1,5 +1,5 @@
-import { EffectivePermissionsService } from '#src/modules/rbac/application/services/effective-permissions.service.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
+import { EffectivePermissionsService } from '#src/modules/rbac/index.js';
+import type { GrantsRepositoryPort } from '#src/modules/rbac/index.js';
 
 export class ReplaceUserPermissionsUseCase {
   constructor(

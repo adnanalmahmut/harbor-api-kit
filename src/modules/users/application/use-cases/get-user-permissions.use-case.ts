@@ -1,4 +1,4 @@
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
+import type { GrantsRepositoryPort } from '#src/modules/rbac/index.js';
 
 export class GetUserPermissionsUseCase {
   constructor(private readonly grantsRepo: GrantsRepositoryPort) {}

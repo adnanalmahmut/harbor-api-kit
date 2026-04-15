@@ -1,13 +1,13 @@
 import { CORE_TOKENS, RequestContextStoreAdapter } from '#src/core/index.js';
-import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
+import { AUTH_TOKENS } from './auth.tokens.js';
 import {
   AuthConfigAdapter,
   AuthEmailHooks,
   BetterAuthProvider,
   InfraCurrentSessionProvider,
   RedisSessionTrackerAdapter,
-} from '#src/modules/auth/infrastructure/index.js';
-import { AuthGuard } from '#src/modules/auth/presentation/index.js';
+} from './infrastructure/index.js';
+import { AuthGuard } from './presentation/index.js';
 import type { Provider } from '@nestjs/common';
 
 export const authBindings: Provider[] = [

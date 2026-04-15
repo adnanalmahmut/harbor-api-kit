@@ -1,7 +1,7 @@
 import {
   GetPublicFileAccessUseCase,
   StreamPublicFileUseCase,
-} from '#src/modules/files/application/index.js';
+} from '../application/index.js';
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';

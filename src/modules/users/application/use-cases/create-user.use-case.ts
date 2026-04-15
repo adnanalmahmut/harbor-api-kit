@@ -1,7 +1,7 @@
-import { User } from '#src/modules/users/domain/entities/user.entity.js';
-import type { UserRepositoryPort } from '#src/modules/users/domain/ports/user.repository.port.js';
-import { EmailVO } from '#src/modules/users/domain/value-objects/email.vo.js';
-import { LocaleVO } from '#src/modules/users/domain/value-objects/locale.vo.js';
+import { User } from '../../domain/entities/user.entity.js';
+import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
+import { EmailVO } from '../../domain/value-objects/email.vo.js';
+import { LocaleVO } from '../../domain/value-objects/locale.vo.js';
 import { randomUUID } from 'crypto';
 import { UsersException } from '../exceptions/users.exception.js';
 

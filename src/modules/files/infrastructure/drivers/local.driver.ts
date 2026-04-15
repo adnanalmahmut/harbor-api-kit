@@ -6,7 +6,7 @@ import {
   type ReadStreamOptions,
   type SignedUrlOptions,
   type UploadResult,
-} from '#src/modules/files/application/index.js';
+} from '../../application/index.js';
 import { Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';

@@ -6,7 +6,7 @@ import {
   type ReadStreamOptions,
   type SignedUrlOptions,
   type UploadResult,
-} from '#src/modules/files/application/index.js';
+} from '../../application/index.js';
 import { Storage } from '@google-cloud/storage';
 import { Injectable } from '@nestjs/common';
 import { Readable } from 'node:stream';

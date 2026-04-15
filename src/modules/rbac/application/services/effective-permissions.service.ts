@@ -3,11 +3,11 @@ import type {
   LoggerPort,
   RequestContextStorePort,
 } from '#src/core/index.js';
-import { rbacCacheKeys } from '#src/modules/rbac/application/rbac.cache-keys.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/domain/ports/grants.repository.port.js';
-import type { RoleRepositoryPort } from '#src/modules/rbac/domain/ports/role.repository.port.js';
-import { PermissionCalculator } from '#src/modules/rbac/domain/services/permission-calculator.js';
-import { PermissionKeyVO } from '#src/modules/rbac/domain/value-objects/permission-key.vo.js';
+import { rbacCacheKeys } from '../rbac.cache-keys.js';
+import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
+import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
+import { PermissionCalculator } from '../../domain/services/permission-calculator.js';
+import { PermissionKeyVO } from '../../domain/value-objects/permission-key.vo.js';
 
 export type EffectivePermissions = {
   roles: Set<string>;

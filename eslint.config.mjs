@@ -118,6 +118,30 @@ const i18nRestricted = {
   ],
 };
 
+// Cross-module public API enforcement:
+// Deep imports into another module's layers are forbidden.
+// Consumers MUST use the barrel (#src/modules/<feature>/index.js) or the
+// module class file (#src/modules/<feature>/<feature>.module.js) directly.
+// This variable is merged into every layer config so it survives flat-config overrides.
+const crossModuleDeepRestricted = {
+  patterns: [
+    {
+      group: [
+        '#src/modules/*/domain/*',
+        '#src/modules/*/domain/**',
+        '#src/modules/*/application/*',
+        '#src/modules/*/application/**',
+        '#src/modules/*/infrastructure/*',
+        '#src/modules/*/infrastructure/**',
+        '#src/modules/*/presentation/*',
+        '#src/modules/*/presentation/**',
+      ],
+      message:
+        'Cross-module deep imports are forbidden. Import from the module barrel (#src/modules/<feature>/index.js) instead.',
+    },
+  ],
+};
+
 const contextRestricted = {
   patterns: [
     {
@@ -156,7 +180,7 @@ export default [
         'error',
         {
           paths: [...classValidatorRestricted.paths],
-          patterns: [],
+          patterns: [...crossModuleDeepRestricted.patterns],
         },
       ],
     },
@@ -174,7 +198,10 @@ export default [
         'error',
         {
           paths: [...prismaRestricted.paths],
-          patterns: [...prismaRestricted.patterns],
+          patterns: [
+            ...prismaRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
+          ],
         },
       ],
     },
@@ -199,6 +226,7 @@ export default [
             ...presentationRestricted.patterns,
             ...applicationRestricted.patterns,
             ...contextRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
           ],
         },
       ],
@@ -223,6 +251,7 @@ export default [
             ...infrastructureRestricted.patterns,
             ...presentationRestricted.patterns,
             ...contextRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
           ],
         },
       ],
@@ -256,6 +285,7 @@ export default [
               message:
                 'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
             },
+            ...crossModuleDeepRestricted.patterns,
           ],
         },
       ],
@@ -272,7 +302,10 @@ export default [
         'error',
         {
           paths: [...classValidatorRestricted.paths], // Prisma allowed
-          patterns: [...presentationRestricted.patterns],
+          patterns: [
+            ...presentationRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
+          ],
         },
       ],
     },
@@ -295,6 +328,7 @@ export default [
             ...infrastructureRestricted.patterns,
             ...presentationRestricted.patterns,
             ...applicationRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
           ],
         },
       ],
@@ -317,19 +351,39 @@ export default [
             ...nestJsRestricted.patterns,
             ...infrastructureRestricted.patterns,
             ...presentationRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
           ],
         },
       ],
     },
   },
   // Core Layer: Infrastructure
+  // Exception: redis.keys.ts is exempt from cross-module deep restrictions
+  // because it aggregates cache-key constants (circular barrel dep if via barrel).
   {
     files: ['src/core/infrastructure/**/*.ts'],
+    ignores: ['src/core/infrastructure/redis/redis.keys.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [], // Allows prisma/redis here
+          patterns: [
+            ...presentationRestricted.patterns,
+            ...crossModuleDeepRestricted.patterns,
+          ],
+        },
+      ],
+    },
+  },
+  // Core Layer: Infrastructure — redis.keys.ts exception (no cross-module restriction)
+  {
+    files: ['src/core/infrastructure/redis/redis.keys.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [],
           patterns: [...presentationRestricted.patterns],
         },
       ],
@@ -356,6 +410,7 @@ export default [
               message:
                 'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
             },
+            ...crossModuleDeepRestricted.patterns,
           ],
         },
       ],

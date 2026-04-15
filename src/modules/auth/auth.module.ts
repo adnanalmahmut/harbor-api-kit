@@ -1,5 +1,5 @@
 import { AppConfigModule, PrismaModule } from '#src/core/index.js';
-import { AuthController } from '#src/modules/auth/presentation/index.js';
+import { AuthController } from './presentation/http/auth.controller.js';
 import { NotifyModule } from '#src/modules/notify/notify.module.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 import { SharedModule } from '#src/modules/shared/shared.module.js';
