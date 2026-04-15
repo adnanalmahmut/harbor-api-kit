@@ -19,6 +19,7 @@ import {
   type ChangePasswordCommand,
   type CookieDirective,
   type ForgetPasswordCommand,
+  type GetSessionCommand,
   type GetSessionResult,
   type LinkSocialCommand,
   type ResetPasswordCommand,
@@ -86,6 +87,12 @@ function parseAttributes(parts: string[]): CookieDirective['options'] {
         | 'none';
     else if (p.startsWith('max-age='))
       options.maxAge = parseInt(part.trim().substring(8));
+    else if (p.startsWith('expires=')) {
+      const expires = new Date(part.trim().substring(8));
+      if (!Number.isNaN(expires.valueOf())) {
+        options.expires = expires;
+      }
+    }
   }
   return options;
 }
@@ -247,7 +254,7 @@ export class BetterAuthProvider implements AuthProviderPort {
       r.name || '',
       r.firstName || null,
       r.lastName || null,
-      r.image || null,
+      r.image ?? '',
       r.locale || null,
       roles,
       permissions,
@@ -417,35 +424,40 @@ export class BetterAuthProvider implements AuthProviderPort {
     }
   }
 
-  async getSession(cmd: {
-    context: RequestContext;
-    headers?: Record<string, string | string[] | undefined>;
-  }): Promise<GetSessionResult> {
+  async getSession(
+    cmd: GetSessionCommand,
+  ): Promise<AuthResult<GetSessionResult>> {
     try {
-      const headers = cmd.headers
-        ? new Headers(cmd.headers as Record<string, string>)
-        : toHeadersFromContext(cmd.context);
+      const headers = new Headers(toHeadersFromContext(cmd.context));
 
-      const result = await this.auth.api.getSession({
-        headers,
-      });
+      const { headers: responseHeaders, response } =
+        await this.auth.api.getSession({
+          headers,
+          returnHeaders: true,
+        });
 
-      if (result) {
-        const u = result.user;
-        const s = result.session;
+      const cookies = readCookiesFromHeaders(responseHeaders);
+
+      if (response) {
+        const u = response.user;
+        const s = response.session;
         if (
           (u as Record<string, unknown>)?.deletedAt ||
           (s as Record<string, unknown>)?.deletedAt
         ) {
-          return null;
+          return { data: null, cookies };
         }
+
         return {
-          user: this.hydrateUser(u),
-          session: this.hydrateSession(s),
+          data: {
+            user: this.hydrateUser(u),
+            session: this.hydrateSession(s),
+          },
+          cookies,
         };
       }
 
-      return null;
+      return { data: null, cookies };
     } catch (e) {
       this.rethrowAsAppException(e);
     }

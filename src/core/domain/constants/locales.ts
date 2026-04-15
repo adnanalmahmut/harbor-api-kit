@@ -25,3 +25,23 @@ export function buildI18nFallbacks(
 
   return fallbacks;
 }
+
+const SUPPORTED_LOCALE_BY_TAG = new Map(
+  SUPPORTED_LOCALES.map((locale) => [locale.toLowerCase(), locale]),
+);
+const SUPPORTED_LOCALE_FALLBACKS = buildI18nFallbacks(SUPPORTED_LOCALES);
+
+export function resolveSupportedLocale(
+  locale?: string,
+): SupportedLocale | undefined {
+  const raw = locale?.trim();
+  if (!raw) return undefined;
+
+  const exact = SUPPORTED_LOCALE_BY_TAG.get(raw.toLowerCase());
+  if (exact) return exact;
+
+  const lang = getLang(raw);
+  return (
+    SUPPORTED_LOCALE_FALLBACKS[`${lang}-*`] ?? SUPPORTED_LOCALE_FALLBACKS[lang]
+  );
+}

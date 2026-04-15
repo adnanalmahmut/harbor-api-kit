@@ -95,6 +95,16 @@ export const envSchema = z
     // Authentication - Session Cookies
     SESSION_TOKEN_COOKIE: z.string().min(1).default('__Host-session'),
     SESSION_DATA_COOKIE: z.string().min(1).default('__Host-session-data'),
+    AUTH_SESSION_PERSISTENT_EXPIRES_IN_SEC: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(60 * 60 * 24 * 30),
+    AUTH_SESSION_ROLLING_UPDATE_AGE_SEC: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(60 * 60 * 24),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
 
@@ -213,6 +223,18 @@ export const envSchema = z
             'LOCAL_STORAGE_PATH is required when STORAGE_DRIVER is local',
         });
       }
+    }
+
+    if (
+      data.AUTH_SESSION_ROLLING_UPDATE_AGE_SEC >=
+      data.AUTH_SESSION_PERSISTENT_EXPIRES_IN_SEC
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AUTH_SESSION_ROLLING_UPDATE_AGE_SEC'],
+        message:
+          'AUTH_SESSION_ROLLING_UPDATE_AGE_SEC must be less than AUTH_SESSION_PERSISTENT_EXPIRES_IN_SEC',
+      });
     }
   });
 

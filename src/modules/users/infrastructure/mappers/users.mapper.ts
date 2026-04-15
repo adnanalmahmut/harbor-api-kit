@@ -8,7 +8,7 @@ export type PrismaUserRecord = {
   lastName: string | null;
   email: string;
   emailVerified: boolean;
-  image: string | null;
+  image: string;
   locale: string;
   roles: Role[];
   permissions: Permission[];

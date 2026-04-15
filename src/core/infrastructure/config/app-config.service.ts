@@ -81,6 +81,14 @@ export class AppConfigService {
     return {
       sessionTokenCookie: this.config.get('SESSION_TOKEN_COOKIE'),
       sessionDataCookie: this.config.get('SESSION_DATA_COOKIE'),
+      session: {
+        persistentExpiresInSec: this.config.get(
+          'AUTH_SESSION_PERSISTENT_EXPIRES_IN_SEC',
+        ),
+        rollingUpdateAgeSec: this.config.get(
+          'AUTH_SESSION_ROLLING_UPDATE_AGE_SEC',
+        ),
+      },
 
       redirectAllowlist: this.uniq(
         this.config.get<string[]>('REDIRECT_ALLOWED_ORIGINS'),

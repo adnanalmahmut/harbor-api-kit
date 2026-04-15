@@ -1,4 +1,8 @@
-import { PrismaService, RedisService } from '#src/core/index.js';
+import {
+  AppConfigService,
+  PrismaService,
+  RedisService,
+} from '#src/core/index.js';
 import { HttpStatus } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
@@ -12,6 +16,7 @@ describe('Auth API Contract (E2E)', () => {
   let prisma: PrismaService;
   let redisService: RedisService;
   let authHelper: AuthHelper;
+  let config: AppConfigService;
 
   const extractCsrf = (cookies: string[] = []) => {
     for (const c of cookies) {
@@ -20,6 +25,9 @@ describe('Auth API Contract (E2E)', () => {
     }
     return undefined;
   };
+
+  const findCookie = (cookies: string[] = [], name: string) =>
+    cookies.find((cookie) => cookie.startsWith(`${name}=`));
 
   const buildCsrfHeaders = async (cookies: string[]) => {
     const res = await request(app.getHttpServer())
@@ -41,6 +49,7 @@ describe('Auth API Contract (E2E)', () => {
     prisma = factory.prisma;
     redisService = factory.redis;
     authHelper = new AuthHelper(app);
+    config = app.get(AppConfigService);
   });
 
   afterAll(async () => {
@@ -141,6 +150,62 @@ describe('Auth API Contract (E2E)', () => {
       expect(res.get('Set-Cookie')).toBeDefined();
     });
 
+    it('should return a persistent session cookie when rememberMe is true', async () => {
+      await authHelper.registerAndLogin({
+        email: 'rememberme@example.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Remember',
+        lastName: 'Me',
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'rememberme@example.com',
+          password: 'Password123!',
+          rememberMe: true,
+        })
+        .expect(200);
+
+      const sessionCookie = findCookie(
+        res.get('Set-Cookie'),
+        config.auth().sessionTokenCookie,
+      );
+
+      expect(sessionCookie).toBeDefined();
+      expect(sessionCookie).toContain(
+        `Max-Age=${config.auth().session.persistentExpiresInSec}`,
+      );
+    });
+
+    it('should keep the session cookie non-persistent when rememberMe is false', async () => {
+      await authHelper.registerAndLogin({
+        email: 'sessiononly@example.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Session',
+        lastName: 'Only',
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'sessiononly@example.com',
+          password: 'Password123!',
+          rememberMe: false,
+        })
+        .expect(200);
+
+      const sessionCookie = findCookie(
+        res.get('Set-Cookie'),
+        config.auth().sessionTokenCookie,
+      );
+
+      expect(sessionCookie).toBeDefined();
+      expect(sessionCookie).not.toContain('Max-Age=');
+    });
+
     it('should fail with 401 for invalid credentials', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
@@ -201,6 +266,63 @@ describe('Auth API Contract (E2E)', () => {
       // Ensure roles/permissions are present (even if empty)
       // expect(res.body.data.roles).toBeDefined(); // Need to verify if response shape includes these
       // Based on previous chats, they should be there.
+    });
+
+    it('should forward refreshed Better Auth cookies when session refresh is due', async () => {
+      const { cookies, userId } = await authHelper.registerAndLogin({
+        email: 'refresh@example.com',
+        password: 'Password123!',
+        confirmPassword: 'Password123!',
+        firstName: 'Refresh',
+        lastName: 'User',
+      });
+
+      const persistentExpiresInSec =
+        config.auth().session.persistentExpiresInSec;
+      const rollingUpdateAgeSec = config.auth().session.rollingUpdateAgeSec;
+      const session = await prisma.session.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      expect(session).toBeDefined();
+
+      const refreshDueExpiresAt = new Date(
+        Date.now() +
+          Math.max(1, persistentExpiresInSec - rollingUpdateAgeSec - 10) * 1000,
+      );
+
+      await prisma.session.update({
+        where: { id: session!.id },
+        data: {
+          expiresAt: refreshDueExpiresAt,
+          updatedAt: new Date(Date.now() - (rollingUpdateAgeSec + 60) * 1000),
+        },
+      });
+
+      await clearRedisCache(redisService);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/auth/me')
+        .set('Cookie', cookies)
+        .expect(200);
+
+      const refreshedSessionCookie = findCookie(
+        res.get('Set-Cookie'),
+        config.auth().sessionTokenCookie,
+      );
+      const updatedSession = await prisma.session.findUnique({
+        where: { id: session!.id },
+      });
+
+      expect(refreshedSessionCookie).toBeDefined();
+      expect(refreshedSessionCookie).toContain(
+        `Max-Age=${persistentExpiresInSec}`,
+      );
+      expect(updatedSession).toBeDefined();
+      expect(updatedSession!.expiresAt.getTime()).toBeGreaterThan(
+        refreshDueExpiresAt.getTime(),
+      );
     });
 
     it('should return 401 if unauthenticated', async () => {

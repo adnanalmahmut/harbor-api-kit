@@ -20,6 +20,7 @@ export function createBetterAuth(
     sessionDataCookie,
     betterAuthSecret,
     betterAuthUrl,
+    session: sessionConfig,
   } = config.auth();
 
   const isProd = config.isProd();
@@ -177,6 +178,8 @@ export function createBetterAuth(
     session: {
       modelName: 'Session',
       storeSessionInDatabase: true,
+      expiresIn: sessionConfig.persistentExpiresInSec,
+      updateAge: sessionConfig.rollingUpdateAgeSec,
       additionalFields: {
         city: { type: 'string', required: false },
         country: { type: 'string', required: false },

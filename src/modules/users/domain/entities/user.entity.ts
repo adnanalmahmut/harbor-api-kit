@@ -6,7 +6,7 @@ export class User {
     public lastName: string | null,
     public email: string,
     public emailVerified: boolean,
-    public image: string | null,
+    public image: string,
     public locale: string,
     public roles: string[],
     public permissions: string[],

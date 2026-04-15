@@ -1,8 +1,4 @@
-import {
-  CORE_TOKENS,
-  CacheTTL,
-  type RequestContextStorePort,
-} from '#src/core/index.js';
+import { CORE_TOKENS, type RequestContextStorePort } from '#src/core/index.js';
 import {
   AuthCacheKeys,
   AuthException,
@@ -11,6 +7,7 @@ import { AUTH_TOKENS } from '#src/modules/auth/auth.tokens.js';
 import type {
   AuthConfigPort,
   AuthProviderPort,
+  CookieDirective,
   SessionTrackerPort,
 } from '#src/modules/auth/domain/index.js';
 import {
@@ -20,7 +17,8 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { applyCookies } from './auth.http.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -39,6 +37,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<FastifyRequest>();
+    const reply = context.switchToHttp().getResponse<FastifyReply>();
 
     const ctx = this.contextStore.get();
     if (!ctx) throw AuthException.authenticationRequired();
@@ -57,16 +56,22 @@ export class AuthGuard implements CanActivate {
       ? AuthCacheKeys.session(token)
       : 'auth_session_generic';
     const scope = token ? 'both' : 'request';
+    let refreshedCookies: CookieDirective[] | undefined;
 
     const sessionResult = await this.contextStore.getOrLoad(
       cacheKey,
-      () =>
-        this.authProvider.getSession({
+      async () => {
+        const result = await this.authProvider.getSession({
           context: this.contextStore.get()!,
-        }),
-      CacheTTL.FIFTEEN_MINUTES, // Balanced TTL (L2)
+        });
+        refreshedCookies = result.cookies;
+        return result.data;
+      },
+      this.config.sessionLookupCacheTtlSec,
       scope,
     );
+
+    applyCookies(reply, refreshedCookies);
 
     if (!sessionResult?.session) throw AuthException.authenticationRequired();
 

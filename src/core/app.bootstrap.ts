@@ -64,7 +64,7 @@ export function configureApp(app: NestFastifyApplication) {
   const adapter = app.getHttpAdapter().getInstance();
 
   adapter.register(fastifyCookie, {
-    // optional: secret: '...' لو تريد signed cookies لاحقاً
+    // optional: secret: '...', // for signed cookies
   });
 
   adapter.register(fastifyMultipart, {

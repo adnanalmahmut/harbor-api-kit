@@ -35,7 +35,7 @@ export class User {
     readonly name: string,
     readonly firstName: string | null = null,
     readonly lastName: string | null = null,
-    readonly image: string | null = null,
+    readonly image: string = '',
     readonly locale: string | null = null,
     public roles: string[] = [],
     public permissions: string[] = [],

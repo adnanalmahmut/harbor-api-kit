@@ -1,4 +1,4 @@
-import { AppConfigService, RedisService } from '#src/core/index.js';
+import { AppConfigService, CacheTTL, RedisService } from '#src/core/index.js';
 import type {
   AuthConfigPort,
   SessionTrackerPort,
@@ -13,6 +13,13 @@ export class AuthConfigAdapter implements AuthConfigPort {
 
   get sessionTokenCookie(): string {
     return this.config.auth().sessionTokenCookie;
+  }
+
+  get sessionLookupCacheTtlSec(): number {
+    return Math.min(
+      CacheTTL.FIFTEEN_MINUTES,
+      this.config.auth().session.rollingUpdateAgeSec,
+    );
   }
 }
 

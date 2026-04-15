@@ -24,7 +24,7 @@ export class GetSessionUseCase {
     let session = sessionCtx.session;
 
     if (!user || !session) {
-      const sessionResult = await this.authProvider.getSession({
+      const { data: sessionResult } = await this.authProvider.getSession({
         context: sessionCtx as any,
       });
       if (!sessionResult) return null;

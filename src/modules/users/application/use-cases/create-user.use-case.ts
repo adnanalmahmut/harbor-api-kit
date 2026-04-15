@@ -36,7 +36,7 @@ export class CreateUserUseCase {
       command.lastName ?? null,
       email.value,
       command.emailVerified ?? false,
-      command.image ?? null,
+      command.image ?? '',
       locale.value,
       command.roles ?? [],
       command.permissions ?? [],

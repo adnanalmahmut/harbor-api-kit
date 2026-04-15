@@ -451,7 +451,7 @@ export class UnlinkAccountDto extends createStrictZodDto(UnlinkAccountSchema) {
 const UpdateUserSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  image: z.url().optional(),
+  image: z.union([z.literal(''), z.url()]).optional(),
   locale: z
     .string()
     .refine((val) => (SUPPORTED_LOCALES as readonly string[]).includes(val), {
@@ -467,7 +467,10 @@ export class UpdateUserDto extends createStrictZodDto(UpdateUserSchema) {
   @ApiPropertyOptional({ example: 'Doe' })
   lastName?: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
+  @ApiPropertyOptional({
+    example: 'https://example.com/avatar.jpg',
+    description: 'Use an empty string to clear the stored image.',
+  })
   image?: string;
 
   @ApiPropertyOptional({ example: 'en-US' })

@@ -29,7 +29,7 @@ export class InfraCurrentSessionProvider implements CurrentSessionProviderPort {
           rawUser.name,
           rawUser.firstName,
           rawUser.lastName,
-          rawUser.image,
+          rawUser.image ?? '',
           rawUser.locale,
           rawUser.createdAt,
           rawUser.updatedAt,

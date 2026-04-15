@@ -1,4 +1,4 @@
-import { buildI18nFallbacks, SUPPORTED_LOCALES } from '../constants/locales.js';
+import { resolveSupportedLocale } from '../constants/locales.js';
 
 export function stripQuery(url: string | undefined): string {
   const u = url ?? '/';
@@ -19,18 +19,6 @@ export function isI18nKeyLike(s: any): s is string {
   if (!v) return false;
   if (/\s/.test(v)) return false;
   return v.includes('.') && /^[a-zA-Z0-9_.:-]+$/.test(v);
-}
-
-const KNOWN_LOCALES: Set<string> = new Set([
-  ...SUPPORTED_LOCALES,
-  ...Object.keys(buildI18nFallbacks(SUPPORTED_LOCALES)),
-]);
-
-function isKnownLocale(tag: string): boolean {
-  if (KNOWN_LOCALES.has(tag)) return true;
-  // Check wildcard patterns like 'en-*' by matching the language prefix
-  const lang = tag.split('-')[0].toLowerCase();
-  return KNOWN_LOCALES.has(lang) || KNOWN_LOCALES.has(`${lang}-*`);
 }
 
 type LocaleSource = {
@@ -62,5 +50,5 @@ export function resolveLocaleFromSource(
   if (!raw) return undefined;
 
   const tag = firstLanguageTag(raw);
-  return isKnownLocale(tag) ? tag : undefined;
+  return resolveSupportedLocale(tag);
 }

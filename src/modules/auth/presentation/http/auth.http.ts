@@ -42,7 +42,14 @@ export function applyCookies(reply: FastifyReply, cookies?: CookieDirective[]) {
   if (!cookies || cookies.length === 0) return;
 
   const serialized = cookies.map(serializeCookie);
-  reply.header('set-cookie', serialized);
+  const existing = reply.getHeader('set-cookie');
+  const current = Array.isArray(existing)
+    ? existing.map(String)
+    : existing
+      ? [String(existing)]
+      : [];
+
+  reply.header('set-cookie', [...current, ...serialized]);
 }
 
 /**

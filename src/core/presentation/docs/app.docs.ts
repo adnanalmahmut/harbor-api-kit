@@ -1,18 +1,23 @@
 import { AppConfigService } from '#src/core/infrastructure/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { apiReference } from '@scalar/nestjs-api-reference';
 
-// Node-only TS (no DOM lib)
-declare const window: any;
+function getCookieValue(
+  cookieHeader: string | undefined,
+  name: string,
+): string | null {
+  if (!cookieHeader) return null;
 
-type ScalarFetch = (
-  input: unknown,
-  init?: Record<string, unknown>,
-) => Promise<unknown>;
-type ScalarOnBeforeRequest = (args: {
-  request: { headers: { set: (name: string, value: string) => void } };
-}) => void;
+  const cookiePart = cookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+
+  if (!cookiePart) return null;
+
+  const value = cookiePart.slice(name.length + 1);
+  return value ? decodeURIComponent(value) : null;
+}
 
 export function setupApiDocs(
   app: NestFastifyApplication,
@@ -21,19 +26,16 @@ export function setupApiDocs(
   if (!config.docs().enabled) return;
 
   const appCfg = config.app();
-
   const csrfCfg = config.csrf();
-  const csrfCookieName = csrfCfg.cookieName;
 
+  const csrfCookieName = csrfCfg.cookieName;
   const csrfHeaderName = String(csrfCfg.headerName).toLowerCase();
 
   const docConfig = new DocumentBuilder()
     .setTitle(appCfg.name)
     .setDescription(
       `## API Reference
-      This API bulid for ${appCfg.name} application
-      
-      `,
+This API build for ${appCfg.name} application`,
     )
     .setVersion('1.0')
     .addCookieAuth()
@@ -49,55 +51,108 @@ export function setupApiDocs(
       required: true,
       schema: { type: 'string', example: '192.29.224.220' },
     })
-    .addApiKey(
-      {
-        type: 'apiKey',
-        in: 'header',
-        name: csrfHeaderName,
-        description: 'CSRF token',
-      },
-      'csrf',
-    )
     .build();
 
   const openApiDocument = SwaggerModule.createDocument(app, docConfig);
 
-  const fetchWithCookies: ScalarFetch = (input, init) => {
-    return window.fetch(input as any, {
-      ...(init ?? {}),
-      credentials: 'include',
-    });
-  };
+  // اجعل السيرفر الظاهر في docs هو البروكسي الخاص بالتوثيق
+  openApiDocument.servers = [
+    {
+      url: '/documentation-proxy',
+      description: 'Documentation proxy',
+    },
+  ];
 
-  // Inject config values as literals INSIDE the serialized browser function
-  const cookieNameLit = JSON.stringify(csrfCookieName);
-  const headerNameLit = JSON.stringify(csrfHeaderName);
+  const fastify = app.getHttpAdapter().getInstance();
 
-  const onBeforeRequest: ScalarOnBeforeRequest = new Function(`
-    return ({ request }) => {
-      const cookieName = ${cookieNameLit};
-      const headerName = ${headerNameLit};
+  fastify.get('/documentation/openapi.json', async (_req: any, reply: any) => {
+    reply.type('application/json').send(openApiDocument);
+  });
 
-      const doc = window && window.document;
-      if (!doc) return;
+  // بروكسي داخلي يضيف هيدر CSRF على مستوى السيرفر
+  fastify.route({
+    method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    url: '/documentation-proxy/*',
+    handler: async (req: any, reply: any) => {
+      const rawUrl = String(req.raw.url || '/documentation-proxy');
+      const [pathname, queryString] = rawUrl.split('?');
 
-      const match = doc.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
-      if (match) {
-        request.headers.set(headerName, decodeURIComponent(match[2]));
+      const targetPath = pathname.replace(/^\/documentation-proxy/, '') || '/';
+      const targetUrl = queryString
+        ? `${targetPath}?${queryString}`
+        : targetPath;
+
+      const headers: Record<string, any> = { ...req.headers };
+
+      delete headers.host;
+      delete headers['content-length'];
+
+      const csrfToken = getCookieValue(req.headers.cookie, csrfCookieName);
+      if (csrfToken) {
+        headers[csrfHeaderName] = csrfToken;
       }
-    };
-  `)();
 
-  app.use(
-    '/documentation',
-    apiReference({
-      content: openApiDocument,
-      pageTitle: `${appCfg.name} Docs`,
-      theme: 'purple',
-      darkMode: true,
-      withFastify: true,
-      fetch: fetchWithCookies,
-      onBeforeRequest,
-    } as any),
-  );
+      const injected = await fastify.inject({
+        method: req.method,
+        url: targetUrl,
+        headers,
+        payload: req.body,
+      });
+
+      reply.code(injected.statusCode);
+
+      for (const [key, value] of Object.entries(injected.headers)) {
+        if (value === undefined) continue;
+        if (key.toLowerCase() === 'content-length') continue;
+        reply.header(key, value as any);
+      }
+
+      return reply.send(injected.rawPayload);
+    },
+  });
+
+  // صفحة docs مخصصة بدون onBeforeRequest وبدون fetch wrapper
+  fastify.get('/documentation', async (_req: any, reply: any) => {
+    const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(appCfg.name)} Docs</title>
+    <style>
+      html, body, #app {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.52.0"></script>
+    <script>
+      Scalar.createApiReference('#app', {
+        url: '/documentation/openapi.json',
+        theme: 'purple',
+        darkMode: true,
+        agent: { disabled: true },
+        telemetry: false,
+        showDeveloperTools: 'never',
+      });
+    </script>
+  </body>
+</html>`;
+
+    reply.type('text/html').send(html);
+  });
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

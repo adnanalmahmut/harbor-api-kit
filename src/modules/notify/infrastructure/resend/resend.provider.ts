@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/core/index.js';
+import { AppConfigService, resolveSupportedLocale } from '#src/core/index.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
@@ -102,11 +102,15 @@ export class ResendEmailProvider implements EmailProviderPort {
     locale: string,
     data: Record<string, any>,
   ): Promise<string> {
+    const resolvedLocale =
+      resolveSupportedLocale(locale) ??
+      this.config.i18n().defaultLocale ??
+      'en-US';
     const projectRoot = process.cwd();
     const templatePath = path.join(
       projectRoot,
       'locales',
-      locale,
+      resolvedLocale,
       'emails',
       `${templateName}.html`,
     );
@@ -132,7 +136,7 @@ export class ResendEmailProvider implements EmailProviderPort {
           msg: 'Missing template variable',
           key,
           templateName,
-          locale,
+          locale: resolvedLocale,
         });
         return match;
       });
@@ -143,7 +147,8 @@ export class ResendEmailProvider implements EmailProviderPort {
       this.logger.warn({
         msg: 'Email template not found',
         templateName,
-        locale,
+        locale: resolvedLocale,
+        requestedLocale: locale,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
 

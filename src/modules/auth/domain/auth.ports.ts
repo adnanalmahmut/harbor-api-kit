@@ -58,6 +58,7 @@ export interface AuthEmailSenderPort {
 
 export abstract class AuthConfigPort {
   abstract get sessionTokenCookie(): string;
+  abstract get sessionLookupCacheTtlSec(): number;
 }
 
 export abstract class SessionTrackerPort {
@@ -71,7 +72,7 @@ export interface AuthProviderPort {
 
   signOut(cmd: SignOutCommand): Promise<AuthResult<void>>;
 
-  getSession(cmd: GetSessionCommand): Promise<GetSessionResult>;
+  getSession(cmd: GetSessionCommand): Promise<AuthResult<GetSessionResult>>;
 
   verifyEmail(cmd: VerifyEmailCommand): Promise<AuthResult<void>>;
 
