@@ -1,131 +1,309 @@
 # ARCHITECTURE
 
-This document describes the architectural boundaries and cross-feature integration patterns used in this project. It distinguishes between rules that are **technically enforced** (via ESLint/TypeScript) and rules that are **conventions** (enforced via code review).
+This document is the **authoritative architectural reference** for `core-platform-api`. It defines the structure, layers, dependency direction, and module boundaries that all backend code MUST follow.
 
-## 1) Project structure (Feature-first + Clean Architecture)
+Execution rules (the operating rules an AI agent or contributor follows when writing code) live in [AGENTS.md](AGENTS.md). Practical step-by-step guides live under [docs/](docs/README.md). When in doubt, this document wins on architecture; `AGENTS.md` wins on procedure.
 
-Each feature owns its internal layers:
+---
 
-- `modules/<feature>/domain` - pure domain (no NestJS/ORM/decorators)
-- `modules/<feature>/application` - use-cases + ports
-- `modules/<feature>/presentation` - controllers + DTOs + validation
-- `modules/<feature>/infrastructure` - adapters (ORM/external providers)
+## 1. Architectural style
 
-Cross-cutting concerns live in `core/` (config, http pipeline, logging, i18n, shared infra wrappers).
+The project is a **feature-first backend** organized around **Clean Architecture**. The codebase is split in two top-level concerns:
 
-## 2) Dependency direction rules
+- **`src/modules/<feature>/`** — feature modules. Each module owns its full vertical: domain, application, infrastructure, presentation. Modules are the unit of architectural ownership.
+- **`src/core/`** — cross-cutting infrastructure and primitives that are not owned by any single feature: configuration, HTTP pipeline, response envelope, validation, logging, persistence service, Redis client, queues, i18n, security middleware, exception filter.
 
-### Enforced via ESLint (CI will fail):
+The split is enforced by ESLint layer rules ([eslint.config.mjs](eslint.config.mjs)). Layer boundaries are mechanical, not stylistic — violations fail CI.
 
-- `domain` CANNOT import from `application`, `presentation`, or `infrastructure`
-- `domain` CANNOT import NestJS decorators, Prisma types, or class-validator
-- `application` CANNOT import from `presentation` or `infrastructure`
-- `application` CANNOT import Prisma types or class-validator
-- No code outside `infrastructure` can import `@prisma/client` or generated Prisma types
+---
 
-### Convention (enforced via code review):
+## 2. Canonical module layout
 
-- `presentation -> application -> domain` is the preferred dependency flow
-- `infrastructure -> application/domain` (implements ports/contracts)
-- Avoid importing another feature's internal files directly when a module-level import suffices
+A complete module looks like this. All four layers MUST be present unless the module is a documented exception (see §8).
 
-### Not currently enforced:
+```
+src/modules/<feature>/
+├── index.ts                     # Public API (REQUIRED — see §6)
+├── <feature>.module.ts          # NestJS module: providers, controllers, exports
+├── <feature>.tokens.ts          # Injection tokens (Symbol-based)
+├── domain/                      # Pure business code, framework-free
+│   ├── entities/                # Entity classes
+│   ├── value-objects/           # VOs (EmailVO, LocaleVO, etc.)
+│   ├── ports/                   # Outbound port interfaces (UserRepositoryPort)
+│   └── exceptions/              # Domain-specific exception subclasses
+├── application/                 # Use-cases + orchestration
+│   ├── use-cases/               # One-per-file OR cohesive grouped slices (§7)
+│   ├── exceptions/              # Application-level exception subclasses
+│   └── mappers/                 # Domain→response shape mappers
+├── infrastructure/              # Adapters that implement domain ports
+│   ├── persistence/             # Prisma repositories
+│   └── <provider>/              # External providers (better-auth, resend, …)
+└── presentation/                # HTTP delivery
+    └── http/
+        ├── <feature>.controller.ts
+        ├── dtos/                # Zod DTOs (one-per-file OR grouped, §7)
+        ├── guards/              # Feature-specific guards
+        └── decorators/          # Feature-specific decorators
+```
 
-- Cross-feature internal imports (e.g., `#src/modules/rbac/presentation/http/guards/...` from the users module) are NOT blocked by ESLint. This is a known gap — modules currently import each other's internal paths directly for guards, decorators, ports, and services. See Section 3 for the full dependency map.
+Reference implementations:
+- [src/modules/users/](src/modules/users/) — full module, one-per-file use-case style.
+- [src/modules/auth/](src/modules/auth/) — full module, grouped use-case slices.
+- [src/modules/files/](src/modules/files/) — full module with multi-driver infrastructure subfolders.
 
-## 3) Cross-feature integration pattern
+---
 
-Modules integrate with each other through NestJS module imports combined with injection tokens and direct imports:
+## 3. Layer responsibilities
 
-- Feature B exports its services/ports via its NestJS module
-- Feature A imports Feature B's module and injects the exported providers via tokens
-- Cross-feature dependencies are wired through `useFactory` + `inject` in module providers
-- Guards, decorators, and DTOs are imported directly from other modules' internal paths
+### 3.1 Domain — `domain/`
 
-### Current cross-feature dependencies
+**Purpose:** business invariants, entities, value objects, port interfaces. The domain MUST be deployable without NestJS, Prisma, Redis, Fastify, or any HTTP/IO concern.
 
-| Consumer | Provider | What is consumed | Import style |
-|----------|----------|-----------------|-------------|
-| Auth | Users | UserRepositoryPort | Token injection via domain port |
-| Auth | RBAC | EffectivePermissionsService | Token injection via application service |
-| Auth | Notify | EmailProviderPort | Token injection via domain port |
-| Auth | RBAC | RbacGuard, Roles decorator | Direct presentation import |
-| Auth | Users | UserResponseDto | Direct presentation import |
-| Users | Auth | AuthProviderPort, AuthGuard | Token injection + direct presentation import |
-| Users | RBAC | RoleRepositoryPort, GrantsRepositoryPort, EffectivePermissionsService | Token injection via domain ports + application service |
-| Users | RBAC | RbacGuard, Roles, Permissions decorators, RoleResponseDto | Direct presentation import |
-| Files | Auth | AuthGuard | Direct presentation import |
-| Files | RBAC | RbacGuard, Permissions decorator | Direct presentation import |
-| Core | Auth, RBAC | AuthCacheKeys, rbacCacheKeys | Direct application import (cache key aggregation) |
+- **MUST** contain only pure TypeScript.
+- **MUST NOT** import `@nestjs/*`, `@prisma/client`, `ioredis`, `nestjs-i18n`, `class-validator`, `class-transformer`, or anything from `application/`, `infrastructure/`, `presentation/`.
+- **MAY** define port interfaces (`*.port.ts`) that infrastructure later implements.
+- **Allowed file**: [src/modules/users/domain/entities/user.entity.ts](src/modules/users/domain/entities/user.entity.ts).
+- **Forbidden file**: a domain entity decorated with `@Entity()` from a Prisma/ORM library.
 
-### Decision tree
+### 3.2 Application — `application/`
 
-Does Feature A need something from Feature B?
+**Purpose:** use cases (single-purpose orchestrators), application-level exceptions, response mappers.
 
-- Yes, synchronous and required for the request result
-  - Feature A imports Feature B's NestJS module and injects exported providers via tokens
-- Yes, but not required for the request result (async / eventual)
-  - Use a domain event or job queue (e.g., BullMQ for email notifications)
-- No
-  - Do nothing (no coupling)
+- **MUST** depend only on `domain/` (entities, ports) and other application code.
+- **MUST NOT** import Prisma, NestJS, Redis, i18n libs, or anything from `infrastructure/` / `presentation/`.
+- **MUST** receive infrastructure dependencies via constructor-injected port interfaces (typed as `domain/ports/*.port.ts`).
+- **Allowed file**: [src/modules/users/application/use-cases/create-user.use-case.ts](src/modules/users/application/use-cases/create-user.use-case.ts).
+- **Forbidden file**: a use case importing `PrismaService` directly.
 
-### Future improvement: shared contracts and public API boundaries
+### 3.3 Infrastructure — `infrastructure/`
 
-For stricter boundary enforcement, the project could:
+**Purpose:** adapters that implement domain ports against real systems (Prisma, Redis, external HTTP APIs).
 
-1. Create `shared/contracts/` with neutral cross-feature interfaces
-2. Add `index.ts` public API files to all modules (currently only `auth` and `files` have them)
-3. Add an ESLint rule to block cross-feature internal imports and require imports via module index.ts
+- **MUST** implement port interfaces declared in `domain/ports/`.
+- **MAY** import Prisma, Redis, and external SDKs.
+- **MUST NOT** import anything from `presentation/`.
+- **Allowed file**: [src/modules/users/infrastructure/persistence/prisma-user.repository.ts](src/modules/users/infrastructure/persistence/prisma-user.repository.ts).
+- **Forbidden file**: a Prisma repository that imports a controller or DTO.
 
-This is not yet implemented. The current approach (direct cross-feature imports) works but creates tighter coupling than ideal.
+### 3.4 Presentation — `presentation/`
 
-## 4) PR checklist (guidelines for review)
+**Purpose:** HTTP delivery — controllers, Zod DTOs, feature-scoped guards and decorators.
 
-- Domain stays framework-free (no decorators, no ORM types) — **enforced by ESLint**
-- Prisma types stay in infrastructure layer only — **enforced by ESLint**
-- No direct `process.env` reads outside config/bootstrap — **convention**
-- Only `#src/` path alias is allowed (no `@/`, `~/`, etc.) — **convention**
-- Cross-feature dependencies should use module imports + token injection when possible — **convention**
+- **MUST** use Zod via `createStrictZodDto` for all request bodies/params/queries. `class-validator` is forbidden globally.
+- **MUST NOT** import Prisma, Redis, or non-config/non-logger infrastructure paths.
+- **MAY** depend on `application/` (use cases) and `domain/` (types only).
+- **Allowed file**: [src/modules/users/presentation/http/users.controller.ts](src/modules/users/presentation/http/users.controller.ts).
+- **Forbidden file**: a controller that calls `prisma.user.findMany()` directly.
 
-## 5) Automated boundary enforcement
+### 3.5 Module wiring — `<feature>.module.ts`, `<feature>.tokens.ts`
 
-### 5.1 Import convention
+- **MUST** declare DI tokens as `Symbol`-keyed `as const` objects in `<feature>.tokens.ts` (e.g., [src/modules/users/users.tokens.ts](src/modules/users/users.tokens.ts)).
+- **MUST** wire ports → adapters via `useClass` or `useFactory + inject` in the NestJS module.
+- **MUST** explicitly list cross-module-consumable providers in `exports: [...]`.
 
-- Within the same feature: use **relative imports only**
+---
 
-  ```ts
-  // inside src/modules/auth/...
-  import { LoginUseCase } from '../application/use-cases/login/login.use-case.js';
-  ```
+## 4. Dependency direction
 
-- Cross-feature: use **path aliases**
-  ```ts
-  import { AuthGuard } from '#src/modules/auth/presentation/http/auth.guard.js';
-  ```
+The allowed direction is one-way:
 
-### 5.2 tsconfig setup (single alias)
+```
+presentation ─┐
+              ├──▶ application ──▶ domain
+infrastructure ┘                       ▲
+                                       │ (infrastructure implements ports defined in domain)
+```
 
-Only `#src/` is the official alias. Do not add `@/`, `@src/`, `~/` or any other alias.
+### 4.1 Enforced by ESLint ([eslint.config.mjs](eslint.config.mjs))
 
-`#src/` uses `#` prefix (not `@`) to avoid collision with npm scoped packages (`@nestjs/...`, `@prisma/...`).
+- `domain/` MUST NOT import `@nestjs/*`, `@prisma/client`, `ioredis`, `nestjs-i18n`, `class-validator`, `class-transformer`, generated Prisma types, `application/`, `infrastructure/`, `presentation/`, or request context internals.
+- `application/` MUST NOT import Prisma, NestJS, Redis, i18n libs, `infrastructure/`, or `presentation/`.
+- `presentation/` MUST NOT import Prisma, Redis, or `infrastructure/` (except `core/infrastructure/config/` and `core/infrastructure/logger/`).
+- `infrastructure/` MUST NOT import `presentation/`.
+- Globally: `class-validator` and `class-transformer` are forbidden in all of `src/`.
+- Prisma (`@prisma/client`, generated types) MUST NOT be imported outside `infrastructure/` or `core/db/prisma/`.
 
-### 5.3 ESLint rules (what is actually enforced)
+### 4.2 Convention (reviewer-enforced)
 
-Configured in `eslint.config.mjs` (ESLint 9+ flat config format).
+- Cross-module imports MUST go through the consumed module's root `index.ts` (see §6). ESLint enforcement of this rule is planned; until then, reviewers reject deep cross-module imports in new code.
+- Avoid circular module dependencies. When unavoidable (e.g., `users` ↔ `auth`), use `forwardRef()` and document the cycle in [AGENTS.md](AGENTS.md) or the relevant module file.
 
-**Layer isolation rules (enforced):**
+---
 
-- **Domain layer**: Cannot import from NestJS, Prisma, class-validator, Redis, i18n, infrastructure, or application
-- **Application layer**: Cannot import from Prisma, class-validator, Redis, i18n, infrastructure, or presentation
-- **Presentation layer**: Cannot import Prisma or class-validator (except config/logger infrastructure)
-- **Infrastructure layer**: Can import Prisma/Redis, cannot import presentation
+## 5. Cross-module integration
 
-**Not enforced by ESLint:**
+When feature A needs something from feature B:
 
-- Cross-feature internal imports (e.g., importing from `#src/modules/rbac/presentation/...` inside the users module)
-- These are currently allowed and used throughout the codebase
+1. **Feature B exports** the public surface (module class, tokens, port interfaces, application services, response DTOs, guards, decorators) from its root `index.ts`.
+2. **Feature A imports** Feature B's NestJS module (`imports: [BModule]`) and injects exported providers via tokens declared in `b.tokens.ts`.
+3. **Feature A imports types and references** only from `#src/modules/B` (the barrel) — never from `#src/modules/B/<layer>/...`.
 
-### 5.4 Runtime note (ESM/NodeNext)
+For asynchronous, eventual cross-feature work (notifications, audit), use a job queue (BullMQ) instead of a synchronous import.
 
-The `paths` mapping in `tsconfig.json` is a TypeScript compile-time feature.
-The project uses Node.js subpath imports (`"imports": { "#src/*": "./dist/src/*" }` in `package.json`) to resolve `#src/` at runtime.
+### 5.1 Current cross-module dependency map (migration target)
+
+The table below inventories cross-module dependencies. Entries marked **deep import** are *legacy* — they exist in current code but are forbidden for new code under §6. They will be migrated to barrel imports in a dedicated pass.
+
+| Consumer | Provider | What is consumed | Style |
+|----------|----------|------------------|-------|
+| Auth | Users | `UserRepositoryPort` | Token via barrel |
+| Auth | RBAC | `EffectivePermissionsService` | Token via barrel |
+| Auth | Notify | `EmailProviderPort` | Token via barrel |
+| Auth | RBAC | `RbacGuard`, `Roles` decorator | Deep import (legacy) |
+| Auth | Users | `UserResponseDto` | Deep import (legacy) |
+| Users | Auth | `AuthProviderPort`, `AuthGuard` | Mixed (token via barrel + deep import for guard) |
+| Users | RBAC | `RoleRepositoryPort`, `GrantsRepositoryPort`, `EffectivePermissionsService`, `RbacGuard`, `Roles`/`Permissions` decorators, `RoleResponseDto` | Deep imports (legacy) |
+| Files | Auth | `AuthGuard` | Deep import (legacy) |
+| Files | RBAC | `RbacGuard`, `Permissions` decorator | Deep imports (legacy) |
+| Core | Auth, RBAC | `AuthCacheKeys`, `rbacCacheKeys` | Deep import (legacy) |
+
+### 5.2 Planned enforcement upgrade
+
+A future pass will:
+1. Extend the barrel of each module to export its full public surface (guards, decorators, response DTOs, cache key constants).
+2. Migrate all deep imports listed above to barrel imports.
+3. Add an ESLint `no-restricted-imports` pattern that forbids `#src/modules/<other>/<anything>/<more>` from outside that module.
+
+Until then: **new code MUST use barrel imports**. Legacy deep imports are tolerated only because removal requires the migration above.
+
+---
+
+## 6. Public API boundary
+
+**Every feature module MUST expose exactly one `index.ts` at the module root.** Cross-module consumers MUST import only from `#src/modules/<feature>` — never from a sub-path.
+
+```ts
+// ✅ Correct — barrel import
+import { UsersModule, USERS_TOKENS } from '#src/modules/users/index.js';
+
+// ❌ Forbidden in new code — deep import past the barrel
+import { UsersModule } from '#src/modules/users/users.module.js';
+import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
+```
+
+Rules for the barrel itself:
+
+- **MUST** re-export `<feature>.module.ts` and `<feature>.tokens.ts` (when tokens exist).
+- **MUST** re-export every type and runtime symbol that other modules need: port interfaces, application services, response DTOs, guards, decorators, public exception types.
+- **MUST NOT** re-export internal helpers, mappers, infrastructure adapters, or anything that should not be reachable from outside.
+- **MAY** re-export via intermediate layer barrels (`./application/index.js`, `./domain/index.js`) when that grouping is cleaner, as in [src/modules/auth/index.ts](src/modules/auth/index.ts).
+
+Inside a feature, code MUST use **relative imports**:
+
+```ts
+// ✅ Inside src/modules/users/...
+import { User } from '../entities/user.entity.js';
+
+// ❌ Inside src/modules/users/... — do not self-reference via #src
+import { User } from '#src/modules/users/domain/entities/user.entity.js';
+```
+
+The `#src/` alias is reserved for `core/` references and (via the barrel) cross-module references.
+
+---
+
+## 7. File-count optimization policy
+
+The codebase deliberately tolerates two file styles: **one-per-file** (used in `users`) and **grouped slices** (used in `auth`). Both are valid. The rule is *cohesion + size*, not file count.
+
+### 7.1 MAY merge
+
+- **Use cases** that share a single bounded concern MAY live in one file (e.g., `auth.password.use-cases.ts` holds `RequestPasswordReset`, `ResetPassword`, `ChangePassword`).
+- **Request/response DTOs** that belong to a single controller MAY live in one file (e.g., [src/modules/files/presentation/files.dto.ts](src/modules/files/presentation/files.dto.ts)).
+- **Port interfaces** that form a small, cohesive set for one feature MAY live in one file (e.g., `auth.ports.ts`).
+- **Cache key constants** for a feature MAY live in one file (`<feature>.cache-keys.ts`).
+
+### 7.2 MUST NOT merge
+
+- Files spanning **multiple architectural layers** (e.g., a domain entity and an application use case in one file).
+- A controller and its DTOs in the same file.
+- A repository adapter and its Prisma↔domain mapper in the same file.
+- A domain entity and its value objects in the same file.
+- Two unrelated concerns under a misleadingly generic name (`utils.ts`, `helpers.ts` are forbidden — name files after their contents).
+
+### 7.3 MUST split when
+
+- File exceeds **~400 LOC**.
+- File contains **more than ~6 exported use cases** or DTOs.
+- File mixes more than one bounded concern (e.g., session-related use cases drifting into permission-related logic).
+- A reviewer cannot describe the file's purpose in one sentence.
+
+These thresholds are heuristics, not hard limits. The intent is: keep files small enough that an AI agent can hold the whole thing in working memory, but not so granular that 30 files each export one 5-line function.
+
+---
+
+## 8. Shared / core responsibilities
+
+### 8.1 What lives in `core/`
+
+`core/` owns cross-cutting infrastructure that is genuinely shared across modules and has no feature-specific domain meaning:
+
+- **`core/infrastructure/config/`** — `AppConfigService`, environment schema (`env.schema.ts`). The only place that reads `process.env`.
+- **`core/infrastructure/db/`** — `PrismaService` (global Prisma client).
+- **`core/infrastructure/redis/`** — `RedisService` wrapper around `ioredis`.
+- **`core/infrastructure/queue/`** — BullMQ wiring.
+- **`core/infrastructure/i18n/`** — i18n module setup.
+- **`core/infrastructure/logger/`** — Pino logger wiring with request-scoped context.
+- **`core/infrastructure/context/`** — request context store.
+- **`core/presentation/`** — global response interceptor (envelope), exception filter, validation pipe, security headers, CSRF, rate-limit, CORS, OpenAPI/Scalar setup.
+- **`core/domain/exceptions/`** — `AppException` base, `AppErrorCode`, `ERROR_DEFINITIONS`.
+
+### 8.2 What MUST stay feature-owned
+
+- Domain entities and value objects of a feature.
+- Feature-specific exception subclasses (`UsersException`, `AuthException`, `RbacException`).
+- Feature-specific port interfaces.
+- Feature-specific cache key constants and TTLs.
+- Feature-specific response mappers.
+- Feature-specific guards and decorators (e.g., `RbacGuard` belongs to `rbac`, not to `core`).
+
+### 8.3 When to extract to `core/`
+
+Apply the **three-signal rule**. Extract only if **all three** are true:
+
+1. The code is needed by **two or more features**.
+2. The code has **no feature-specific domain meaning** (it does not encode the rules of any one feature).
+3. The code is **framework infrastructure or a cross-cutting concern** (logging, persistence client, HTTP pipeline, validation, request context, security primitives).
+
+If any signal is false, the code stays in the feature that owns the concept. See [docs/shared-core-extraction.md](docs/shared-core-extraction.md) for examples and false positives.
+
+---
+
+## 9. Architectural drift — anti-patterns
+
+The following are **forbidden** in new code. A code review or AI agent finding any of these MUST reject the change:
+
+- **Deep cross-module imports** (`#src/modules/<other>/<layer>/...`) in new code. Use the module barrel.
+- **Prisma in `application/` or `presentation/`** — Prisma belongs in `infrastructure/` only.
+- **`class-validator` or `class-transformer` anywhere.** Validation is Zod via `createStrictZodDto`.
+- **`process.env` reads outside `core/infrastructure/config/`.** Use the injected `AppConfigService`.
+- **`console.log/info/warn/error` anywhere in `src/`.** Use the injected Pino logger.
+- **`@SkipEnvelope()` outside documented webhook handlers.** Every other endpoint MUST use the global response envelope.
+- **Catching `AppException` to swallow it.** Let it propagate to the global exception filter.
+- **`utils.ts` / `helpers.ts` / `misc.ts` dumping grounds.** Name files after their actual contents.
+- **A second path alias.** Only `#src/` is allowed (TypeScript paths + Node `imports` field).
+- **`eslint-disable` on layer-boundary or import-restriction rules.** The rule is the architecture.
+- **Silent circular module dependencies without `forwardRef()` and a documented reason.**
+- **A new dependency without explicit approval in the PR description.** See [AGENTS.md](AGENTS.md).
+
+---
+
+## 10. Documented exceptions (partial modules)
+
+Three modules deliberately do not have a full four-layer layout. These are **legitimate exceptions**, not drift:
+
+- **`notify`** ([src/modules/notify/](src/modules/notify/)) — infrastructure-bound: it owns one port (`EmailProviderPort`) in `domain/`, exception types under `domain/exceptions/`, and adapters in `infrastructure/` (Resend client, BullMQ producer/consumer). It has no use cases of its own — sending an email is triggered by other modules' use cases enqueuing a job. It exposes only the port and the module class.
+- **`health`** ([src/modules/health/](src/modules/health/)) — minimal probe module: a single controller (`/health`) that pings DB and Redis. No domain or business logic justifies introducing the four layers.
+- **`shared`** ([src/modules/shared/](src/modules/shared/)) — placeholder module retained for future cross-feature DI scope wiring. Currently empty by intent.
+
+If any of these grows new business behavior, it MUST adopt the full four-layer layout before that behavior ships.
+
+---
+
+## 11. Runtime note (ESM / NodeNext)
+
+- TypeScript: `module: NodeNext`, `strict`, ES2023.
+- The `paths` mapping in [tsconfig.json](tsconfig.json) is a TypeScript compile-time alias.
+- Runtime resolution uses Node.js subpath imports (`"imports": { "#src/*": "./dist/src/*" }` in [package.json](package.json)).
+- Imports MUST include the `.js` extension (NodeNext requires it). This applies to relative and `#src/` imports alike.
+- The `#src/` alias uses `#` (not `@`) to avoid collisions with npm-scoped packages (`@nestjs/...`, `@prisma/...`).

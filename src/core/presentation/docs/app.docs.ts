@@ -65,7 +65,7 @@ This API build for ${appCfg.name} application`,
 
   const fastify = app.getHttpAdapter().getInstance();
 
-  fastify.get('/documentation/openapi.json', async (_req: any, reply: any) => {
+  fastify.get('/documentation/openapi.json', (_req: any, reply: any) => {
     reply.type('application/json').send(openApiDocument);
   });
 
@@ -112,7 +112,7 @@ This API build for ${appCfg.name} application`,
   });
 
   // صفحة docs مخصصة بدون onBeforeRequest وبدون fetch wrapper
-  fastify.get('/documentation', async (_req: any, reply: any) => {
+  fastify.get('/documentation', (_req: any, reply: any) => {
     const html = `<!doctype html>
 <html lang="en">
   <head>

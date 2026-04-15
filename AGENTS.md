@@ -1,188 +1,221 @@
-# AGENTS.md
+# AGENTS.md — Operating rules for `core-platform-api`
 
-## Review guidelines
-### Security
-- No secrets in code/logs/config samples.
-- Validate all external input (DTO/Zod/class-validator) and keep auth/rbac guards consistent.
-- Prevent SSRF/path traversal in uploads and URL fetchers.
-- Ensure rate-limit + CSRF policy is applied on sensitive routes.
+These are **mandatory operating constraints** for any contributor (human or AI agent) writing or reviewing code in this repository. They are not style suggestions. A change that violates these rules MUST be rejected, regardless of how well it solves the stated problem.
 
-### Clean Architecture
-- Enforce import boundaries (Domain/Application must not depend on Infrastructure).
-- Centralized config only (no direct env reads outside config layer).
-- Controllers thin, business rules in services/use-cases, data access in repositories.
+Architecture rationale lives in [ARCHITECTURE.md](ARCHITECTURE.md). Practical step-by-step guides live under [docs/](docs/README.md). This file governs *behavior*.
 
-### Clean Code
-- Prefer small functions, explicit naming, no duplicated logic, consistent error handling.
-- Avoid “smart” utilities that hide side effects.
+---
 
-### Performance
-- Avoid N+1 queries, avoid per-request heavy instantiation, cache hot paths, watch async loops.
-- Add/keep performance tests or at least load-smoke on critical endpoints.
+## 0. Prime directives
 
-## Definition of Done for reviews
-- Provide prioritized findings (P0/P1/P2)
-- For each finding: file path + line range + why + suggested patch (diff)
-- Run: lint, typecheck, unit/e2e tests after changes
+1. **Read before you write.** Open [ARCHITECTURE.md](ARCHITECTURE.md) and the relevant `docs/` page before modifying or scaffolding code.
+2. **Follow the feature-addition workflow** in §14 before scaffolding any new feature. Do not invent a new structure.
+3. **Single source of truth.** Never clone a utility, type, or rule that already exists. Find it and reuse it.
+4. **Minimal diffs.** Change only what the task requires. No drive-by refactors, no opportunistic renames, no docstring sweeps.
+5. **Never bypass enforcement.** No `eslint-disable` on layer-boundary or import-restriction rules. No `@ts-ignore` to suppress type errors caused by violating an architectural rule.
+6. **If a step is unclear, STOP and ask.** Do not guess at the architecture.
 
+---
 
-# Project rules (core-platform-api)
-- Always run in WSL (Linux).
-- After changes, run: npm test, npm run lint, npm run build.
-- Do not add new dependencies unless necessary and approved.
-- Respect existing architecture (modules, config boundaries, response envelope, logging).
-- For DB: use Docker Postgres on localhost:5434 and Redis on localhost:6379.
-# saas-core-platform - rules.md
+## 1. Stack (pinned)
 
-Canonical rules for saas-core-platform. Source of truth for boundaries, contracts, and non-negotiables.
+Node.js 22 (ESM) · TypeScript 5.9 · NestJS 11 (Fastify 5) · Prisma 7 + PostgreSQL · Redis (`ioredis`) · BullMQ · better-auth · Resend · Zod v4 + `nestjs-zod` · `nestjs-i18n` (ar-SY default, en-US) · Pino · Swagger + Scalar · Jest + Supertest.
 
-## 0) Prime directives
+- Versions are pinned in [package.json](package.json). Bumps MUST update tests and any documentation that references the old behavior.
+- **No new dependency without explicit approval** in the PR description. Justify why no existing dependency or in-repo utility solves the problem.
 
-- Follow repo patterns, naming, ports/adapters, folders
-- Single source of truth: never clone utilities/types/logic
-- Clean Architecture: outer → inner only
-- Minimal diffs: no drive-by refactors
-- Never bypass eslint import-boundary rules
+---
 
-## 1) Tech stack (pinned)
+## 2. Module structure — MUST
 
-Node.js (ESM), NestJS+Fastify, Pino, Prisma 7+PostgreSQL, Redis (ioredis), Zod v4+nestjs-zod, nestjs-i18n, Swagger+Scalar, BullMQ, better-auth, Resend. Pin exact versions; version bumps must update tests/docs.
+- Every feature module MUST follow the canonical four-layer layout: `domain/`, `application/`, `infrastructure/`, `presentation/`.
+- Every feature module MUST have `<feature>.module.ts`, `<feature>.tokens.ts` (when it owns DI tokens), and a root `index.ts`.
+- Documented exceptions (`notify`, `health`, `shared`) are listed in [ARCHITECTURE.md §10](ARCHITECTURE.md#10-documented-exceptions-partial-modules). Do not invent new exceptions without updating that section.
+- For step-by-step scaffolding see [docs/adding-a-feature.md](docs/adding-a-feature.md).
 
-## 2) TypeScript + imports
+---
 
-- tsconfig: NodeNext, strict, ES2023, `#src/*` alias
-- Prefer `#src/...` imports with `.js` extensions
-- No alternative aliases or ad-hoc barrel exports
+## 3. Public API boundary — MUST
 
-## 3) Clean Architecture + DDD
+- Every module MUST expose its public API through its root `index.ts`.
+- Cross-module imports MUST target `#src/modules/<feature>/index.js` (or equivalently `#src/modules/<feature>`). Importing past the barrel — e.g., `#src/modules/users/application/use-cases/create-user.use-case.js` — is **forbidden in new code**.
+- When a needed symbol is not yet exported by a target module's barrel, the correct fix is to **add the export to that module's `index.ts`** — never to deep-import as a workaround.
+- Inside a module, use **relative imports** for in-feature references. Do not self-reference via `#src/modules/<own-feature>/...`.
 
-Layers: Domain (business rules only) → Application (UseCases+Ports) → Infrastructure (Prisma/Redis/providers) → Presentation (controllers/guards)
+Legacy deep imports listed in [ARCHITECTURE.md §5.1](ARCHITECTURE.md#51-current-cross-module-dependency-map-migration-target) exist in current code and are tolerated only until the migration pass. New code does not get this exemption.
 
-- Allowed: Presentation→Application→Domain; Infrastructure→Application
-- Prohibited in Domain/Application: `@nestjs/*`, fastify, `@prisma/client`, ioredis, i18n libs
+---
 
-## 4) Global API contract
+## 4. Layer boundaries — MUST / MUST NOT
 
-Success: `{ success: true; message?: string; data?: T }`
-Error: `{ success: false; message: string }` or with `errors: [{ path, message }]`
+ESLint enforces these in [eslint.config.mjs](eslint.config.mjs). An agent MUST NOT add `eslint-disable` to bypass them.
 
-- All responses MUST include `success` field
-- Never expose framework errors; use i18n keys
-- `SKIP_ENVELOPE` only for webhooks (documented+tested)
+- **Domain** MUST NOT import `@nestjs/*`, `@prisma/client`, `ioredis`, `nestjs-i18n`, `class-validator`, `class-transformer`, generated Prisma types, `application/`, `infrastructure/`, `presentation/`, or request context internals.
+- **Application** MUST NOT import Prisma, NestJS, Redis, i18n libs, `infrastructure/`, or `presentation/`. Application receives infrastructure dependencies only as constructor-injected port interfaces from `domain/ports/`.
+- **Presentation** MUST NOT import Prisma, Redis, or non-config/non-logger infrastructure paths.
+- **Infrastructure** MUST NOT import `presentation/`.
+- **Globally**: `class-validator` and `class-transformer` are forbidden. Use Zod + `createStrictZodDto`.
 
-## 5) Exceptions
+---
 
-- `AppException` base; modules extend it (`AuthException`, etc.)
-- Wrap Prisma/Redis/provider failures into AppException
-- Keep codes/messages stable for API clients
+## 5. File merging — MAY / MUST NOT
 
-## 6) Validation: Zod only
+Detailed rules and size thresholds live in [docs/file-organization.md](docs/file-organization.md). Summary:
 
-Zod v4 everywhere; DTOs extend `createStrictZodDto`. No class-validator.
+- **MAY** merge cohesive use cases, cohesive request/response DTOs per controller, cohesive port sets, or feature cache-key constants into one file.
+- **MUST NOT** merge code from different architectural layers, a controller with its DTOs, or a repository adapter with its mapper.
+- **MUST split** when a file exceeds ~400 LOC, contains > ~6 exported use cases or DTOs, or mixes more than one bounded concern.
+- **MUST NOT** create `utils.ts`, `helpers.ts`, `misc.ts`, or any other generic dumping ground. Name files after their actual contents.
 
-## 7) Config + secrets
+---
 
-- Env via `env.schema.ts` + `AppConfigService` only
-- Never commit secrets; use `.env.example`
+## 6. Naming conventions — MUST
 
-## 8) Logging (Pino)
+- Use cases: `{verb}-{noun}.use-case.ts`. Class: `{Verb}{Noun}UseCase`.
+- Grouped use cases: `<feature>.<slice>.use-cases.ts` (e.g., `auth.password.use-cases.ts`).
+- Repositories: `prisma-{entity}.repository.ts`. Class: `Prisma{Entity}Repository`.
+- Port interfaces: `{name}.port.ts` in `domain/ports/`. Interface: `{Name}Port`.
+- Value objects: `{name}.vo.ts` in `domain/value-objects/`. Class: `{Name}VO`.
+- DTOs: `{intent}.dto.ts` (or grouped `<feature>.dto.ts`). Class extends `createStrictZodDto(...)`.
+- Exception class: `{Module}Exception` in `<module>/<layer>/exceptions/{module}.exception.ts`. Static factories return new instances (see [src/modules/users/application/exceptions/users.exception.ts](src/modules/users/application/exceptions/users.exception.ts)).
+- Tokens: `{MODULE}_TOKENS` constant of `Symbol`-keyed entries in `<feature>.tokens.ts`.
+- Unit specs: co-located as `*.spec.ts`.
+- Contract tests: `test/<module>.contract-spec.ts`.
+- E2E tests: `test/<module>.e2e-spec.ts`.
 
-- No `console.*`; structured logs with correlation fields
-- Never log secrets/tokens/passwords
+---
 
-## 9) Security
+## 7. Config & secrets — MUST
 
-- CSRF: global guard for POST with cookies; explicit exemptions only
-- Rate-limit: global baseline; by-IP/by-user/hybrid
-- Fail-closed on auth/rbac uncertainty
+- All env reads MUST go through `AppConfigService` (`#src/core/infrastructure/config/`). Direct `process.env.*` access outside that folder is forbidden.
+- Env keys MUST be declared in the env schema (`env.schema.ts`). Schema validation MUST run at bootstrap.
+- Secrets MUST NOT be committed. `.env.example` and `.env.test.example` are the only env files in source control.
 
-## 10) Auth module
+---
 
-- BetterAuth behind `AuthProviderPort`
-- Sessions: Redis cache + DB source of truth; read-through pattern
-- Logout: invalidate Redis immediately
-- Single load per request; AuthGuard stores context for RBAC reuse
+## 8. Validation — MUST
 
-## 11) Notifications
+- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/users/presentation/http/dtos/create-user.dto.ts](src/modules/users/presentation/http/dtos/create-user.dto.ts).
+- Strict mode rejects unknown keys. Do not relax it without justification documented in the PR.
+- `class-validator` is **forbidden globally** (ESLint-enforced).
 
-Resend provider. BullMQ: send via jobs with locale, template id, variables. Retries configured; failures wrapped in AppException.
+---
 
-## 12) RBAC module
+## 9. Errors & responses — MUST
 
-Model: Roles, Permissions, RolePermissions, UserRoles, UserPermissions(allow|deny)
+- All errors thrown from application or domain MUST be `AppException` subclasses (see [src/core/domain/exceptions/app-exception.ts](src/core/domain/exceptions/app-exception.ts)). Wrap Prisma/Redis/external-provider failures into a feature-specific `AppException` subclass at the infrastructure boundary.
+- Every `AppException` subclass MUST use a stable `AppErrorCode` and an i18n `messageKey`. Never expose raw framework or driver errors to the client.
+- All HTTP responses MUST flow through the global response interceptor and use the envelope:
+  - Success: `{ success: true, message?, data? }`
+  - Error: `{ success: false, message, errors?: [{ path, message }] }`
+- `@SkipEnvelope()` MAY be used **only** for documented webhook handlers and MUST be tested.
+- Catching `AppException` to swallow it is forbidden. Let it propagate to the global filter.
 
-- Effective: role perms + user allow - user deny (deny wins)
-- `subject:manage` implies all actions
-- Identity responses include `roles[]` and `permissions[]`
-- Invalidate cache on any RBAC mutation
+---
 
-## 13) RbacGuard
+## 10. Logging — MUST
 
-- Roles/Permissions: AND or ANY mode
-- Management escalation rule
-- Reuse AuthGuard context; declarative decorators only
+- Use the injected Pino logger. `console.*` is forbidden in `src/`.
+- Logs MUST be structured (object payloads, not interpolated strings).
+- Never log secrets, tokens, passwords, session IDs, or full request bodies that may contain credentials.
 
-## 14) Admin APIs
+---
 
-Seed: idempotent, deterministic, environment-gated. APIs: CRUD roles/permissions, assign/remove mappings, user roles (append/remove), user permissions (allow/deny).
+## 11. Caching — MUST
 
-## 15) Caching
+- All Redis keys MUST use the `scp:` prefix.
+- Every cache entry MUST set an explicit TTL. No infinite caches.
+- Caches MUST be invalidated on logout, session revocation, role mutation, permission mutation, and any RBAC change. Cache MUST NOT override an authoritative deny.
+- L1 caches are request-scoped only. L2 is Redis.
 
-- L1: request-scoped only; L2: Redis optimization
-- Prefix: `scp:`; explicit TTLs
-- Invalidate on logout/revoke/role-permission changes
-- Cache must never grant access after authoritative deny
+---
 
-## 16) Testing
+## 12. Security — MUST
 
-Cover: Auth, RBAC, Security, Contract, i18n. Tests match bootstrap config; prefer contract-level assertions.
+- CSRF: global guard for cookie-bearing POST/PUT/PATCH/DELETE. Exemptions MUST be explicit and documented.
+- Rate-limit: global baseline; per-route overrides for sensitive endpoints (auth, registration, password reset).
+- Auth/RBAC checks: **fail-closed** on uncertainty. If a permission check throws or returns ambiguous, deny.
+- File uploads: validate magic bytes, prevent SSRF in URL fetchers, prevent path traversal in storage drivers.
 
-### Test Environment (Mandatory)
+---
 
-- Config: `.env.test` only
-- Database: port 5435 (test), never dev DB
-- Redis: port 6380 (test)
-- Seeding: `APP_ENV=test` for seed
+## 13. Testing — MUST
 
-## 17) AI contribution
+- Every new use case MUST have a co-located unit spec (`*.spec.ts`) that mocks ports.
+- Every new controller endpoint MUST have a contract test in `test/<module>.contract-spec.ts` covering the happy path and at least the relevant subset of `400`, `401`, `403`, `404`, `409`.
+- New user-facing messages MUST have i18n keys added to **both** `locales/en-US/<module>.json` and `locales/ar-SY/<module>.json`.
+- Test environment is fixed: `.env.test`, Postgres on `localhost:5435`, Redis on `localhost:6380`. Never run tests against the dev DB. See [docs/testing.md](docs/testing.md).
+- Tests run with `APP_ENV=test`. Seeders are environment-gated.
 
-Format: Goal → Files → Patch-only. No unrelated rewrites; keep diffs minimal.
+---
 
-## 18) Feature development
+## 14. Feature-addition workflow — MUST follow before scaffolding
 
-### Layer separation
+For full detail and code snippets, see [docs/adding-a-feature.md](docs/adding-a-feature.md). The numbered steps in that document are authoritative; the summary below MUST match it exactly.
 
-Domain→Application→Infrastructure→Presentation. Checklist: port interface, adapter, use case, controller. No layer skipping.
+1. **Decide** whether the work is a new module or an extension of an existing one.
+2. **Scaffold** the folder structure for the module (or the layer subfolders that are new).
+3. **Author the domain** — entities, value objects, port interfaces, domain exceptions.
+4. **Author the application** — use cases, application exceptions, response mappers.
+5. **Author the infrastructure** — repository adapters, provider adapters.
+6. **Author the presentation** — controller, Zod DTOs, guards, decorators.
+7. **Register the NestJS module** — providers wired via tokens, controllers listed, exports declared.
+8. **Expose the public API** — extend the root `index.ts` with the new public surface.
+9. **Add i18n keys** to all locales for any new user-facing message.
+10. **Add tests** — unit specs for use cases, contract tests for endpoints.
+11. **Update docs** if architecture or boundaries changed.
+12. **Run the Definition of Done** checklist (§16).
 
-### Testing (mandatory)
+If any step is unclear, STOP and ask — do not guess.
 
-- Contract tests (E2E): `test/*.contract-spec.ts`
-- Unit tests: `src/**/*.spec.ts`
-- Cover: happy path, 400/401/403/404/409
+---
 
-### i18n
+## 15. Detecting shared / core extraction
 
-Add keys to `locales/{lang}/{module}.json`. Never hardcode strings.
+Apply the **three-signal rule**. Extract code to `core/` only if **all three** are true:
 
-## 19) Test Troubleshooting
+1. The code is needed by **two or more features**.
+2. The code has **no feature-specific domain meaning**.
+3. The code is **framework infrastructure or a cross-cutting concern** (logger, persistence client, validation pipe, request context, security primitives).
 
-| Issue                     | Root Cause                               | Solution                              |
-| ------------------------- | ---------------------------------------- | ------------------------------------- |
-| 403 after role assignment | `clearRedisCache()` missing `test-api:*` | Add pattern to `test-redis.helper.ts` |
-| Migrate resets wrong DB   | `APP_ENV` doesn't override URL           | Set `$env:DATABASE_URL` explicitly    |
-| Seed fails                | `.env.test` missing `SEED_*` vars        | Copy from `.env.example`              |
+If any signal is false, the code stays feature-owned. Examples and false positives in [docs/shared-core-extraction.md](docs/shared-core-extraction.md).
 
-### Test Checklist
+---
 
-1. `.env.test` has all required vars
-2. `REDIS_PREFIX` matches `clearRedisCache()` patterns
-3. Flush Redis: `docker exec -i core_platform_api_redis_test redis-cli FLUSHALL`
+## 16. Definition of Done
 
-## 20) Lessons Learned
+A change is **done** when all of the following are true:
 
-| Date       | Issue                 | Solution                               |
-| ---------- | --------------------- | -------------------------------------- |
-| 2026-02-01 | RBAC 403              | Add `test-api:*` to cache clear        |
-| 2026-02-01 | `fromParts()` order   | Fix `(subject, action)` in 4 files     |
-| 2026-02-01 | `jest is not defined` | Import `{ jest } from '@jest/globals'` |
-| 2026-02-01 | `jest.fn()` typing    | Use `jest.Mocked<T>`                   |
+- [ ] `npm run lint` passes with no new warnings.
+- [ ] `npm run build` (or `tsc --noEmit`) passes.
+- [ ] `npm test` passes (unit + contract + e2e relevant to the change).
+- [ ] No new `eslint-disable` directives on import or layer rules.
+- [ ] No new `@ts-ignore` / `@ts-expect-error` to bypass architectural constraints.
+- [ ] All new cross-module imports go through the target module's `index.ts`.
+- [ ] All new user-facing messages have i18n keys in **all** locales.
+- [ ] `@SkipEnvelope()` is not used (or, if used, is on a documented webhook with a contract test).
+- [ ] No new dependency, or new dependency is justified in the PR description.
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) and [docs/](docs/README.md) are updated if architecture or boundaries changed.
+
+---
+
+## 17. Anti-bypass — explicit prohibitions
+
+These rules exist because shortcuts have cost the project before. An AI agent MUST NOT:
+
+a. Add `eslint-disable` to a layer-boundary or import-restriction rule.
+b. Reintroduce `class-validator` or `class-transformer` "for one quick endpoint".
+c. Add a second path alias (`@/`, `~/`, etc.). Only `#src/` is allowed.
+d. Create a "temporary" deep cross-module import. There is no such thing.
+e. Use `@SkipEnvelope()` outside a documented webhook.
+f. Catch `AppException` to suppress it from the global filter.
+g. Add a runtime dependency without explicit approval in the PR.
+h. Merge architectural layers into one file (e.g., putting a use case and a repository in the same file).
+i. Read `process.env` directly outside `core/infrastructure/config/`.
+j. Use `console.*` instead of the injected Pino logger.
+k. Mock out the database in contract or e2e tests. Use the real test Postgres on port 5435.
+l. Skip writing the contract test for a new endpoint.
+m. Leave i18n keys missing from one locale.
+n. Rename, reorganize, or refactor code that is unrelated to the requested task.
+
+If a rule appears to block legitimate work, STOP and surface the conflict in the PR description. Do not bypass it.

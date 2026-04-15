@@ -316,9 +316,14 @@ describe('Auth API Contract (E2E)', () => {
       });
 
       expect(refreshedSessionCookie).toBeDefined();
-      expect(refreshedSessionCookie).toContain(
-        `Max-Age=${persistentExpiresInSec}`,
-      );
+      // Allow a small tolerance: better-auth computes Max-Age from
+      // (expiresAt - now)/1000, so 1-2s of elapsed processing time can shave
+      // the value down from the expected boundary.
+      const maxAgeMatch = refreshedSessionCookie!.match(/Max-Age=(\d+)/);
+      expect(maxAgeMatch).not.toBeNull();
+      const maxAge = Number(maxAgeMatch![1]);
+      expect(maxAge).toBeGreaterThanOrEqual(persistentExpiresInSec - 5);
+      expect(maxAge).toBeLessThanOrEqual(persistentExpiresInSec);
       expect(updatedSession).toBeDefined();
       expect(updatedSession!.expiresAt.getTime()).toBeGreaterThan(
         refreshDueExpiresAt.getTime(),

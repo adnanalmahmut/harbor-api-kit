@@ -76,6 +76,23 @@ core/
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency map and enforcement details.
 
+## Documentation
+
+Architecture and rules are governed by two top-level documents, with practical guides under [`docs/`](docs/README.md):
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — authoritative architectural reference (layers, dependency direction, public API boundary, file-merging policy, anti-patterns).
+- [AGENTS.md](AGENTS.md) — operating rules for AI agents and contributors (MUST/MUST NOT, naming, Definition of Done, anti-bypass).
+- [docs/README.md](docs/README.md) — index of the practical guides.
+
+| Guide | Purpose |
+|-------|---------|
+| [docs/adding-a-feature.md](docs/adding-a-feature.md) | Step-by-step procedure for scaffolding a new feature or extending an existing one. |
+| [docs/module-boundaries.md](docs/module-boundaries.md) | Allowed and forbidden imports between modules and layers; public API rules. |
+| [docs/file-organization.md](docs/file-organization.md) | When to merge files, when to split, naming conventions, size thresholds. |
+| [docs/shared-core-extraction.md](docs/shared-core-extraction.md) | What belongs in `core/` vs what stays feature-owned (the three-signal rule). |
+| [docs/testing.md](docs/testing.md) | Unit, contract, and e2e expectations; test environment; troubleshooting. |
+| [docs/workflow-checklist.md](docs/workflow-checklist.md) | Per-task checklists and the Definition of Done. |
+
 ### Folder Structure
 
 ```
