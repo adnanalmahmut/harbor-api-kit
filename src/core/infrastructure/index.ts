@@ -13,6 +13,8 @@ export * from './i18n/i18n-setup.module.js';
 export * from './logger/logger-setup.module.js';
 export * from './logger/pino-options.js';
 export * from './queue/queue.module.js';
+export * from './rate-limit/rate-limiter.module.js';
+export * from './rate-limit/redis-rate-limiter.adapter.js';
 export * from './redis/redis-context.middleware.js';
 export * from './redis/redis.keys.js';
 export * from './redis/redis.module.js';

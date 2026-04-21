@@ -7,6 +7,7 @@ export * from './exceptions/error-definitions.js';
 export * from './exceptions/security.exception.js';
 export * from './exceptions/validation.exception.js';
 export * from './ports/cache-manager.port.js';
+export * from './ports/rate-limiter.port.js';
 export * from './ports/request-context.store.port.js';
 export * from './types/auth.types.js';
 export * from './types/validation-issue.type.js';

@@ -276,14 +276,28 @@ export default [
             ...prismaRestricted.patterns,
             {
               group: [
+                '#src/infrastructure',
                 '#src/infrastructure/**',
-                '#src/modules/**/infrastructure/**',
+                '#src/modules/*/infrastructure',
+                '#src/modules/*/infrastructure/**',
+                '#src/core/infrastructure',
                 '#src/core/infrastructure/**',
+                '!#src/core/infrastructure/config',
                 '!#src/core/infrastructure/config/**',
+                '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
               ],
               message:
                 'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+            },
+            {
+              group: [
+                '#src/core',
+                '#src/core/index',
+                '#src/core/index.js',
+              ],
+              message:
+                'Do not import the top-level core barrel from Presentation. Import from the specific layer barrel (e.g., #src/core/domain/index.js, #src/core/presentation/index.js) instead.',
             },
             ...crossModuleDeepRestricted.patterns,
           ],
@@ -401,14 +415,28 @@ export default [
             ...prismaRestricted.patterns,
             {
               group: [
+                '#src/infrastructure',
                 '#src/infrastructure/**',
-                '#src/modules/**/infrastructure/**',
+                '#src/modules/*/infrastructure',
+                '#src/modules/*/infrastructure/**',
+                '#src/core/infrastructure',
                 '#src/core/infrastructure/**',
+                '!#src/core/infrastructure/config',
                 '!#src/core/infrastructure/config/**',
+                '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
               ],
               message:
                 'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+            },
+            {
+              group: [
+                '#src/core',
+                '#src/core/index',
+                '#src/core/index.js',
+              ],
+              message:
+                'Do not import the top-level core barrel from Presentation. Import from the specific layer barrel (e.g., #src/core/domain/index.js, #src/core/presentation/index.js) instead.',
             },
             ...crossModuleDeepRestricted.patterns,
           ],

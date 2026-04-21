@@ -3,6 +3,7 @@ import {
   I18nSetupModule,
   LoggerSetupModule,
   PrismaModule,
+  RateLimiterModule,
   RateLimitModule,
   RedisModule,
 } from '#src/core/index.js';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     RbacModule,
     UsersModule,
     RedisModule,
+    RateLimiterModule,
     RateLimitModule,
     FilesModule,
   ],
