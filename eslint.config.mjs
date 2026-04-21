@@ -286,9 +286,11 @@ export default [
                 '!#src/core/infrastructure/config/**',
                 '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
               ],
               message:
-                'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+                'Dependence on non-config/logger infrastructure is prohibited in Presentation. Only the RateLimiterModule class file is whitelisted from rate-limit/ so Presentation-side modules can wire the port.',
             },
             {
               group: [
@@ -425,9 +427,11 @@ export default [
                 '!#src/core/infrastructure/config/**',
                 '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
               ],
               message:
-                'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+                'Dependence on non-config/logger infrastructure is prohibited in Presentation. Only the RateLimiterModule class file is whitelisted from rate-limit/ so Presentation-side modules can wire the port.',
             },
             {
               group: [
