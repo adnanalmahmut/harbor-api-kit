@@ -1,7 +1,5 @@
-import {
-  AppConfigModule,
-  RedisModule,
-} from '#src/core/infrastructure/index.js';
+import { AppConfigModule } from '#src/core/infrastructure/config/app-config.module.js';
+import { RateLimiterModule } from '#src/core/infrastructure/rate-limit/rate-limiter.module.js';
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RateLimitInterceptor } from './rate-limit.interceptor.js';
@@ -10,7 +8,7 @@ import { UserRateLimitInterceptor } from './user-rate-limit.interceptor.js';
 
 @Global()
 @Module({
-  imports: [AppConfigModule, RedisModule],
+  imports: [AppConfigModule, RateLimiterModule],
 
   providers: [
     // Global hybrid rate limiting (userId if available, otherwise IP)

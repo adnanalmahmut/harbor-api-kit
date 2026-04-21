@@ -1,9 +1,11 @@
-import { SecurityException } from '#src/core/domain/index.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
 import {
-  AppConfigService,
-  RedisService,
-} from '#src/core/infrastructure/index.js';
+  SecurityException,
+  type RateLimiterPort,
+} from '#src/core/domain/index.js';
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import {
+  Inject,
   Injectable,
   type CallHandler,
   type ExecutionContext,
@@ -11,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import crypto from 'node:crypto';
 import type { Observable } from 'rxjs';
 import {
   SESSION_RATE_LIMIT_META_KEY,
@@ -32,7 +33,8 @@ import {
 export class SessionRateLimitInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
-    private readonly redis: RedisService,
+    @Inject(CORE_TOKENS.RATE_LIMITER)
+    private readonly rateLimiter: RateLimiterPort,
     private readonly cfg: AppConfigService,
   ) {}
 
@@ -45,13 +47,11 @@ export class SessionRateLimitInterceptor implements NestInterceptor {
       ctx.getHandler(),
     );
 
-    // No rule defined, skip
     if (!rule) return next.handle();
 
     const req = ctx.switchToHttp().getRequest<FastifyRequest>();
     const reply = ctx.switchToHttp().getResponse<FastifyReply>();
 
-    // Session not available, skip session-based limiting
     if (!req.session?.id) return next.handle();
 
     const rl = this.cfg.rateLimit();
@@ -59,42 +59,20 @@ export class SessionRateLimitInterceptor implements NestInterceptor {
     const routeUrl = this.getRouteUrl(req);
     const routeId = `${req.method}:${routeUrl}`;
 
-    const zkey = `rl:session:${sessionId}:${routeId}`;
-    const fullKey = this.redis.key(zkey);
-
-    const now = Date.now();
-    const windowMs = rule.durationSec * 1000;
-    const member = `${now}:${crypto.randomBytes(8).toString('hex')}`;
-    const cutoff = now - windowMs;
-
-    const raw = this.redis.raw();
-    const tx = raw.multi();
-    tx.zremrangebyscore(fullKey, 0, cutoff);
-    tx.zadd(fullKey, now, member);
-    tx.zcard(fullKey);
-    tx.zrange(fullKey, 0, 0, 'WITHSCORES');
-    tx.pexpire(fullKey, windowMs + 5000);
-
-    const results = await tx.exec();
-
-    const count = Number(this.parseResult(results?.[2]) ?? 0);
-    const oldestWithScores = this.parseResult<unknown[]>(results?.[3]);
-    const oldestScore =
-      Array.isArray(oldestWithScores) && oldestWithScores.length >= 2
-        ? Number(oldestWithScores[1])
-        : now;
-
-    const resetMs = oldestScore + windowMs;
-    const remaining = Math.max(0, rule.points - count);
+    const { remaining, resetAtMs, blocked } = await this.rateLimiter.consume({
+      bucketKey: `rl:session:${sessionId}:${routeId}`,
+      points: rule.points,
+      durationMs: rule.durationSec * 1000,
+    });
 
     reply.header(`${rl.headerPrefix}-Session-Limit`, String(rule.points));
     reply.header(`${rl.headerPrefix}-Session-Remaining`, String(remaining));
     reply.header(
       `${rl.headerPrefix}-Session-Reset`,
-      String(Math.ceil(resetMs / 1000)),
+      String(Math.ceil(resetAtMs / 1000)),
     );
 
-    if (count > rule.points) {
+    if (blocked) {
       throw SecurityException.rateLimitExceeded();
     }
 
@@ -107,10 +85,5 @@ export class SessionRateLimitInterceptor implements NestInterceptor {
     const raw = (req as any).raw?.url ?? req.url ?? '';
     const i = raw.indexOf('?');
     return i >= 0 ? raw.slice(0, i) : raw;
-  }
-
-  private parseResult<T = unknown>(entry: unknown): T | undefined {
-    if (!Array.isArray(entry) || entry.length < 2) return undefined;
-    return entry[1] as T;
   }
 }

@@ -1,9 +1,12 @@
-import { SecurityException, stripQuery } from '#src/core/domain/index.js';
+import { CORE_TOKENS } from '#src/core/core.tokens.js';
 import {
-  AppConfigService,
-  RedisService,
-} from '#src/core/infrastructure/index.js';
+  SecurityException,
+  stripQuery,
+  type RateLimiterPort,
+} from '#src/core/domain/index.js';
+import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import {
+  Inject,
   Injectable,
   type CallHandler,
   type ExecutionContext,
@@ -11,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import crypto from 'node:crypto';
 import type { Observable } from 'rxjs';
 import {
   RATE_LIMIT_META_KEY,
@@ -31,16 +33,12 @@ function getRouteUrl(req: FastifyRequest): string {
   return stripQuery(raw);
 }
 
-function parseRedisMultiValue<T = unknown>(entry: unknown): T | undefined {
-  if (!Array.isArray(entry) || entry.length < 2) return undefined;
-  return entry[1] as T;
-}
-
 @Injectable()
 export class RateLimitInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
-    private readonly redis: RedisService,
+    @Inject(CORE_TOKENS.RATE_LIMITER)
+    private readonly rateLimiter: RateLimiterPort,
     private readonly cfg: AppConfigService,
   ) {}
 
@@ -75,44 +73,22 @@ export class RateLimitInterceptor implements NestInterceptor {
 
     const routeUrl = getRouteUrl(req);
     const routeId = `${req.method}:${routeUrl}`;
-
     const clientKey = this.buildClientKey(req);
 
-    const now = Date.now();
-    const windowMs = rule.durationSec * 1000;
-
-    const zkey = `rl:${routeId}:${clientKey}`;
-    const fullKey = this.redis.key(zkey);
-
-    const raw = this.redis.raw();
-    const member = `${now}:${crypto.randomBytes(8).toString('hex')}`;
-    const cutoff = now - windowMs;
-
-    const tx = raw.multi();
-    tx.zremrangebyscore(fullKey, 0, cutoff);
-    tx.zadd(fullKey, now, member);
-    tx.zcard(fullKey);
-    tx.zrange(fullKey, 0, 0, 'WITHSCORES');
-    tx.pexpire(fullKey, windowMs + 5000);
-
-    const results = await tx.exec();
-
-    const count = Number(parseRedisMultiValue(results?.[2]) ?? 0);
-
-    const oldestWithScores = parseRedisMultiValue<unknown[]>(results?.[3]);
-    const oldestScore =
-      Array.isArray(oldestWithScores) && oldestWithScores.length >= 2
-        ? Number(oldestWithScores[1])
-        : now;
-
-    const resetMs = oldestScore + windowMs;
-    const remaining = Math.max(0, rule.points - count);
+    const { remaining, resetAtMs, blocked } = await this.rateLimiter.consume({
+      bucketKey: `rl:${routeId}:${clientKey}`,
+      points: rule.points,
+      durationMs: rule.durationSec * 1000,
+    });
 
     reply.header(`${rl.headerPrefix}-Limit`, String(rule.points));
     reply.header(`${rl.headerPrefix}-Remaining`, String(remaining));
-    reply.header(`${rl.headerPrefix}-Reset`, String(Math.ceil(resetMs / 1000)));
+    reply.header(
+      `${rl.headerPrefix}-Reset`,
+      String(Math.ceil(resetAtMs / 1000)),
+    );
 
-    if (count > rule.points) {
+    if (blocked) {
       throw SecurityException.rateLimitExceeded();
     }
 

@@ -276,14 +276,30 @@ export default [
             ...prismaRestricted.patterns,
             {
               group: [
+                '#src/infrastructure',
                 '#src/infrastructure/**',
-                '#src/modules/**/infrastructure/**',
+                '#src/modules/*/infrastructure',
+                '#src/modules/*/infrastructure/**',
+                '#src/core/infrastructure',
                 '#src/core/infrastructure/**',
+                '!#src/core/infrastructure/config',
                 '!#src/core/infrastructure/config/**',
+                '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
               ],
               message:
-                'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+                'Dependence on non-config/logger infrastructure is prohibited in Presentation. Only the RateLimiterModule class file is whitelisted from rate-limit/ so Presentation-side modules can wire the port.',
+            },
+            {
+              group: [
+                '#src/core',
+                '#src/core/index',
+                '#src/core/index.js',
+              ],
+              message:
+                'Do not import the top-level core barrel from Presentation. Import from the specific layer barrel (e.g., #src/core/domain/index.js, #src/core/presentation/index.js) instead.',
             },
             ...crossModuleDeepRestricted.patterns,
           ],
@@ -401,14 +417,30 @@ export default [
             ...prismaRestricted.patterns,
             {
               group: [
+                '#src/infrastructure',
                 '#src/infrastructure/**',
-                '#src/modules/**/infrastructure/**',
+                '#src/modules/*/infrastructure',
+                '#src/modules/*/infrastructure/**',
+                '#src/core/infrastructure',
                 '#src/core/infrastructure/**',
+                '!#src/core/infrastructure/config',
                 '!#src/core/infrastructure/config/**',
+                '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module',
+                '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
               ],
               message:
-                'Dependence on non-config/logger infrastructure is prohibited in Presentation.',
+                'Dependence on non-config/logger infrastructure is prohibited in Presentation. Only the RateLimiterModule class file is whitelisted from rate-limit/ so Presentation-side modules can wire the port.',
+            },
+            {
+              group: [
+                '#src/core',
+                '#src/core/index',
+                '#src/core/index.js',
+              ],
+              message:
+                'Do not import the top-level core barrel from Presentation. Import from the specific layer barrel (e.g., #src/core/domain/index.js, #src/core/presentation/index.js) instead.',
             },
             ...crossModuleDeepRestricted.patterns,
           ],
