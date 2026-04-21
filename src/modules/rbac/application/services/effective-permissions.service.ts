@@ -82,20 +82,16 @@ export class EffectivePermissionsService {
         const cached = await this.cache.get(cacheKey);
 
         if (cached) {
-          try {
-            const data = JSON.parse(cached) as CachedEffectivePermissions;
-            if (!data.permissions || !data.roles || !data.deny) {
-              throw new Error('Invalid cache shape');
-            }
+          const data = this.parseCached(cached);
+          if (data) {
             this.logger.debug?.(
               `Cache HIT for user ${userId} (key: ${cacheKey})`,
             );
             return this.hydrate(data);
-          } catch {
-            this.logger.warn(
-              `Cache CORRUPTION or VERSION MISMATCH for user ${userId}`,
-            );
           }
+          this.logger.warn(
+            `Cache CORRUPTION or VERSION MISMATCH for user ${userId}`,
+          );
         } else {
           this.logger.debug?.(
             `Cache MISS for user ${userId} (key: ${cacheKey})`,
@@ -133,6 +129,22 @@ export class EffectivePermissionsService {
   async refreshForUser(userId: string): Promise<void> {
     this.logger.debug?.(`Refreshing cache for user ${userId}`);
     await this.invalidateForUser(userId);
+  }
+
+  private parseCached(raw: string): CachedEffectivePermissions | null {
+    try {
+      const data = JSON.parse(raw) as Partial<CachedEffectivePermissions>;
+      if (
+        !Array.isArray(data.permissions) ||
+        !Array.isArray(data.roles) ||
+        !Array.isArray(data.deny)
+      ) {
+        return null;
+      }
+      return data as CachedEffectivePermissions;
+    } catch {
+      return null;
+    }
   }
 
   private hydrate(data: CachedEffectivePermissions): EffectivePermissions {

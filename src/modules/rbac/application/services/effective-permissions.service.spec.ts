@@ -96,4 +96,74 @@ describe('EffectivePermissionsService', () => {
     expect(perms.has('posts:write')).toBe(true);
     expect(perms.has('posts:delete')).toBe(false);
   });
+
+  describe('cache behaviour', () => {
+    const userId = 'u1';
+    const versionedKey = `rbac:user:${userId}:permissions:0:0`;
+
+    function mockCacheReturn(key: string, value: string | null) {
+      mockCache.get.mockImplementation((k: string) =>
+        Promise.resolve(k === key ? value : null),
+      );
+    }
+
+    it('returns hydrated permissions from cache on HIT without touching DB', async () => {
+      mockCacheReturn(
+        versionedKey,
+        JSON.stringify({
+          roles: ['admin'],
+          permissions: ['posts:read'],
+          deny: [],
+        }),
+      );
+
+      const perms = await service.buildForUser({ id: userId });
+
+      expect(perms.roles.has('admin')).toBe(true);
+      expect(perms.has('posts:read')).toBe(true);
+      expect(mockRoleRepo.listUserRoleIds).not.toHaveBeenCalled();
+      expect(mockGrantsRepo.listPermissionsForRoleIds).not.toHaveBeenCalled();
+      expect(mockGrantsRepo.listUserOverrides).not.toHaveBeenCalled();
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('falls through to DB and logs a warning when cached JSON is corrupt', async () => {
+      mockCacheReturn(versionedKey, '{not-valid-json');
+      mockRoleRepo.listUserRoleIds.mockResolvedValue([]);
+      mockGrantsRepo.listPermissionsForRoleIds.mockResolvedValue([]);
+      mockGrantsRepo.listUserOverrides.mockResolvedValue({
+        allow: [],
+        deny: [],
+      });
+
+      const perms = await service.buildForUser({ id: userId });
+
+      expect(perms.permissions.size).toBe(0);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('CORRUPTION'),
+      );
+      expect(mockRoleRepo.listUserRoleIds).toHaveBeenCalledWith(userId);
+    });
+
+    it('falls through to DB and logs a warning when cached shape is invalid', async () => {
+      mockCacheReturn(
+        versionedKey,
+        JSON.stringify({ roles: ['admin'], permissions: 'not-an-array' }),
+      );
+      mockRoleRepo.listUserRoleIds.mockResolvedValue([]);
+      mockGrantsRepo.listPermissionsForRoleIds.mockResolvedValue([]);
+      mockGrantsRepo.listUserOverrides.mockResolvedValue({
+        allow: [],
+        deny: [],
+      });
+
+      const perms = await service.buildForUser({ id: userId });
+
+      expect(perms.permissions.size).toBe(0);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('CORRUPTION'),
+      );
+      expect(mockRoleRepo.listUserRoleIds).toHaveBeenCalledWith(userId);
+    });
+  });
 });
