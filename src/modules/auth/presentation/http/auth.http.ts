@@ -15,7 +15,7 @@ import {
   SignUpResponseDto,
   SocialSignInResponseDto,
   StatusResponseDto,
-} from './auth.http.dtos.js';
+} from './dtos/index.js';
 
 export function serializeCookie(c: CookieDirective): string {
   let str = `${c.name}=${c.value}`;
