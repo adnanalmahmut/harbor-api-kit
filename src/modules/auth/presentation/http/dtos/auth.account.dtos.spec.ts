@@ -1,4 +1,4 @@
-import { UpdateUserDto } from './auth.http.dtos.js';
+import { UpdateUserDto } from './auth.account.dtos.js';
 
 describe('UpdateUserDto', () => {
   it('accepts an empty string image value', () => {
