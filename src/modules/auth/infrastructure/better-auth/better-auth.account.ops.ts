@@ -1,3 +1,9 @@
+// BetterAuth-bound adapter operations for the account concern
+// (verifyEmail, changeEmail, requestVerificationEmail, updateUser,
+// deleteUser, reactivateUser). Infrastructure only — these are NOT
+// application services or use cases. Use cases live under
+// `src/modules/auth/application/use-cases/` and depend on
+// `AuthProviderPort`, which the facade in this directory implements.
 import type { RequestContext } from '#src/core/index.js';
 import { AuthException } from '../../application/index.js';
 import type {

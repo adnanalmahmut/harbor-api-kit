@@ -1,3 +1,13 @@
+// Facade implementing AuthProviderPort. The class holds the DI
+// lifecycle (constructor wiring, BetterAuth instance creation) and
+// delegates each port method to one of five concern-scoped ops
+// factories: credentials, session, password, account, social.
+//
+// Application code depends only on AuthProviderPort (domain). The ops
+// files in this directory are infrastructure adapters — NOT use cases
+// or application services. If an ops file grows materially beyond its
+// current shape, prefer promoting it to an injectable class rather
+// than expanding the factory bundle further.
 import {
   AppConfigService,
   PrismaService,

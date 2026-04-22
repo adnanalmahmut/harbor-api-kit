@@ -1,3 +1,8 @@
+// BetterAuth-bound adapter operations for the session concern
+// (sign-out, getSession, listSessions, revoke*, OAuth node passthrough).
+// Infrastructure only — these are NOT application services or use cases.
+// Use cases live under `src/modules/auth/application/use-cases/` and
+// depend on `AuthProviderPort`, which the facade in this directory implements.
 import type { RequestContext } from '#src/core/index.js';
 import { AuthCacheKeys, AuthException } from '../../application/index.js';
 import type {
