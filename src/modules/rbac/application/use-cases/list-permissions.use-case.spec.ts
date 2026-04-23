@@ -1,22 +1,15 @@
 import { Permission } from '../../domain/entities/permission.entity.js';
 import type { PermissionRepositoryPort } from '../../domain/ports/permission.repository.port.js';
+import { buildPermissionRepoMock } from './__test-support__/repository-mocks.js';
 import { ListPermissionsUseCase } from './list-permissions.use-case.js';
-import { jest } from '@jest/globals';
+import type { jest } from '@jest/globals';
 
 describe('ListPermissionsUseCase', () => {
   let useCase: ListPermissionsUseCase;
   let mockRepo: jest.Mocked<PermissionRepositoryPort>;
 
   beforeEach(() => {
-    mockRepo = {
-      listAll: jest.fn(),
-      findById: jest.fn(),
-      findByKey: jest.fn(),
-      findManyByIds: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<PermissionRepositoryPort>;
+    mockRepo = buildPermissionRepoMock();
     useCase = new ListPermissionsUseCase(mockRepo);
   });
 

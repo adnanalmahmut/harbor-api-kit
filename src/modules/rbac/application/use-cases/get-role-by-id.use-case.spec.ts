@@ -1,27 +1,17 @@
+import { AppErrorCode } from '#src/core/index.js';
 import { Role } from '../../domain/entities/role.entity.js';
 import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
-import { GetRoleByIdUseCase } from './get-role-by-id.use-case.js';
 import { RbacException } from '../exceptions/rbac.exception.js';
-import { jest } from '@jest/globals';
+import { buildRoleRepoMock } from './__test-support__/repository-mocks.js';
+import { GetRoleByIdUseCase } from './get-role-by-id.use-case.js';
+import type { jest } from '@jest/globals';
 
 describe('GetRoleByIdUseCase', () => {
   let useCase: GetRoleByIdUseCase;
   let mockRepo: jest.Mocked<RoleRepositoryPort>;
 
   beforeEach(() => {
-    mockRepo = {
-      findAll: jest.fn(),
-      findById: jest.fn(),
-      findBySlug: jest.fn(),
-      listUserRoleIds: jest.fn(),
-      listRolesForUser: jest.fn(),
-      assignRoleToUser: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      removeRoleFromUser: jest.fn(),
-      replaceUserRoles: jest.fn(),
-    } as unknown as jest.Mocked<RoleRepositoryPort>;
+    mockRepo = buildRoleRepoMock();
     useCase = new GetRoleByIdUseCase(mockRepo);
   });
 
@@ -43,11 +33,14 @@ describe('GetRoleByIdUseCase', () => {
     expect(mockRepo.findById).toHaveBeenCalledWith('r1');
   });
 
-  it('throws RbacException when the role is not found', async () => {
+  it('throws roleNotFound RbacException when the id does not match', async () => {
     mockRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('missing')).rejects.toBeInstanceOf(
-      RbacException,
-    );
+    await expect(useCase.execute('missing')).rejects.toMatchObject({
+      constructor: RbacException,
+      code: AppErrorCode.NOT_FOUND,
+      messageKey: 'rbac.errors.role_not_found',
+      details: { id: 'missing' },
+    });
   });
 });

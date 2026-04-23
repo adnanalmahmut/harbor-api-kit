@@ -1,23 +1,17 @@
+import { AppErrorCode } from '#src/core/index.js';
 import { Permission } from '../../domain/entities/permission.entity.js';
 import type { PermissionRepositoryPort } from '../../domain/ports/permission.repository.port.js';
-import { GetPermissionByIdUseCase } from './get-permission-by-id.use-case.js';
 import { RbacException } from '../exceptions/rbac.exception.js';
-import { jest } from '@jest/globals';
+import { buildPermissionRepoMock } from './__test-support__/repository-mocks.js';
+import { GetPermissionByIdUseCase } from './get-permission-by-id.use-case.js';
+import type { jest } from '@jest/globals';
 
 describe('GetPermissionByIdUseCase', () => {
   let useCase: GetPermissionByIdUseCase;
   let mockRepo: jest.Mocked<PermissionRepositoryPort>;
 
   beforeEach(() => {
-    mockRepo = {
-      listAll: jest.fn(),
-      findById: jest.fn(),
-      findByKey: jest.fn(),
-      findManyByIds: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<PermissionRepositoryPort>;
+    mockRepo = buildPermissionRepoMock();
     useCase = new GetPermissionByIdUseCase(mockRepo);
   });
 
@@ -39,11 +33,14 @@ describe('GetPermissionByIdUseCase', () => {
     expect(mockRepo.findById).toHaveBeenCalledWith('p1');
   });
 
-  it('throws RbacException when the permission is not found', async () => {
+  it('throws permissionNotFound RbacException when the id does not match', async () => {
     mockRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('missing')).rejects.toBeInstanceOf(
-      RbacException,
-    );
+    await expect(useCase.execute('missing')).rejects.toMatchObject({
+      constructor: RbacException,
+      code: AppErrorCode.NOT_FOUND,
+      messageKey: 'rbac.errors.permission_not_found',
+      details: { id: 'missing' },
+    });
   });
 });

@@ -1,9 +1,14 @@
+import { AppErrorCode } from '#src/core/index.js';
 import { Role } from '../../domain/entities/role.entity.js';
 import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
 import type { RoleRepositoryPort } from '../../domain/ports/role.repository.port.js';
 import { RbacException } from '../exceptions/rbac.exception.js';
+import {
+  buildGrantsRepoMock,
+  buildRoleRepoMock,
+} from './__test-support__/repository-mocks.js';
 import { ReplaceRolePermissionsUseCase } from './replace-role-permissions.use-case.js';
-import { jest } from '@jest/globals';
+import type { jest } from '@jest/globals';
 
 describe('ReplaceRolePermissionsUseCase', () => {
   let useCase: ReplaceRolePermissionsUseCase;
@@ -11,31 +16,8 @@ describe('ReplaceRolePermissionsUseCase', () => {
   let mockGrantsRepo: jest.Mocked<GrantsRepositoryPort>;
 
   beforeEach(() => {
-    mockRoleRepo = {
-      findAll: jest.fn(),
-      findById: jest.fn(),
-      findBySlug: jest.fn(),
-      listUserRoleIds: jest.fn(),
-      listRolesForUser: jest.fn(),
-      assignRoleToUser: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      removeRoleFromUser: jest.fn(),
-      replaceUserRoles: jest.fn(),
-    } as unknown as jest.Mocked<RoleRepositoryPort>;
-
-    mockGrantsRepo = {
-      listPermissionsForRoleIds: jest.fn(),
-      listUserOverrides: jest.fn(),
-      assignPermissionToRole: jest.fn(),
-      removePermissionFromRole: jest.fn(),
-      setUserPermissionOverride: jest.fn(),
-      removeUserPermissionOverride: jest.fn(),
-      replaceRolePermissions: jest.fn(),
-      replaceUserPermissions: jest.fn(),
-    } as unknown as jest.Mocked<GrantsRepositoryPort>;
-
+    mockRoleRepo = buildRoleRepoMock();
+    mockGrantsRepo = buildGrantsRepoMock();
     useCase = new ReplaceRolePermissionsUseCase(mockRoleRepo, mockGrantsRepo);
   });
 
@@ -60,12 +42,15 @@ describe('ReplaceRolePermissionsUseCase', () => {
     ]);
   });
 
-  it('throws RbacException and does not touch grants when the role is missing', async () => {
+  it('throws roleNotFound RbacException and does not touch grants when the role is missing', async () => {
     mockRoleRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('missing', ['p1'])).rejects.toBeInstanceOf(
-      RbacException,
-    );
+    await expect(useCase.execute('missing', ['p1'])).rejects.toMatchObject({
+      constructor: RbacException,
+      code: AppErrorCode.NOT_FOUND,
+      messageKey: 'rbac.errors.role_not_found',
+      details: { id: 'missing' },
+    });
     expect(mockGrantsRepo.replaceRolePermissions).not.toHaveBeenCalled();
   });
 });

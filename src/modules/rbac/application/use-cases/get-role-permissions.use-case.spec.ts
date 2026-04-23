@@ -1,23 +1,15 @@
 import { Permission } from '../../domain/entities/permission.entity.js';
 import type { GrantsRepositoryPort } from '../../domain/ports/grants.repository.port.js';
+import { buildGrantsRepoMock } from './__test-support__/repository-mocks.js';
 import { GetRolePermissionsUseCase } from './get-role-permissions.use-case.js';
-import { jest } from '@jest/globals';
+import type { jest } from '@jest/globals';
 
 describe('GetRolePermissionsUseCase', () => {
   let useCase: GetRolePermissionsUseCase;
   let mockRepo: jest.Mocked<GrantsRepositoryPort>;
 
   beforeEach(() => {
-    mockRepo = {
-      listPermissionsForRoleIds: jest.fn(),
-      listUserOverrides: jest.fn(),
-      assignPermissionToRole: jest.fn(),
-      removePermissionFromRole: jest.fn(),
-      setUserPermissionOverride: jest.fn(),
-      removeUserPermissionOverride: jest.fn(),
-      replaceRolePermissions: jest.fn(),
-      replaceUserPermissions: jest.fn(),
-    } as unknown as jest.Mocked<GrantsRepositoryPort>;
+    mockRepo = buildGrantsRepoMock();
     useCase = new GetRolePermissionsUseCase(mockRepo);
   });
 
