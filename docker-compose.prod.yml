@@ -1,7 +1,9 @@
+name: harbor-api-kit
+
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: core_platform_api_db
+    container_name: harbor_api_kit_db
     env_file:
       - .env
     environment:
@@ -28,7 +30,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: core_platform_api_redis
+    container_name: harbor_api_kit_redis
     command:
       [
         'redis-server',
@@ -61,7 +63,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: core_platform_api
+    container_name: harbor_api_kit
     env_file:
       - .env
     depends_on:
@@ -85,7 +87,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: core_platform_api_nginx
+    container_name: harbor_api_kit_nginx
     ports:
       - '80:80'
       - '443:443'

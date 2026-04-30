@@ -1,6 +1,6 @@
 # Adding a feature
 
-This is the **canonical procedure** for adding backend functionality to `core-platform-api`. The 12 steps below are the same 12 steps referenced from [AGENTS.md §14](../AGENTS.md#14-feature-addition-workflow--must-follow-before-scaffolding). If they ever drift, the architecture-side fix is here.
+This is the **canonical procedure** for adding backend functionality to `harbor-api-kit`. The 12 steps below are the same 12 steps referenced from [AGENTS.md §14](../AGENTS.md#14-feature-addition-workflow--must-follow-before-scaffolding). If they ever drift, the architecture-side fix is here.
 
 Before starting, read [ARCHITECTURE.md](../ARCHITECTURE.md) and [AGENTS.md](../AGENTS.md). If any step below is unclear for the task at hand, **STOP and ask** — do not guess.
 

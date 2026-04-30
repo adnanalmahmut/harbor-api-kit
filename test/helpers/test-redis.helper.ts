@@ -2,21 +2,21 @@ import { RedisService } from '#src/core/index.js';
 
 /**
  * Clear application cache keys from Redis without affecting BullMQ job data.
- * Uses patterns from redis.keys.ts: scp:auth:*, scp:rbac:*, scp:rl:*, scp:lock:*
+ * Uses patterns from redis.keys.ts: hak:auth:*, hak:rbac:*, hak:rl:*, hak:lock:*
  */
 export async function clearRedisCache(redis: RedisService): Promise<void> {
   const client = redis.raw();
   const patterns = [
-    'scp:auth:*',
-    'scp:rbac:*',
-    'scp:rl:*',
-    'scp:lock:*',
+    'hak:auth:*',
+    'hak:rbac:*',
+    'hak:rl:*',
+    'hak:lock:*',
     'test-api:auth:*',
     'test-api:rbac:*',
     'test-api:rl:*',
     'test-api:lock:*',
-    'core-platform-api:auth:*',
-    'core-platform-api:rbac:*',
+    'harbor-api-kit:auth:*',
+    'harbor-api-kit:rbac:*',
   ];
 
   for (const pattern of patterns) {

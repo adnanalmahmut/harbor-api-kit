@@ -1,6 +1,6 @@
 # ARCHITECTURE
 
-This document is the **authoritative architectural reference** for `core-platform-api`. It defines the structure, layers, dependency direction, and module boundaries that all backend code MUST follow.
+This document is the **authoritative architectural reference** for `harbor-api-kit`. It defines the structure, layers, dependency direction, and module boundaries that all backend code MUST follow.
 
 Execution rules (the operating rules an AI agent or contributor follows when writing code) live in [AGENTS.md](AGENTS.md). Practical step-by-step guides live under [docs/](docs/README.md). When in doubt, this document wins on architecture; `AGENTS.md` wins on procedure.
 

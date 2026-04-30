@@ -1,9 +1,11 @@
+name: harbor-api-kit
+
 services:
   postgres_test:
     image: postgres:15-alpine
-    container_name: core_platform_api_test_db
+    container_name: harbor_api_kit_test_db
     environment:
-      POSTGRES_DB: saas_core_test
+      POSTGRES_DB: harbor_api_kit_test
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
     ports:
@@ -13,14 +15,14 @@ services:
     mem_limit: 768m
     cpus: '1.0'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U test_user -d saas_core_test']
+      test: ['CMD-SHELL', 'pg_isready -U test_user -d harbor_api_kit_test']
       interval: 2s
       timeout: 5s
       retries: 10
 
   redis_test:
     image: redis:7-alpine
-    container_name: core_platform_api_test_redis
+    container_name: harbor_api_kit_test_redis
     ports:
       - '6380:6379'
     command: ['redis-server', '--maxmemory', '192mb', '--maxmemory-policy', 'allkeys-lru']

@@ -1,4 +1,4 @@
-# `docs/` — practical guides for `core-platform-api`
+# `docs/` — practical guides for `harbor-api-kit`
 
 This directory operationalizes the architecture and rules. The two governing documents are:
 
