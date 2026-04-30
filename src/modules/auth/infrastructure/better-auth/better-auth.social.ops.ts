@@ -58,7 +58,6 @@ export function createSocialOps(deps: BetterAuthDeps) {
         return {
           data: {
             redirect: data?.redirect ?? true,
-            token: '',
             url: 'url' in data ? data.url : '',
             user: null as unknown as User,
           },
@@ -86,7 +85,6 @@ export function createSocialOps(deps: BetterAuthDeps) {
         return {
           data: {
             redirect: true,
-            token: '',
             url: response?.url || '',
             user: null as unknown as User,
           },
@@ -106,7 +104,6 @@ export function createSocialOps(deps: BetterAuthDeps) {
           return {
             data: {
               redirect: true,
-              token: '',
               url,
               user: null as unknown as User,
             },

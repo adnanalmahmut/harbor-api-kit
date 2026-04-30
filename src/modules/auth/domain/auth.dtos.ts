@@ -23,13 +23,11 @@ export type TokenResult = {
 };
 
 export type SignUpResultData = {
-  token: string;
   user: User;
 };
 
 export type SignInResultData = {
   redirect: boolean;
-  token: string;
   url?: string;
   user: User;
 };

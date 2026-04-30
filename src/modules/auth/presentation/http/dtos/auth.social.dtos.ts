@@ -47,13 +47,12 @@ export class SocialSignInResponseDto {
   @ApiProperty({ example: true })
   redirect!: boolean;
 
-  @ApiProperty({ example: 'RFMCcFS8Qb6Gr0NZgrCqdSke8v3rjNj0' })
-  token!: string;
-
   @ApiProperty({
     example:
       'https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&scope=openid%20email%20profile&state=xyz123',
     required: false,
+    description:
+      'Provider redirect URL. Authenticated sessions are established with HttpOnly cookies after the provider callback, not response body tokens.',
   })
   url?: string;
 

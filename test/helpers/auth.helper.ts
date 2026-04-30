@@ -8,7 +8,7 @@ export class AuthHelper {
 
   async registerAndLogin(
     dto: RegisterDto,
-  ): Promise<{ cookies: string[]; userId: string; token?: string }> {
+  ): Promise<{ cookies: string[]; userId: string }> {
     await request(this.app.getHttpServer())
       .post('/api/v1/auth/register')
       .send(dto)
@@ -26,22 +26,19 @@ export class AuthHelper {
       .expect(200);
 
     const cookies = loginRes.get('Set-Cookie') || [];
-    // If we use tokens in body
-    const token = loginRes.body.data?.accessToken;
 
     const meRes = await request(this.app.getHttpServer())
       .get('/api/v1/auth/me')
       .set('Cookie', cookies)
-      .set('Authorization', token ? `Bearer ${token}` : '')
       .expect(200);
 
-    return { cookies, userId: meRes.body.data.user.id, token };
+    return { cookies, userId: meRes.body.data.user.id };
   }
 
   async login(
     email: string,
     password: string,
-  ): Promise<{ cookies: string[]; token?: string }> {
+  ): Promise<{ cookies: string[] }> {
     const loginRes = await request(this.app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email, password })
@@ -49,7 +46,6 @@ export class AuthHelper {
 
     return {
       cookies: loginRes.get('Set-Cookie') || [],
-      token: loginRes.body.data?.accessToken,
     };
   }
 

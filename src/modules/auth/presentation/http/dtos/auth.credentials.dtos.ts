@@ -119,10 +119,11 @@ export class RegisterDto extends createStrictZodDto(RegisterSchema) {
 // =====================================================
 
 export class SignUpResponseDto {
-  @ApiProperty({ description: 'Authentication token' })
-  token!: string;
-
-  @ApiProperty({ type: UserResponseDto })
+  @ApiProperty({
+    type: UserResponseDto,
+    description:
+      'Registered user. Authentication is established with HttpOnly session cookies returned in Set-Cookie headers.',
+  })
   user!: UserResponseDto;
 }
 
@@ -130,15 +131,13 @@ export class SignInResponseDto {
   @ApiProperty({ example: true })
   redirect!: boolean;
 
-  @ApiProperty({
-    example: 'RFMCcFS8Qb6Gr0NZgrCqdSke8v3rjNj0',
-    description: 'Authentication token',
-  })
-  token!: string;
-
   @ApiProperty({ example: 'http://localhost:5000', required: false })
   url?: string;
 
-  @ApiProperty({ type: UserResponseDto })
+  @ApiProperty({
+    type: UserResponseDto,
+    description:
+      'Authenticated user. Authentication is established with HttpOnly session cookies returned in Set-Cookie headers.',
+  })
   user!: UserResponseDto;
 }
