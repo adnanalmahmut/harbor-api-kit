@@ -63,7 +63,6 @@ export function createCredentialsOps(deps: BetterAuthDeps) {
 
         return {
           data: {
-            token: undefined as unknown as string,
             user: hydrateUser(response.user),
           },
           cookies: readCookiesFromHeaders(headers),
@@ -97,7 +96,6 @@ export function createCredentialsOps(deps: BetterAuthDeps) {
         return {
           data: {
             redirect: redirect ?? response.redirect ?? false,
-            token: undefined as unknown as string,
             url: response.url,
             user: hydrateUser(response.user),
           },

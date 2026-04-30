@@ -140,10 +140,10 @@ npm run test:e2e
 npm run test:e2e -- users.contract-spec
 
 # Reset the test DB manually
-docker exec -i core_platform_api_postgres_test psql -U postgres -d core_platform_api -c "TRUNCATE ... CASCADE;"
+docker exec -i harbor_api_kit_test_db psql -U test_user -d harbor_api_kit_test -c "TRUNCATE ... CASCADE;"
 
 # Flush test Redis manually
-docker exec -i core_platform_api_redis_test redis-cli FLUSHALL
+docker exec -i harbor_api_kit_test_redis redis-cli FLUSHALL
 ```
 
 ---

@@ -46,11 +46,13 @@ describe('Auth Module (E2E)', () => {
       .post('/api/v1/auth/register')
       .send(registerDto)
       .expect(201);
+    expect(registerRes.body.data.token).toBeUndefined();
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: registerDto.email, password: registerDto.password })
       .expect(200);
+    expect(loginRes.body.data.token).toBeUndefined();
 
     const loginCookies = loginRes.get('Set-Cookie') || [];
     expect(loginCookies).toBeDefined();

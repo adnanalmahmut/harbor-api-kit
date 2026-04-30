@@ -1,27 +1,39 @@
-# saas-core-platform-api
+# Harbor API Kit
 
 Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, RBAC, file storage, i18n).
 
+## Who This Is For
+
+- Teams building a production-oriented NestJS API starter with strong module boundaries.
+- Developers who want cookie-based auth, RBAC, Prisma, Redis, i18n, file storage, and contract tests wired together.
+- Projects that value explicit architecture and guardrails over a minimal blank template.
+
+## Who This Is Not For
+
+- Tiny prototypes that need a single-file API.
+- Projects that want JWT bearer-token auth as the default.
+- Teams that do not want Clean Architecture boundaries enforced by lint rules.
+
 ## Tech Stack
 
-| Category | Technology |
-|----------|-----------|
-| Runtime | Node.js 22, TypeScript 5.9, NestJS 11, Fastify 5 |
-| Database | PostgreSQL (via Prisma 7) |
-| Cache / Queue | Redis (ioredis), BullMQ |
-| Auth | better-auth (sessions, OAuth: Google/GitHub) |
-| Validation | Zod v4 (strict DTOs) |
-| i18n | nestjs-i18n (ar-SY, en-US) |
-| Logging | Pino (structured, request-scoped context) |
-| Email | Resend (via BullMQ async queue) |
-| File Storage | S3-compatible, Google Cloud Storage, Local filesystem |
-| API Docs | Swagger (OpenAPI) + Scalar UI |
-| Testing | Jest + Supertest (unit, contract, e2e) |
-| CI | GitHub Actions |
+| Category      | Technology                                            |
+| ------------- | ----------------------------------------------------- |
+| Runtime       | Node.js 22, TypeScript 5.9, NestJS 11, Fastify 5      |
+| Database      | PostgreSQL (via Prisma 7)                             |
+| Cache / Queue | Redis (ioredis), BullMQ                               |
+| Auth          | better-auth (sessions, OAuth: Google/GitHub)          |
+| Validation    | Zod v4 (strict DTOs)                                  |
+| i18n          | nestjs-i18n (ar-SY, en-US)                            |
+| Logging       | Pino (structured, request-scoped context)             |
+| Email         | Resend (via BullMQ async queue)                       |
+| File Storage  | S3-compatible, Google Cloud Storage, Local filesystem |
+| API Docs      | Swagger (OpenAPI) + Scalar UI                         |
+| Testing       | Jest + Supertest (unit, contract, e2e)                |
+| CI            | GitHub Actions                                        |
 
 ## Implemented Features
 
-- **Authentication** - Session-based auth via better-auth, OAuth (Google, GitHub), email/password with verification, session management (list/revoke/logout-all), geolocation tracking (IP, city, country)
+- **Authentication** - Cookie-based sessions via better-auth, OAuth (Google, GitHub), email/password with optional verification emails, session management (list/revoke/logout-all), geolocation tracking (IP, city, country)
 - **RBAC** - Role-based access control with permission inheritance. Roles, permissions, user-level grants (ALLOW/DENY), effective permissions computation with Redis caching (L1 request-scoped + L2 Redis)
 - **Users** - Full CRUD, profile management, role/permission assignment, soft deletes
 - **File Storage** - Multi-driver upload (S3/R2/Spaces, GCS, Local), magic bytes validation, presigned download URLs, public/private visibility toggle, public token-based access
@@ -32,12 +44,16 @@ Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean 
 - **Health** - `GET /health` with database + Redis connectivity checks
 - **Observability** - Pino structured logging with request ID, user ID, locale context injection
 
-## Planned (Not Yet Implemented)
+## Roadmap
 
-- MFA/TOTP + step-up authentication
-- Distributed tracing (OpenTelemetry)
-- Prometheus metrics endpoint
-- Audit logging (security-sensitive operations)
+Planned features live in [ROADMAP.md](ROADMAP.md). The README lists implemented behavior only.
+
+## Known Limitations
+
+- Email verification emails are sent, but verification enforcement is optional by default.
+- The included production Docker Compose setup is a reference single-host deployment, not a full orchestration platform.
+- The `shared` module is reserved for cross-feature provider wiring and currently only hosts shared cache binding.
+- Security audit findings are triaged through Dependabot, CodeQL, and the advisory CI audit step; reachable production vulnerabilities should be fixed before release.
 
 ## Architecture
 
@@ -74,6 +90,17 @@ core/
 - Layer isolation enforced via ESLint (domain/application cannot import from wrong layers)
 - Cross-feature imports use NestJS module imports + token injection for services, and direct imports for guards/decorators
 
+```mermaid
+flowchart LR
+  Client[HTTP Client] --> Presentation[Presentation Layer]
+  Presentation --> Application[Application Layer]
+  Application --> Domain[Domain Layer]
+  Infrastructure[Infrastructure Adapters] --> Application
+  Infrastructure --> Domain
+  Core[Core Infrastructure] --> Presentation
+  Core --> Infrastructure
+```
+
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency map and enforcement details.
 
 ## Documentation
@@ -84,14 +111,19 @@ Architecture and rules are governed by two top-level documents, with practical g
 - [AGENTS.md](AGENTS.md) — operating rules for AI agents and contributors (MUST/MUST NOT, naming, Definition of Done, anti-bypass).
 - [docs/README.md](docs/README.md) — index of the practical guides.
 
-| Guide | Purpose |
-|-------|---------|
-| [docs/adding-a-feature.md](docs/adding-a-feature.md) | Step-by-step procedure for scaffolding a new feature or extending an existing one. |
-| [docs/module-boundaries.md](docs/module-boundaries.md) | Allowed and forbidden imports between modules and layers; public API rules. |
-| [docs/file-organization.md](docs/file-organization.md) | When to merge files, when to split, naming conventions, size thresholds. |
-| [docs/shared-core-extraction.md](docs/shared-core-extraction.md) | What belongs in `core/` vs what stays feature-owned (the three-signal rule). |
-| [docs/testing.md](docs/testing.md) | Unit, contract, and e2e expectations; test environment; troubleshooting. |
-| [docs/workflow-checklist.md](docs/workflow-checklist.md) | Per-task checklists and the Definition of Done. |
+| Guide                                                            | Purpose                                                                            |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [docs/adding-a-feature.md](docs/adding-a-feature.md)             | Step-by-step procedure for scaffolding a new feature or extending an existing one. |
+| [docs/module-boundaries.md](docs/module-boundaries.md)           | Allowed and forbidden imports between modules and layers; public API rules.        |
+| [docs/file-organization.md](docs/file-organization.md)           | When to merge files, when to split, naming conventions, size thresholds.           |
+| [docs/shared-core-extraction.md](docs/shared-core-extraction.md) | What belongs in `core/` vs what stays feature-owned (the three-signal rule).       |
+| [docs/quickstart.md](docs/quickstart.md)                         | Short local setup path for first-time users.                                       |
+| [docs/configuration.md](docs/configuration.md)                   | Environment variables and runtime configuration groups.                            |
+| [docs/api-conventions.md](docs/api-conventions.md)               | Response envelope, auth cookies, CSRF, and validation conventions.                 |
+| [docs/deployment.md](docs/deployment.md)                         | Production Docker Compose reference and deployment notes.                          |
+| [docs/roadmap.md](docs/roadmap.md)                               | Implemented vs planned work, including deliberately incomplete areas.              |
+| [docs/testing.md](docs/testing.md)                               | Unit, contract, and e2e expectations; test environment; troubleshooting.           |
+| [docs/workflow-checklist.md](docs/workflow-checklist.md)         | Per-task checklists and the Definition of Done.                                    |
 
 ### Folder Structure
 
@@ -125,7 +157,7 @@ src/
     files/           # File upload/download (S3, GCS, Local)
     notify/          # Email notifications (BullMQ + Resend)
     health/          # Health checks
-    shared/          # Shared services (cache)
+    shared/          # Reserved for cross-feature provider wiring; currently cache binding
 prisma/
   schema.prisma      # Database schema (12 models)
   migrations/        # Migration history
@@ -142,13 +174,18 @@ test/                # E2E/contract tests + helpers
 
 All responses are wrapped in a consistent envelope:
 
-```json
+```jsonc
 // Success
 { "success": true, "message": "Translated message", "data": { ... } }
 
 // Error
-{ "success": false, "message": "Translated error", "code": "ERROR_CODE", "requestId": "uuid", "errors": [...] }
+{ "success": false, "message": "Translated error" }
+
+// Validation error
+{ "success": false, "message": "Validation failed", "errors": [{ "path": "email", "message": "validation.email.invalid" }] }
 ```
+
+Request IDs are exposed through the configured request ID header, not in the JSON error body.
 
 ### Versioning
 
@@ -159,6 +196,12 @@ URI-based: `/api/v1/{endpoint}`
 - All exceptions extend `AppException` with i18n message keys
 - Validation errors return structured field-level errors
 - No stack traces in production responses
+
+### Authentication
+
+Authentication is cookie-based. Register/login responses set HttpOnly session cookies through `Set-Cookie`; they do not return bearer tokens in the response body.
+
+Email verification is optional in this starter: verification emails are sent, but better-auth is configured with `requireEmailVerification: false` so applications can choose when to enforce verification.
 
 ## Run Locally
 
@@ -194,6 +237,10 @@ npx prisma migrate dev
 npx prisma db seed
 ```
 
+The development seed uses values from your local environment. Keep demo
+credentials local, rotate them for real deployments, and never publish real
+admin passwords.
+
 ### 5. Start dev server
 
 ```bash
@@ -205,20 +252,26 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run start:dev` | Development mode (watch) |
-| `npm run build` | Production build |
-| `npm run start:prod` | Run compiled build |
-| `npm run lint` | ESLint with auto-fix |
-| `npm run format` | Prettier formatting |
-| `npm run test` | Unit tests |
-| `npm run test:e2e` | E2E + contract tests (starts Docker services) |
-| `npm run test:cov` | Unit tests with coverage |
-| `npm run prisma:generate` | Regenerate Prisma client |
-| `npm run prisma:migrate` | Create new migration |
-| `npm run prisma:seed` | Run development seed |
-| `npm run prisma:studio` | Open Prisma Studio |
+| Script                    | Description                                   |
+| ------------------------- | --------------------------------------------- |
+| `npm run start:dev`       | Development mode (watch)                      |
+| `npm run build`           | Production build                              |
+| `npm run start:prod`      | Run compiled build                            |
+| `npm run lint`            | ESLint with auto-fix                          |
+| `npm run format`          | Prettier formatting                           |
+| `npm run test`            | Unit tests                                    |
+| `npm run test:e2e`        | E2E + contract tests (starts Docker services) |
+| `npm run test:cov`        | Unit tests with coverage                      |
+| `npm run prisma:generate` | Regenerate Prisma client                      |
+| `npm run prisma:migrate`  | Create new migration                          |
+| `npm run prisma:seed`     | Run development seed                          |
+| `npm run prisma:studio`   | Open Prisma Studio                            |
+
+## Security Automation
+
+- Dependabot monitors npm and GitHub Actions dependencies.
+- CodeQL runs on pushes, pull requests, and a weekly schedule.
+- `npm audit --audit-level=high` runs in CI as an advisory, non-blocking check. It is intentionally non-blocking because advisories can appear in transitive development tooling; reachable production vulnerabilities should still be fixed or explicitly documented before release.
 
 ## Testing
 
@@ -255,9 +308,11 @@ All runtime configuration is centralized through `AppConfigService`. Direct `pro
 
 Key configuration sections: `app`, `db`, `redis`, `auth`, `cors`, `csrf`, `rateLimit`, `storage`, `logger`, `i18n`, `cookies`, `fastify`.
 
-See `.env.example` for the full list of environment variables with descriptions.
+See [.env.example](.env.example) and [docs/configuration.md](docs/configuration.md) for the full list of environment variables with descriptions.
 
 ## Production Deployment
+
+See [docs/deployment.md](docs/deployment.md) for deployment details and production caveats.
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
@@ -277,4 +332,4 @@ APP_ENV=production ALLOW_PROD_SEED=true npx tsx ./prisma/seed.production.ts
 
 ## License
 
-Private/internal (adjust as needed).
+MIT - use it, fork it, learn from it, and adapt it to your own projects.

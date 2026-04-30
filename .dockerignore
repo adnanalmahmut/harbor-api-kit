@@ -75,6 +75,3 @@ test-uploads
 
 # TypeScript build cache
 *.tsbuildinfo
-
-# knip
-knip.json

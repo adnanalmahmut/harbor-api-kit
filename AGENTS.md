@@ -1,4 +1,4 @@
-# AGENTS.md — Operating rules for `core-platform-api`
+# AGENTS.md — Operating rules for `harbor-api-kit`
 
 These are **mandatory operating constraints** for any contributor (human or AI agent) writing or reviewing code in this repository. They are not style suggestions. A change that violates these rules MUST be rejected, regardless of how well it solves the stated problem.
 
@@ -123,7 +123,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 11. Caching — MUST
 
-- All Redis keys MUST use the `scp:` prefix.
+- All Redis keys MUST use the `hak:` prefix.
 - Every cache entry MUST set an explicit TTL. No infinite caches.
 - Caches MUST be invalidated on logout, session revocation, role mutation, permission mutation, and any RBAC change. Cache MUST NOT override an authoritative deny.
 - L1 caches are request-scoped only. L2 is Redis.

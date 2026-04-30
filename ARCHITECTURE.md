@@ -1,6 +1,6 @@
 # ARCHITECTURE
 
-This document is the **authoritative architectural reference** for `core-platform-api`. It defines the structure, layers, dependency direction, and module boundaries that all backend code MUST follow.
+This document is the **authoritative architectural reference** for `harbor-api-kit`. It defines the structure, layers, dependency direction, and module boundaries that all backend code MUST follow.
 
 Execution rules (the operating rules an AI agent or contributor follows when writing code) live in [AGENTS.md](AGENTS.md). Practical step-by-step guides live under [docs/](docs/README.md). When in doubt, this document wins on architecture; `AGENTS.md` wins on procedure.
 
@@ -291,7 +291,7 @@ Three modules deliberately do not have a full four-layer layout. These are **leg
 
 - **`notify`** ([src/modules/notify/](src/modules/notify/)) — infrastructure-bound: it owns one port (`EmailProviderPort`) in `domain/`, exception types under `domain/exceptions/`, and adapters in `infrastructure/` (Resend client, BullMQ producer/consumer). It has no use cases of its own — sending an email is triggered by other modules' use cases enqueuing a job. It exposes only the port and the module class.
 - **`health`** ([src/modules/health/](src/modules/health/)) — minimal probe module: a single controller (`/health`) that pings DB and Redis. No domain or business logic justifies introducing the four layers.
-- **`shared`** ([src/modules/shared/](src/modules/shared/)) — placeholder module retained for future cross-feature DI scope wiring. Currently empty by intent.
+- **`shared`** ([src/modules/shared/](src/modules/shared/)) — reserved for cross-feature DI scope wiring. It currently exposes shared cache binding only; new business behavior must not be added here.
 
 If any of these grows new business behavior, it MUST adopt the full four-layer layout before that behavior ships.
 

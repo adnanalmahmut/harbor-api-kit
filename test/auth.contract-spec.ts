@@ -77,6 +77,7 @@ describe('Auth API Contract (E2E)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.user.email).toBe('test@example.com');
+      expect(res.body.data.token).toBeUndefined();
       // Expect cookie
       expect(res.get('Set-Cookie')).toBeDefined();
     });
@@ -147,6 +148,7 @@ describe('Auth API Contract (E2E)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.user.email).toBe('login@example.com');
+      expect(res.body.data.token).toBeUndefined();
       expect(res.get('Set-Cookie')).toBeDefined();
     });
 
@@ -696,6 +698,7 @@ describe('Auth API Contract (E2E)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
       expect(res.body.data.url).toBeDefined();
+      expect(res.body.data.token).toBeUndefined();
       expect(res.body.data.url).toContain('google');
     });
 
