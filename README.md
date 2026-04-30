@@ -1,6 +1,18 @@
-# harbor-api-kit
+# Harbor API Kit
 
 Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, RBAC, file storage, i18n).
+
+## Who This Is For
+
+- Teams building a production-oriented NestJS API starter with strong module boundaries.
+- Developers who want cookie-based auth, RBAC, Prisma, Redis, i18n, file storage, and contract tests wired together.
+- Projects that value explicit architecture and guardrails over a minimal blank template.
+
+## Who This Is Not For
+
+- Tiny prototypes that need a single-file API.
+- Projects that want JWT bearer-token auth as the default.
+- Teams that do not want Clean Architecture boundaries enforced by lint rules.
 
 ## Tech Stack
 
@@ -32,12 +44,16 @@ Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean 
 - **Health** - `GET /health` with database + Redis connectivity checks
 - **Observability** - Pino structured logging with request ID, user ID, locale context injection
 
-## Planned (Not Yet Implemented)
+## Roadmap
 
-- MFA/TOTP + step-up authentication
-- Distributed tracing (OpenTelemetry)
-- Prometheus metrics endpoint
-- Audit logging (security-sensitive operations)
+Planned features live in [ROADMAP.md](ROADMAP.md). The README lists implemented behavior only.
+
+## Known Limitations
+
+- Email verification emails are sent, but verification enforcement is optional by default.
+- The included production Docker Compose setup is a reference single-host deployment, not a full orchestration platform.
+- The `shared` module is reserved for cross-feature provider wiring and currently only hosts shared cache binding.
+- Security audit findings are triaged through Dependabot, CodeQL, and the advisory CI audit step; reachable production vulnerabilities should be fixed before release.
 
 ## Architecture
 

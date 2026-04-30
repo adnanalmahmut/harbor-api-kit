@@ -11,8 +11,6 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "chatgpt.openOnStartup": true,
-
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/node_modules/**": true,

@@ -3,7 +3,6 @@ dist
 build
 .next
 out
-package-lock.json
 
 # dependencies
 node_modules
@@ -78,4 +77,5 @@ test-uploads
 # TypeScript build cache
 *.tsbuildinfo
 
-\n# ops/certs\nops/certs/*.pem
+# ops/certs
+ops/certs/*.pem

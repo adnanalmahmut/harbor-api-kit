@@ -1,11 +1,17 @@
 {
   "name": "harbor-api-kit",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Production-oriented NestJS API starter with Clean Architecture, session auth, RBAC, i18n, files, Redis, Prisma, Docker, and contract tests.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/adnanalmahmut/harbor-api-kit.git"
   },
+  "bugs": {
+    "url": "https://github.com/adnanalmahmut/harbor-api-kit/issues"
+  },
+  "homepage": "https://github.com/adnanalmahmut/harbor-api-kit#readme",
   "keywords": [
     "nestjs",
     "typescript",
