@@ -15,12 +15,15 @@ Everything in `docs/` exists to make those two documents executable.
 
 **For a human onboarding to the project:**
 1. [../ARCHITECTURE.md](../ARCHITECTURE.md)
-2. [adding-a-feature.md](adding-a-feature.md)
-3. [module-boundaries.md](module-boundaries.md)
-4. [file-organization.md](file-organization.md)
-5. [shared-core-extraction.md](shared-core-extraction.md)
-6. [testing.md](testing.md)
-7. [workflow-checklist.md](workflow-checklist.md)
+2. [quickstart.md](quickstart.md)
+3. [configuration.md](configuration.md)
+4. [api-conventions.md](api-conventions.md)
+5. [adding-a-feature.md](adding-a-feature.md)
+6. [module-boundaries.md](module-boundaries.md)
+7. [file-organization.md](file-organization.md)
+8. [shared-core-extraction.md](shared-core-extraction.md)
+9. [testing.md](testing.md)
+10. [workflow-checklist.md](workflow-checklist.md)
 
 ## Index
 
@@ -30,6 +33,11 @@ Everything in `docs/` exists to make those two documents executable.
 | [module-boundaries.md](module-boundaries.md) | Allowed and forbidden imports between modules and layers. Public API rules. |
 | [file-organization.md](file-organization.md) | When to merge files, when to split, naming conventions, size thresholds. |
 | [shared-core-extraction.md](shared-core-extraction.md) | What belongs in `core/` vs what stays feature-owned. The three-signal rule. |
+| [quickstart.md](quickstart.md) | Fast local setup for new users. |
+| [configuration.md](configuration.md) | Environment files and runtime configuration groups. |
+| [api-conventions.md](api-conventions.md) | Response envelopes, auth cookies, CSRF, and validation. |
+| [deployment.md](deployment.md) | Docker production reference and deployment notes. |
+| [roadmap.md](roadmap.md) | Implemented and planned work. |
 | [testing.md](testing.md) | Unit, contract, and e2e test expectations. Test environment setup. Troubleshooting. |
 | [workflow-checklist.md](workflow-checklist.md) | Per-task checklists and the Definition of Done. |
 

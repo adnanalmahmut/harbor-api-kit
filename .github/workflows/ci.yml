@@ -15,7 +15,7 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: saas_core_test
+          POSTGRES_DB: harbor_api_kit_test
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
         ports:
@@ -37,7 +37,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://test_user:test_password@localhost:5435/saas_core_test?schema=public
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5435/harbor_api_kit_test?schema=public
       REDIS_URL: redis://localhost:6380
       APP_ENV: test
       NODE_ENV: test
@@ -62,10 +62,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Security Audit
-        # || true: remaining HIGH vulns are in transitive dev deps (lodash in prisma-ast)
-        # not exploitable in production. Remove || true once upstream fixes land.
-        run: npm audit --audit-level=high || true
+      - name: Security Audit Advisory
+        # Advisory only: Dependabot and CodeQL are the blocking open-source security gates.
+        # Keep this visible for dependency triage without blocking CI on transient advisory drift.
+        continue-on-error: true
+        run: npm audit --audit-level=high
 
       - name: Lint
         run: npm run lint:check
