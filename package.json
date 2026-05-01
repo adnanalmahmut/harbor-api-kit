@@ -45,11 +45,13 @@
     "docker:down": "docker compose -f docker-compose.dev.yml down",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "bootstrap:rbac": "tsx ./prisma/bootstrap-rbac.ts",
+    "admin:create": "tsx ./prisma/create-admin.ts",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio"
   },
   "prisma": {
-    "seed": "tsx ./prisma/seed.ts"
+    "seed": "tsx ./prisma/bootstrap-rbac.ts"
   },
   "imports": {
     "#src/*": "./dist/src/*"

@@ -15,7 +15,7 @@ npm install
 cp .env.example .env
 npm run docker:up
 npx prisma migrate dev
-npx prisma db seed
+npm run bootstrap:rbac
 npm run start:dev
 ```
 
@@ -23,6 +23,16 @@ The API runs at `http://localhost:5000/api/v1/`.
 
 When `ENABLE_DOCS=true`, Scalar/OpenAPI docs are available at
 `http://localhost:5000/documentation`.
+
+Create an admin user only when you need one:
+
+```bash
+npm run admin:create -- \
+  --email admin@example.com \
+  --password replace-with-a-long-random-password \
+  --first-name Admin \
+  --last-name User
+```
 
 ## Tests
 
