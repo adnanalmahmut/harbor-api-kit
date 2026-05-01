@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/core/index.js';
+import { createStrictZodDto } from '#src/core/presentation/index.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 

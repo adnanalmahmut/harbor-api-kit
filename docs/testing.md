@@ -87,7 +87,7 @@ Use the existing helpers:
 
 - [test/helpers/test-app.factory.ts](../test/helpers/test-app.factory.ts) — boots a NestJS app against the test DB and Redis.
 - [test/helpers/auth.helper.ts](../test/helpers/auth.helper.ts) — sets up authenticated cookies.
-- [test/helpers/rbac.helper.ts](../test/helpers/rbac.helper.ts) — seeds roles/permissions.
+- [test/helpers/rbac.helper.ts](../test/helpers/rbac.helper.ts) — creates test-specific roles/permissions.
 - [test/helpers/test-db.helper.ts](../test/helpers/test-db.helper.ts) — `resetDb(prisma)` between tests.
 - [test/helpers/test-redis.helper.ts](../test/helpers/test-redis.helper.ts) — `clearRedisCache(redis)` between tests.
 

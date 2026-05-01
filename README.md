@@ -239,9 +239,11 @@ npm run bootstrap:rbac
 ```
 
 `npx prisma db seed` is also safe to run; it points to the same RBAC bootstrap.
-It creates roles, permissions, and role-permission assignments only.
+It idempotently ensures roles, permissions, and built-in role-permission
+assignments only.
+It does not create users, sessions, demo accounts, or passwords.
 
-Create a local admin user explicitly when you need one:
+Create a local admin user through the explicit one-off CLI when you need one:
 
 ```bash
 npm run admin:create -- \
@@ -277,8 +279,8 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 | `npm run test:cov`        | Unit tests with coverage                      |
 | `npm run prisma:generate` | Regenerate Prisma client                      |
 | `npm run prisma:migrate`  | Create new migration                          |
-| `npm run bootstrap:rbac`  | Bootstrap roles/permissions idempotently      |
-| `npm run admin:create`    | Create or ensure an admin user                |
+| `npm run bootstrap:rbac`  | Idempotently ensure RBAC roles/permissions    |
+| `npm run admin:create`    | Create or ensure a one-off admin user         |
 | `npm run prisma:seed`     | Run RBAC bootstrap through Prisma             |
 | `npm run prisma:studio`   | Open Prisma Studio                            |
 

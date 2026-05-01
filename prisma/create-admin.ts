@@ -17,6 +17,8 @@ type AdminInput = {
 };
 
 function loadScriptEnv(): void {
+  if (process.env.APP_ENV === 'production') return;
+
   const envFile = process.env.APP_ENV === 'test' ? '.env.test' : '.env';
   dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 }

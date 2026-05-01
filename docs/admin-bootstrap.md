@@ -10,11 +10,11 @@ Run the RBAC bootstrap after migrations in any environment:
 npm run bootstrap:rbac
 ```
 
-It is safe and idempotent. It creates or updates:
+It is safe and idempotent. It ensures:
 
 - System roles from `DEFAULT_ROLES`.
 - Canonical permissions from `PERMISSION_CATALOG`.
-- Role-permission assignments for the built-in admin and user roles.
+- Built-in role-permission assignments for the admin and user roles.
 
 It does not create users, demo accounts, sessions, or passwords.
 
@@ -22,7 +22,7 @@ It does not create users, demo accounts, sessions, or passwords.
 
 ## Admin CLI
 
-Create or ensure an administrator with:
+Create or ensure an administrator through the explicit one-off CLI:
 
 ```bash
 npm run admin:create -- \

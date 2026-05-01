@@ -24,7 +24,11 @@ The API runs at `http://localhost:5000/api/v1/`.
 When `ENABLE_DOCS=true`, Scalar/OpenAPI docs are available at
 `http://localhost:5000/documentation`.
 
-Create an admin user only when you need one:
+`npm run bootstrap:rbac` idempotently ensures roles, permissions, and built-in
+role-permission assignments. It does not create users, sessions, demo accounts,
+or passwords.
+
+Create an admin user only when you need one through the explicit one-off CLI:
 
 ```bash
 npm run admin:create -- \

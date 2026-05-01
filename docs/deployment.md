@@ -24,14 +24,15 @@ rolling out API replicas.
 ## RBAC and Admin Bootstrap
 
 After migrations, bootstrap RBAC. This is safe in development, test, staging,
-and production because it only creates or updates roles, permissions, and
-role-permission assignments.
+and production because it idempotently ensures roles, permissions, and built-in
+role-permission assignments only. It does not create users, sessions, demo
+accounts, or passwords.
 
 ```bash
 APP_ENV=production npm run bootstrap:rbac
 ```
 
-Create the first admin through the dedicated CLI. The CLI has no default
+Create the first admin through the dedicated one-off CLI. The CLI has no default
 password and does not create demo users.
 
 ```bash
