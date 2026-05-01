@@ -32,15 +32,18 @@ accounts, or passwords.
 APP_ENV=production npm run bootstrap:rbac
 ```
 
+Run `bootstrap:rbac` and `admin:create` from a source checkout or deployment
+workspace with dev tooling installed. The production Docker image is optimized
+for running the API and migrations, not for executing TypeScript bootstrap
+scripts.
+
 Create the first admin through the dedicated one-off CLI. The CLI has no default
 password and does not create demo users.
 
 ```bash
 APP_ENV=production npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password \
-  --first-name Admin \
-  --last-name User
+  --password replace-with-a-long-random-password
 ```
 
 See [admin-bootstrap.md](admin-bootstrap.md) for full details.

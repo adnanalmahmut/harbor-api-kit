@@ -31,7 +31,8 @@ sessions, demo accounts, or passwords.
 `npm run admin:create` is an explicit one-off admin creation operation. It
 requires admin input through CLI flags or `ADMIN_*` environment variables. No
 admin password is defined in `.env.example`; use one-off secrets from your shell
-or deployment platform.
+or deployment platform. First name defaults to `Admin`; last name defaults to
+`User`.
 
 ## Auth Defaults
 

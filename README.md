@@ -225,6 +225,10 @@ cp .env.example .env
 
 Edit `.env` with your values. Required: `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME`.
 
+The default `.env.example` uses `STORAGE_DRIVER=r2`. Fill the S3/R2 variables
+before starting the app, or switch to `STORAGE_DRIVER=local` for quick
+local-only testing.
+
 ### 3. Start infrastructure
 
 ```bash
@@ -248,9 +252,7 @@ Create a local admin user through the explicit one-off CLI when you need one:
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password \
-  --first-name Admin \
-  --last-name User
+  --password replace-with-a-long-random-password
 ```
 
 The project does not create demo users or default-password accounts in
@@ -348,10 +350,13 @@ create the first admin explicitly:
 APP_ENV=production npm run bootstrap:rbac
 APP_ENV=production npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password \
-  --first-name Admin \
-  --last-name User
+  --password replace-with-a-long-random-password
 ```
+
+Run `bootstrap:rbac` and `admin:create` from a source checkout or deployment
+workspace with dev tooling installed. The production Docker image is optimized
+for running the API and migrations, not for executing TypeScript bootstrap
+scripts.
 
 See [docs/admin-bootstrap.md](docs/admin-bootstrap.md) for details.
 

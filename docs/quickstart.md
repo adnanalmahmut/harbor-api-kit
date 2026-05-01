@@ -19,6 +19,10 @@ npm run bootstrap:rbac
 npm run start:dev
 ```
 
+The default `.env.example` uses `STORAGE_DRIVER=r2`. Fill the S3/R2 variables
+before starting the app, or switch to `STORAGE_DRIVER=local` for quick
+local-only testing.
+
 The API runs at `http://localhost:5000/api/v1/`.
 
 When `ENABLE_DOCS=true`, Scalar/OpenAPI docs are available at
@@ -33,9 +37,7 @@ Create an admin user only when you need one through the explicit one-off CLI:
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password \
-  --first-name Admin \
-  --last-name User
+  --password replace-with-a-long-random-password
 ```
 
 ## Tests
