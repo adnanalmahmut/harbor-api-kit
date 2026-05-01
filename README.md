@@ -161,8 +161,9 @@ src/
 prisma/
   schema.prisma      # Database schema (12 models)
   migrations/        # Migration history
-  seed.ts            # Development seed
-  seed.production.ts # Production seed (gated)
+  bootstrap-rbac.ts  # Idempotent roles/permissions bootstrap
+  create-admin.ts    # One-off admin creation CLI
+  seed.ts            # Prisma seed alias for RBAC bootstrap
 locales/             # i18n translation files (ar-SY, en-US)
 ops/                 # Nginx config, SSL certs
 test/                # E2E/contract tests + helpers
@@ -234,12 +235,26 @@ docker compose -f docker-compose.dev.yml up -d
 
 ```bash
 npx prisma migrate dev
-npx prisma db seed
+npm run bootstrap:rbac
 ```
 
-The development seed uses values from your local environment. Keep demo
-credentials local, rotate them for real deployments, and never publish real
-admin passwords.
+`npx prisma db seed` is also safe to run; it points to the same RBAC bootstrap.
+It idempotently ensures roles, permissions, and built-in role-permission
+assignments only.
+It does not create users, sessions, demo accounts, or passwords.
+
+Create a local admin user through the explicit one-off CLI when you need one:
+
+```bash
+npm run admin:create -- \
+  --email admin@example.com \
+  --password replace-with-a-long-random-password \
+  --first-name Admin \
+  --last-name User
+```
+
+The project does not create demo users or default-password accounts in
+production.
 
 ### 5. Start dev server
 
@@ -264,7 +279,9 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 | `npm run test:cov`        | Unit tests with coverage                      |
 | `npm run prisma:generate` | Regenerate Prisma client                      |
 | `npm run prisma:migrate`  | Create new migration                          |
-| `npm run prisma:seed`     | Run development seed                          |
+| `npm run bootstrap:rbac`  | Idempotently ensure RBAC roles/permissions    |
+| `npm run admin:create`    | Create or ensure a one-off admin user         |
+| `npm run prisma:seed`     | Run RBAC bootstrap through Prisma             |
 | `npm run prisma:studio`   | Open Prisma Studio                            |
 
 ## Security Automation
@@ -322,13 +339,21 @@ The production stack includes: PostgreSQL, Redis, API (multi-stage Docker build)
 
 Note: `prisma` is included as a production dependency because database migrations run at container startup (`npx prisma migrate deploy`). For multi-replica deployments, consider running migrations in a separate init container.
 
-## Production Seeding
+## Admin and RBAC Bootstrap
 
-Production seeding is a separate, explicitly gated operation:
+Production deployments should run migrations first, then bootstrap RBAC, then
+create the first admin explicitly:
 
 ```bash
-APP_ENV=production ALLOW_PROD_SEED=true npx tsx ./prisma/seed.production.ts
+APP_ENV=production npm run bootstrap:rbac
+APP_ENV=production npm run admin:create -- \
+  --email admin@example.com \
+  --password replace-with-a-long-random-password \
+  --first-name Admin \
+  --last-name User
 ```
+
+See [docs/admin-bootstrap.md](docs/admin-bootstrap.md) for details.
 
 ## License
 

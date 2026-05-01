@@ -8,11 +8,11 @@ There are three test layers: **unit**, **contract**, and **e2e**. Each has a fix
 
 ## 1. Test layout
 
-| Layer | Location | Pattern | Runner config |
-|-------|----------|---------|---------------|
-| Unit | Co-located with source | `src/**/*.spec.ts` | `test/jest-unit.json` |
-| Contract | `test/` | `test/<module>.contract-spec.ts` | `test/jest-e2e.json` |
-| E2E | `test/` | `test/<module>.e2e-spec.ts` | `test/jest-e2e.json` |
+| Layer    | Location               | Pattern                          | Runner config         |
+| -------- | ---------------------- | -------------------------------- | --------------------- |
+| Unit     | Co-located with source | `src/**/*.spec.ts`               | `test/jest-unit.json` |
+| Contract | `test/`                | `test/<module>.contract-spec.ts` | `test/jest-e2e.json`  |
+| E2E      | `test/`                | `test/<module>.e2e-spec.ts`      | `test/jest-e2e.json`  |
 
 Unit specs live next to the file they test (e.g., [src/modules/users/application/use-cases/create-user.use-case.spec.ts](../src/modules/users/application/use-cases/create-user.use-case.spec.ts) next to `create-user.use-case.ts`).
 
@@ -84,9 +84,10 @@ For each new endpoint:
 - Asserts on the **envelope shape** (`success`, `message`, `data` for success; `success`, `message`, optional `errors` for failure).
 
 Use the existing helpers:
+
 - [test/helpers/test-app.factory.ts](../test/helpers/test-app.factory.ts) — boots a NestJS app against the test DB and Redis.
 - [test/helpers/auth.helper.ts](../test/helpers/auth.helper.ts) — sets up authenticated cookies.
-- [test/helpers/rbac.helper.ts](../test/helpers/rbac.helper.ts) — seeds roles/permissions.
+- [test/helpers/rbac.helper.ts](../test/helpers/rbac.helper.ts) — creates test-specific roles/permissions.
 - [test/helpers/test-db.helper.ts](../test/helpers/test-db.helper.ts) — `resetDb(prisma)` between tests.
 - [test/helpers/test-redis.helper.ts](../test/helpers/test-redis.helper.ts) — `clearRedisCache(redis)` between tests.
 
@@ -109,7 +110,7 @@ Contract tests cover one module's endpoints. E2E tests cover **flows that span m
 - RBAC flow: assign role → call protected endpoint → revoke role → verify 403.
 - Files flow: upload → list → download → delete.
 
-Add an e2e spec when the value of the test is in the *interaction* between modules, not in the individual endpoints.
+Add an e2e spec when the value of the test is in the _interaction_ between modules, not in the individual endpoints.
 
 Reference: [test/auth.e2e-spec.ts](../test/auth.e2e-spec.ts), [test/rbac-admin.e2e-spec.ts](../test/rbac-admin.e2e-spec.ts).
 
@@ -122,7 +123,7 @@ Reference: [test/auth.e2e-spec.ts](../test/auth.e2e-spec.ts), [test/rbac-admin.e
 - **Config**: `.env.test` only. Never use `.env`.
 - **Database**: Postgres on `localhost:5435`. Use `docker-compose.test.yml` (`docker compose -f docker-compose.test.yml up -d`).
 - **Redis**: Redis on `localhost:6380`.
-- **`APP_ENV`**: must be `test` for seeders and the env loader.
+- **`APP_ENV`**: must be `test` for the test env loader.
 
 ### Common commands
 
@@ -175,14 +176,14 @@ Line-percentage coverage is informational only. A 100%-covered use case missing 
 
 ## 8. Troubleshooting
 
-| Issue | Root cause | Solution |
-|-------|------------|----------|
+| Issue                                        | Root cause                                                 | Solution                                                                                                                          |
+| -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | 403 after role assignment in a contract test | `clearRedisCache()` did not match the prefix actually used | Add the relevant prefix pattern to `clearRedisCache` in [test/helpers/test-redis.helper.ts](../test/helpers/test-redis.helper.ts) |
-| Migrate / reset hits the wrong DB | `APP_ENV` did not override `DATABASE_URL` | Set `DATABASE_URL` explicitly for the command, or run via the npm script that wires `.env.test` |
-| Seed fails | `.env.test` is missing a `SEED_*` variable | Copy from `.env.test.example` |
-| `jest is not defined` in a spec | Missing import | `import { jest } from '@jest/globals';` |
-| `jest.fn()` types are `any` | Generic missing | Type as `jest.Mocked<PortInterface>` |
-| CSRF token missing in a contract test | Did not call the helper that fetches it | Call `fetchCsrf(cookies)` before the mutating request |
+| Migrate / reset hits the wrong DB            | `APP_ENV` did not override `DATABASE_URL`                  | Set `DATABASE_URL` explicitly for the command, or run via the npm script that wires `.env.test`                                   |
+| RBAC bootstrap fails                         | `.env.test` was not loaded or the test DB is not migrated  | Run `npm run test:e2e:prepare`, then retry `npm run bootstrap:rbac` with `.env.test` loaded                                       |
+| `jest is not defined` in a spec              | Missing import                                             | `import { jest } from '@jest/globals';`                                                                                           |
+| `jest.fn()` types are `any`                  | Generic missing                                            | Type as `jest.Mocked<PortInterface>`                                                                                              |
+| CSRF token missing in a contract test        | Did not call the helper that fetches it                    | Call `fetchCsrf(cookies)` before the mutating request                                                                             |
 
 ### Pre-flight checklist for contract tests
 

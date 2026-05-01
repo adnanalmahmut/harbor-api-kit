@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/core/index.js';
+import { createStrictZodDto } from '#src/core/presentation/index.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 
@@ -87,7 +87,7 @@ export class VerifyPasswordDto extends createStrictZodDto(
 ) {
   @ApiProperty({
     description: 'The password to verify',
-    example: 'password123',
+    example: 'A-Long-Random-Passphrase-123!',
   })
   password!: string;
 }

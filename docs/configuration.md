@@ -21,6 +21,18 @@ not read `process.env` directly outside the config infrastructure.
 - Email: Resend sender and API key.
 - i18n: locale negotiation and defaults.
 
+## Bootstrap Configuration
+
+`npm run bootstrap:rbac` uses the normal database configuration and may run in
+development, test, staging, or production. It idempotently ensures roles,
+permissions, and built-in role-permission assignments. It does not create users,
+sessions, demo accounts, or passwords.
+
+`npm run admin:create` is an explicit one-off admin creation operation. It
+requires admin input through CLI flags or `ADMIN_*` environment variables. No
+admin password is defined in `.env.example`; use one-off secrets from your shell
+or deployment platform.
+
 ## Auth Defaults
 
 Email verification is optional in this starter. The project sends verification

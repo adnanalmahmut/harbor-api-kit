@@ -21,10 +21,26 @@ For a single-container deployment, `npx prisma migrate deploy` can be run during
 startup or deployment. For multi-replica deployments, run migrations once before
 rolling out API replicas.
 
-## Production Seeding
+## RBAC and Admin Bootstrap
 
-Production seeding is explicitly gated:
+After migrations, bootstrap RBAC. This is safe in development, test, staging,
+and production because it idempotently ensures roles, permissions, and built-in
+role-permission assignments only. It does not create users, sessions, demo
+accounts, or passwords.
 
 ```bash
-APP_ENV=production ALLOW_PROD_SEED=true npx tsx ./prisma/seed.production.ts
+APP_ENV=production npm run bootstrap:rbac
 ```
+
+Create the first admin through the dedicated one-off CLI. The CLI has no default
+password and does not create demo users.
+
+```bash
+APP_ENV=production npm run admin:create -- \
+  --email admin@example.com \
+  --password replace-with-a-long-random-password \
+  --first-name Admin \
+  --last-name User
+```
+
+See [admin-bootstrap.md](admin-bootstrap.md) for full details.
