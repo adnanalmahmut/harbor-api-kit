@@ -39,8 +39,10 @@ function argValue(name: string): string | undefined {
 function readInput(): AdminInput {
   const email = argValue('email') ?? process.env.ADMIN_EMAIL;
   const password = argValue('password') ?? process.env.ADMIN_PASSWORD;
-  const firstName = argValue('first-name') ?? process.env.ADMIN_FIRST_NAME;
-  const lastName = argValue('last-name') ?? process.env.ADMIN_LAST_NAME;
+  const firstName =
+    argValue('first-name') ?? process.env.ADMIN_FIRST_NAME ?? 'Admin';
+  const lastName =
+    argValue('last-name') ?? process.env.ADMIN_LAST_NAME ?? 'User';
   const locale =
     argValue('locale') ??
     process.env.ADMIN_LOCALE ??
@@ -51,8 +53,6 @@ function readInput(): AdminInput {
   const missing = [
     ['--email or ADMIN_EMAIL', email],
     ['--password or ADMIN_PASSWORD', password],
-    ['--first-name or ADMIN_FIRST_NAME', firstName],
-    ['--last-name or ADMIN_LAST_NAME', lastName],
   ]
     .filter(([, value]) => !value)
     .map(([name]) => name);
@@ -68,8 +68,8 @@ function readInput(): AdminInput {
   return {
     email: email!,
     password: password!,
-    firstName: firstName!,
-    lastName: lastName!,
+    firstName,
+    lastName,
     locale,
     image,
   };
