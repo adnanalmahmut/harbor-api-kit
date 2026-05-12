@@ -1,6 +1,6 @@
 # Harbor API Kit
 
-Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, RBAC, file storage, i18n).
+Production-oriented NestJS API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, RBAC, file storage, i18n).
 
 ## Who This Is For
 
@@ -13,6 +13,10 @@ Enterprise-grade API starter built with NestJS (Fastify adapter). Follows Clean 
 - Tiny prototypes that need a single-file API.
 - Projects that want JWT bearer-token auth as the default.
 - Teams that do not want Clean Architecture boundaries enforced by lint rules.
+
+## Why I Built This
+
+I built Harbor API Kit to demonstrate how I structure production-oriented backend systems: strict module boundaries, session-based auth, RBAC, i18n, file storage, testing, and deployment-ready Docker setup. The goal is not to be a complete SaaS product, but a reusable backend foundation that shows real-world engineering decisions.
 
 ## Tech Stack
 
@@ -105,10 +109,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency map and enforceme
 
 ## Documentation
 
-Architecture and rules are governed by two top-level documents, with practical guides under [`docs/`](docs/README.md):
+Architecture is governed by the top-level architecture reference, with practical guides under [`docs/`](docs/README.md):
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — authoritative architectural reference (layers, dependency direction, public API boundary, file-merging policy, anti-patterns).
-- [AGENTS.md](AGENTS.md) — operating rules for AI agents and contributors (MUST/MUST NOT, naming, Definition of Done, anti-bypass).
 - [docs/README.md](docs/README.md) — index of the practical guides.
 
 | Guide                                                            | Purpose                                                                            |
@@ -124,6 +127,14 @@ Architecture and rules are governed by two top-level documents, with practical g
 | [docs/roadmap.md](docs/roadmap.md)                               | Implemented vs planned work, including deliberately incomplete areas.              |
 | [docs/testing.md](docs/testing.md)                               | Unit, contract, and e2e expectations; test environment; troubleshooting.           |
 | [docs/workflow-checklist.md](docs/workflow-checklist.md)         | Per-task checklists and the Definition of Done.                                    |
+
+### Contributor / AI Agent Guardrails
+
+[AGENTS.md](AGENTS.md) documents the operating rules contributors and AI agents must follow in this repository: module boundaries, naming, Definition of Done, and anti-bypass rules.
+
+## Development Process
+
+This project was built with AI-assisted pair programming for scaffolding, documentation, and repetitive implementation tasks. Architectural decisions, code review, integration, testing strategy, and final ownership were handled by me. The repository includes [AGENTS.md](AGENTS.md) to document the rules any AI agent or contributor must follow.
 
 ### Folder Structure
 
