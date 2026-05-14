@@ -99,7 +99,7 @@
     "@nestjs/testing": "11.1.18",
     "@types/geoip-lite": "1.4.4",
     "@types/jest": "29.5.14",
-    "@types/node": "22.15.29",
+    "@types/node": "25.7.0",
     "@types/supertest": "6.0.2",
     "@typescript-eslint/eslint-plugin": "8.54.0",
     "@typescript-eslint/parser": "8.54.0",
