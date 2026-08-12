@@ -7,14 +7,11 @@ import { UsersException } from '../exceptions/users.exception.js';
 
 export interface CreateUserCommand {
   email: string;
-  name: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   locale?: string;
   image?: string;
   emailVerified?: boolean;
-  roles?: string[];
-  permissions?: string[];
 }
 
 export class CreateUserUseCase {
@@ -31,15 +28,14 @@ export class CreateUserUseCase {
 
     const newUser = new User(
       randomUUID(),
-      command.name,
-      command.firstName ?? null,
-      command.lastName ?? null,
+      command.firstName,
+      command.lastName,
       email.value,
       command.emailVerified ?? false,
       command.image ?? '',
       locale.value,
-      command.roles ?? [],
-      command.permissions ?? [],
+      ['user'],
+      [],
       new Date(),
       new Date(),
     );

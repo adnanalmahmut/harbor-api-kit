@@ -21,21 +21,12 @@ For a single-container deployment, `npx prisma migrate deploy` can be run during
 startup or deployment. For multi-replica deployments, run migrations once before
 rolling out API replicas.
 
-## RBAC and Admin Bootstrap
+## Authorization and Admin Bootstrap
 
-After migrations, bootstrap RBAC. This is safe in development, test, staging,
-and production because it idempotently ensures roles, permissions, and built-in
-role-permission assignments only. It does not create users, sessions, demo
-accounts, or passwords.
-
-```bash
-APP_ENV=production npm run bootstrap:rbac
-```
-
-Run `bootstrap:rbac` and `admin:create` from a source checkout or deployment
+Roles and permissions ship with the application code, so deployments do not
+run an authorization seed or bootstrap command. Run `admin:create` from a source checkout or deployment
 workspace with dev tooling installed. The production Docker image is optimized
-for running the API and migrations, not for executing TypeScript bootstrap
-scripts.
+for running the API and migrations, not for executing TypeScript CLI scripts.
 
 Create the first admin through the dedicated one-off CLI. The CLI has no default
 password and does not create demo users.
@@ -43,7 +34,7 @@ password and does not create demo users.
 ```bash
 APP_ENV=production npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password
+  --allow-production
 ```
 
 See [admin-bootstrap.md](admin-bootstrap.md) for full details.

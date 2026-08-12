@@ -20,7 +20,11 @@ describe('CreateUserUseCase', () => {
   });
 
   it('should create a user successfully', async () => {
-    const command = { email: 'test@example.com', name: 'Test User' };
+    const command = {
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
     mockUserRepo.findByEmail.mockResolvedValue(null);
     mockUserRepo.create.mockImplementation((u) => Promise.resolve(u));
 
@@ -28,11 +32,16 @@ describe('CreateUserUseCase', () => {
 
     expect(result).toBeInstanceOf(User);
     expect(result.email).toBe(command.email);
+    expect(result.fullName).toBe('Test User');
     expect(mockUserRepo.create).toHaveBeenCalled();
   });
 
   it('should throw if user exists', async () => {
-    const command = { email: 'test@example.com', name: 'Test User' };
+    const command = {
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+    };
     mockUserRepo.findByEmail.mockResolvedValue({
       id: '1',
     } as User);

@@ -26,7 +26,7 @@ export class TestAppFactory {
     );
 
     // Reuse the same configuration as the production app
-    const config = configureApp(app);
+    const config = await configureApp(app);
     const prisma = app.get(PrismaService);
     const redis = app.get(RedisService);
 

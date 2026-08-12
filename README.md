@@ -1,11 +1,11 @@
 # Harbor API Kit
 
-Production-oriented NestJS API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, RBAC, file storage, i18n).
+Production-oriented NestJS API starter built with NestJS (Fastify adapter). Follows Clean Architecture with strict layer boundaries, centralized configuration, and a security-first design (sessions, CSRF, rate limiting, authorization, file storage, i18n).
 
 ## Who This Is For
 
 - Teams building a production-oriented NestJS API starter with strong module boundaries.
-- Developers who want cookie-based auth, RBAC, Prisma, Redis, i18n, file storage, and contract tests wired together.
+- Developers who want cookie-based auth, role-based authorization, Prisma, Redis, i18n, file storage, and contract tests wired together.
 - Projects that value explicit architecture and guardrails over a minimal blank template.
 
 ## Who This Is Not For
@@ -16,7 +16,7 @@ Production-oriented NestJS API starter built with NestJS (Fastify adapter). Foll
 
 ## Why I Built This
 
-I built Harbor API Kit to demonstrate how I structure production-oriented backend systems: strict module boundaries, session-based auth, RBAC, i18n, file storage, testing, and deployment-ready Docker setup. The goal is not to be a complete SaaS product, but a reusable backend foundation that shows real-world engineering decisions.
+I built Harbor API Kit to demonstrate how I structure production-oriented backend systems: strict module boundaries, session-based auth, authorization, i18n, file storage, testing, and deployment-ready Docker setup. The goal is not to be a complete SaaS product, but a reusable backend foundation that shows real-world engineering decisions.
 
 ## Tech Stack
 
@@ -38,7 +38,7 @@ I built Harbor API Kit to demonstrate how I structure production-oriented backen
 ## Implemented Features
 
 - **Authentication** - Cookie-based sessions via better-auth, OAuth (Google, GitHub), email/password with optional verification emails, session management (list/revoke/logout-all), geolocation tracking (IP, city, country)
-- **RBAC** - Role-based access control with permission inheritance. Roles, permissions, user-level grants (ALLOW/DENY), effective permissions computation with Redis caching (L1 request-scoped + L2 Redis)
+- **Authorization** - Static roles with permission inheritance, user-level ALLOW/DENY overrides, and effective-permission caching (L1 request-scoped + L2 Redis)
 - **Users** - Full CRUD, profile management, role/permission assignment, soft deletes
 - **File Storage** - Multi-driver upload (S3/R2/Spaces, Local), magic bytes validation, presigned download URLs, public/private visibility toggle, public token-based access
 - **Notifications** - Async email delivery via BullMQ + Resend, retry with exponential backoff, HTML email templates
@@ -163,18 +163,16 @@ src/
       validation/    # GlobalValidationPipe, Strict Zod DTO helpers
   modules/
     auth/            # Authentication (better-auth, OAuth, sessions)
-    users/           # User CRUD, profile, role/permission assignment
-    rbac/            # Roles, permissions, grants, guards
+    users/           # User CRUD, profiles, roles, permission overrides
+    authorization/   # Static policy, effective permissions, guards
     files/           # File upload/download (S3, Local)
     notify/          # Email notifications (BullMQ + Resend)
     health/          # Health checks
     shared/          # Reserved for cross-feature provider wiring; currently cache binding
 prisma/
-  schema.prisma      # Database schema (12 models)
+  schema.prisma      # Database schema (9 models)
   migrations/        # Migration history
-  bootstrap-rbac.ts  # Idempotent roles/permissions bootstrap
   create-admin.ts    # One-off admin creation CLI
-  seed.ts            # Prisma seed alias for RBAC bootstrap
 locales/             # i18n translation files (ar-SY, en-US)
 ops/                 # Nginx config, SSL certs
 test/                # E2E/contract tests + helpers
@@ -211,7 +209,7 @@ URI-based: `/api/v1/{endpoint}`
 
 ### Authentication
 
-Authentication is cookie-based. Register/login responses set HttpOnly session cookies through `Set-Cookie`; they do not return bearer tokens in the response body.
+Authentication is cookie-based and uses Better Auth's native routes under `/api/v1/auth/*`. Sign-up/sign-in responses set HttpOnly session cookies through `Set-Cookie`; they do not return bearer tokens.
 
 Email verification is optional in this starter: verification emails are sent, but better-auth is configured with `requireEmailVerification: false` so applications can choose when to enforce verification.
 
@@ -250,21 +248,23 @@ docker compose -f docker-compose.dev.yml up -d
 
 ```bash
 npx prisma migrate dev
-npm run bootstrap:rbac
 ```
 
-`npx prisma db seed` is also safe to run; it points to the same RBAC bootstrap.
-It idempotently ensures roles, permissions, and built-in role-permission
-assignments only.
-It does not create users, sessions, demo accounts, or passwords.
+Roles and inherited permissions are static code in the authorization catalog, so no
+authorization seed or bootstrap step is required.
 
 Create a local admin user through the explicit one-off CLI when you need one:
 
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password
+  --first-name Admin \
+  --last-name User \
+  --locale ar-SY
 ```
+
+The CLI asks for `Admin password:` and `Confirm password:` through hidden
+prompts. The password must contain 12–128 characters.
 
 The project does not create demo users or default-password accounts in
 production.
@@ -292,9 +292,7 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 | `npm run test:cov`        | Unit tests with coverage                      |
 | `npm run prisma:generate` | Regenerate Prisma client                      |
 | `npm run prisma:migrate`  | Create new migration                          |
-| `npm run bootstrap:rbac`  | Idempotently ensure RBAC roles/permissions    |
-| `npm run admin:create`    | Create or ensure a one-off admin user         |
-| `npm run prisma:seed`     | Run RBAC bootstrap through Prisma             |
+| `npm run admin:create`    | Create the first admin through Better Auth    |
 | `npm run prisma:studio`   | Open Prisma Studio                            |
 
 ## Security Automation
@@ -306,7 +304,7 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 ## Testing
 
 - **Unit tests** (`src/**/*.spec.ts`): Domain logic, use-cases, validators
-- **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, users, RBAC, files, security)
+- **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, users, authorization, files, security)
 - **E2E tests** (`test/*.e2e-spec.ts`): Full integration with database and Redis
 
 ### Test environment setup
@@ -352,22 +350,20 @@ The production stack includes: PostgreSQL, Redis, API (multi-stage Docker build)
 
 Note: `prisma` is included as a production dependency because database migrations run at container startup (`npx prisma migrate deploy`). For multi-replica deployments, consider running migrations in a separate init container.
 
-## Admin and RBAC Bootstrap
+## Admin Bootstrap
 
-Production deployments should run migrations first, then bootstrap RBAC, then
-create the first admin explicitly:
+Production deployments run migrations first and then create the first admin
+explicitly. Roles and permissions ship with the application code:
 
 ```bash
-APP_ENV=production npm run bootstrap:rbac
 APP_ENV=production npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password
+  --allow-production
 ```
 
-Run `bootstrap:rbac` and `admin:create` from a source checkout or deployment
+Run `admin:create` from a source checkout or deployment
 workspace with dev tooling installed. The production Docker image is optimized
-for running the API and migrations, not for executing TypeScript bootstrap
-scripts.
+for running the API and migrations, not for executing TypeScript CLI scripts.
 
 See [docs/admin-bootstrap.md](docs/admin-bootstrap.md) for details.
 

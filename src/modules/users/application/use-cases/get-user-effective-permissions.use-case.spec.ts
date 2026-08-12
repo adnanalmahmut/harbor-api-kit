@@ -1,4 +1,4 @@
-import type { EffectivePermissionsService } from '#src/modules/rbac/index.js';
+import type { EffectivePermissionsService } from '#src/modules/authorization/index.js';
 import {
   buildEffectivePermissionsMock,
   type EffectivePermissionsMock,

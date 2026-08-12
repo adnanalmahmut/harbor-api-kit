@@ -7,7 +7,7 @@ import { RedisService } from '#src/core/index.js';
 export async function clearRedisCache(redis: RedisService): Promise<void> {
   await Promise.all([
     redis.deleteByPattern('auth:*'),
-    redis.deleteByPattern('rbac:*'),
+    redis.deleteByPattern('authorization:*'),
     redis.deleteByPattern('rl:*'),
     redis.deleteByPattern('lock:*'),
   ]);

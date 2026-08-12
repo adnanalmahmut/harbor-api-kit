@@ -8,7 +8,6 @@ import {
 import { HttpStatus } from '@nestjs/common';
 import {
   EffectivePermissionsResponseDto,
-  RoleResponseDto,
   UserPermissionsResponseDto,
   UserResponseDto,
 } from './dtos/users-response.dto.js';
@@ -66,51 +65,6 @@ export const USERS_RESPONSES = {
     ],
   ),
 
-  // User Roles Management
-  getUserRoles: createApiResponseConfig(
-    createApiSuccess(
-      'User roles fetched successfully',
-      HttpStatus.OK,
-      undefined,
-      [RoleResponseDto],
-    ),
-    [
-      createApiError(AppErrorCode.UNAUTHORIZED, 'Session expired'),
-      createApiError(AppErrorCode.NOT_FOUND, 'User not found'),
-      createApiError(AppErrorCode.FORBIDDEN, 'Insufficient permissions'),
-    ],
-  ),
-
-  addRoleToUser: createApiResponseConfig(
-    createApiSuccess('Role added to user successfully', HttpStatus.CREATED),
-    [
-      createApiError(AppErrorCode.UNAUTHORIZED, 'Session expired'),
-      createApiError(AppErrorCode.VALIDATION_ERROR, 'Role ID is required'),
-      createApiError(AppErrorCode.NOT_FOUND, 'User or role not found'),
-      createApiError(AppErrorCode.CONFLICT, 'Role already assigned'),
-      createApiError(AppErrorCode.FORBIDDEN, 'Insufficient permissions'),
-    ],
-  ),
-
-  removeRoleFromUser: createApiResponseConfig(
-    createApiSuccess('Role removed from user successfully', HttpStatus.OK),
-    [
-      createApiError(AppErrorCode.UNAUTHORIZED, 'Session expired'),
-      createApiError(AppErrorCode.NOT_FOUND, 'User or role not found'),
-      createApiError(AppErrorCode.FORBIDDEN, 'Insufficient permissions'),
-    ],
-  ),
-
-  replaceUserRoles: createApiResponseConfig(
-    createApiSuccess('User roles replaced successfully', HttpStatus.OK),
-    [
-      createApiError(AppErrorCode.UNAUTHORIZED, 'Session expired'),
-      createApiError(AppErrorCode.VALIDATION_ERROR, 'Roles array is required'),
-      createApiError(AppErrorCode.NOT_FOUND, 'User not found'),
-      createApiError(AppErrorCode.FORBIDDEN, 'Insufficient permissions'),
-    ],
-  ),
-
   // User Permissions Management
   getUserPermissions: createApiResponseConfig(
     createApiSuccess(
@@ -135,7 +89,7 @@ export const USERS_RESPONSES = {
       createApiError(AppErrorCode.UNAUTHORIZED, 'Session expired'),
       createApiError(
         AppErrorCode.VALIDATION_ERROR,
-        'Permission ID is required',
+        'Permission key is required',
       ),
       createApiError(AppErrorCode.NOT_FOUND, 'User or permission not found'),
       createApiError(AppErrorCode.FORBIDDEN, 'Insufficient permissions'),
@@ -187,10 +141,6 @@ export const USERS_ERRORS = {
   create: USERS_RESPONSES.create.errors,
   findById: USERS_RESPONSES.findById.errors,
   update: USERS_RESPONSES.update.errors,
-  getUserRoles: USERS_RESPONSES.getUserRoles.errors,
-  addRoleToUser: USERS_RESPONSES.addRoleToUser.errors,
-  removeRoleFromUser: USERS_RESPONSES.removeRoleFromUser.errors,
-  replaceUserRoles: USERS_RESPONSES.replaceUserRoles.errors,
   getUserPermissions: USERS_RESPONSES.getUserPermissions.errors,
   setPermissionOverride: USERS_RESPONSES.setPermissionOverride.errors,
   removePermissionOverride: USERS_RESPONSES.removePermissionOverride.errors,

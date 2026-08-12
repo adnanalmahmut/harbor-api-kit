@@ -1,50 +1,9 @@
-import { CORE_TOKENS } from '#src/core/index.js';
 import { AUTH_TOKENS } from './auth.tokens.js';
 import { AuthGuard } from './presentation/index.js';
 
-import {
-  CheckResetTokenUseCase,
-  DeleteUserUseCase,
-  GetSessionUseCase,
-  LinkSocialUseCase,
-  ListLinkedAccountsUseCase,
-  ListSessionsUseCase,
-  LoginUserUseCase,
-  ReactivateUserUseCase,
-  RegisterUserUseCase,
-  RevokeOtherSessionsUseCase,
-  RevokeSessionsUseCase,
-  RevokeSessionUseCase,
-  SendVerificationEmailUseCase,
-  SignInSocialUseCase,
-  SignOutUseCase,
-  UnlinkAccountUseCase,
-  UpdateUserUseCase,
-  VerifyPasswordUseCase,
-} from './application/index.js';
-
 export const authExports = [
   AuthGuard,
-  AUTH_TOKENS.AUTH_PROVIDER,
-  CORE_TOKENS.REQUEST_CONTEXT_STORE,
+  AUTH_TOKENS.BETTER_AUTH,
   AUTH_TOKENS.AUTH_CONFIG,
   AUTH_TOKENS.SESSION_TRACKER,
-  RegisterUserUseCase,
-  LoginUserUseCase,
-  GetSessionUseCase,
-  SignOutUseCase,
-  ListSessionsUseCase,
-  RevokeSessionUseCase,
-  RevokeSessionsUseCase,
-  RevokeOtherSessionsUseCase,
-  SendVerificationEmailUseCase,
-  VerifyPasswordUseCase,
-  CheckResetTokenUseCase,
-  UpdateUserUseCase,
-  DeleteUserUseCase,
-  ReactivateUserUseCase,
-  SignInSocialUseCase,
-  LinkSocialUseCase,
-  ListLinkedAccountsUseCase,
-  UnlinkAccountUseCase,
 ];

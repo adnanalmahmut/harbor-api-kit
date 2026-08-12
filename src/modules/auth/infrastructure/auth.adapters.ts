@@ -52,4 +52,14 @@ export class RedisSessionTrackerAdapter implements SessionTrackerPort {
       this.logger.error(err, 'Failed to track session key');
     }
   }
+
+  async invalidateUserSessions(userId: string): Promise<void> {
+    const userSessionsKey = this.redisService.key(
+      AuthCacheKeys.userSessions(userId),
+    );
+    const redis = this.redisService.raw();
+    const sessionKeys = await redis.smembers(userSessionsKey);
+    if (sessionKeys.length > 0) await redis.del(...sessionKeys);
+    await redis.del(userSessionsKey);
+  }
 }

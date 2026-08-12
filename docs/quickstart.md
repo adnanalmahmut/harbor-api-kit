@@ -15,7 +15,6 @@ npm install
 cp .env.example .env
 npm run docker:up
 npx prisma migrate dev
-npm run bootstrap:rbac
 npm run start:dev
 ```
 
@@ -28,17 +27,21 @@ The API runs at `http://localhost:5000/api/v1/`.
 When `ENABLE_DOCS=true`, Scalar/OpenAPI docs are available at
 `http://localhost:5000/documentation`.
 
-`npm run bootstrap:rbac` idempotently ensures roles, permissions, and built-in
-role-permission assignments. It does not create users, sessions, demo accounts,
-or passwords.
+Roles and their inherited permissions are defined statically in
+`src/modules/authorization/domain/permissions.catalog.ts`; no authorization seed step is needed.
 
 Create an admin user only when you need one through the explicit one-off CLI:
 
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password
+  --first-name Admin \
+  --last-name User \
+  --locale ar-SY
 ```
+
+The CLI asks for `Admin password:` and `Confirm password:` through hidden
+prompts. The password must contain 12–128 characters.
 
 ## Tests
 

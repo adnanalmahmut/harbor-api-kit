@@ -149,7 +149,7 @@ External provider adapters (e.g., a Resend email sender, a better-auth wrapper) 
 Controllers are thin. They:
 
 1. Accept a Zod DTO.
-2. Apply guards (`@UseGuards(AuthGuard, RbacGuard)`) and decorators (`@Permissions([...])`, `@Roles([...])`).
+2. Apply guards (`@UseGuards(AuthGuard, PermissionsGuard)`) and declare the required static permissions with `@Permissions([...])`.
 3. Call exactly one use case.
 4. Optionally pass the result through a response mapper.
 5. Return the value (the global response interceptor wraps the envelope).
@@ -279,7 +279,7 @@ Required:
 
 Optional but encouraged:
 
-- **E2E specs** — `test/<feature>.e2e-spec.ts` for flows that span multiple modules (e.g., auth → RBAC → users).
+- **E2E specs** — `test/<feature>.e2e-spec.ts` for flows that span multiple modules (e.g., auth → authorization → users).
 
 Test environment is fixed: `.env.test`, Postgres on `localhost:5435`, Redis on `localhost:6380`. Never mock the database in contract or e2e tests. Full details in [testing.md](testing.md).
 

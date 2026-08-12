@@ -1,6 +1,5 @@
-// Public API of the Auth module.
-// NestJS module class is NOT re-exported — consuming .module.ts files
-// import it directly from './auth.module.js' to avoid circular barrel deps.
+// Public API of the Auth module. The NestJS module class is intentionally not
+// re-exported to avoid circular ESM initialization.
 export * from './application/index.js';
 export * from './auth.tokens.js';
 export * from './domain/index.js';

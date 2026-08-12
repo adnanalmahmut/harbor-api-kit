@@ -1,7 +1,6 @@
 import { storageConfig } from '#src/config/index.js';
-import { PrismaModule } from '#src/core/index.js';
 import { AuthModule } from '#src/modules/auth/auth.module.js';
-import { RbacModule } from '#src/modules/rbac/rbac.module.js';
+import { AuthorizationModule } from '#src/modules/authorization/authorization.module.js';
 import { Module } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import {
@@ -28,7 +27,7 @@ import { FilesController } from './presentation/files.controller.js';
 import { PublicFilesController } from './presentation/public-files.controller.js';
 
 @Module({
-  imports: [PrismaModule, AuthModule, RbacModule],
+  imports: [AuthModule, AuthorizationModule],
   controllers: [FilesController, PublicFilesController],
   providers: [
     // Infrastructure

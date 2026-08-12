@@ -1,6 +1,11 @@
-import { AppCacheService, CORE_TOKENS } from '#src/core/index.js';
-import { Module } from '@nestjs/common';
+import {
+  AppCacheService,
+  CORE_TOKENS,
+  RequestContextStoreAdapter,
+} from '#src/core/index.js';
+import { Global, Module } from '@nestjs/common';
 
+@Global()
 @Module({
   providers: [
     {
@@ -11,7 +16,15 @@ import { Module } from '@nestjs/common';
       provide: CORE_TOKENS.APP_CACHE,
       useExisting: AppCacheService,
     },
+    {
+      provide: CORE_TOKENS.REQUEST_CONTEXT_STORE,
+      useClass: RequestContextStoreAdapter,
+    },
   ],
-  exports: [AppCacheService, CORE_TOKENS.APP_CACHE],
+  exports: [
+    AppCacheService,
+    CORE_TOKENS.APP_CACHE,
+    CORE_TOKENS.REQUEST_CONTEXT_STORE,
+  ],
 })
 export class SharedModule {}

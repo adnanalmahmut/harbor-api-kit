@@ -1,7 +1,7 @@
 import type { User } from '../../domain/entities/user.entity.js';
 import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
 
-export class GetAllUserUseCase {
+export class GetAllUsersUseCase {
   constructor(private readonly userRepo: UserRepositoryPort) {}
 
   execute(): Promise<User[] | null> {

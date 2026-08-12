@@ -10,6 +10,11 @@ import {
 import type { RequestContextStorePort } from '#src/core/domain/index.js';
 import { RedisService } from '#src/core/infrastructure/index.js';
 import {
+  AUTH_TOKENS,
+  type BetterAuthInstance,
+  normalizeBetterAuthOpenApiDocument,
+} from '#src/modules/auth/index.js';
+import {
   CsrfGuard,
   GlobalExceptionFilter,
   GlobalValidationPipe,
@@ -56,7 +61,7 @@ export async function createApp(opts?: {
   return app;
 }
 
-export function configureApp(app: NestFastifyApplication) {
+export async function configureApp(app: NestFastifyApplication) {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
@@ -135,12 +140,21 @@ export function configureApp(app: NestFastifyApplication) {
     new GlobalExceptionFilter(logger, i18n, http, contextStore),
   );
 
-  setupApiDocs(app, appConfiguration, http);
+  if (!appConfiguration.isProduction && http.docs.enabled) {
+    const betterAuth = app.get<BetterAuthInstance>(AUTH_TOKENS.BETTER_AUTH);
+    await setupApiDocs(
+      app,
+      appConfiguration,
+      http,
+      betterAuth,
+      normalizeBetterAuthOpenApiDocument,
+    );
+  }
   return appConfiguration;
 }
 
 export async function setup() {
   const app = await createApp();
-  const config = configureApp(app);
+  const config = await configureApp(app);
   await app.listen({ port: config.port, host: '0.0.0.0' });
 }

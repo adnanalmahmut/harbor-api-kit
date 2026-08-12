@@ -4,7 +4,6 @@ export class UserResponseMapper {
   static map(user: User) {
     return {
       id: user.id,
-      name: user.name,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,

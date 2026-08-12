@@ -1,69 +1,42 @@
-import type { AuthProviderPort } from '#src/modules/auth/index.js';
 import type {
+  AuthorizationRepositoryPort,
   EffectivePermissionsService,
-  GrantsRepositoryPort,
-} from '#src/modules/rbac/index.js';
+} from '#src/modules/authorization/index.js';
 import {
-  buildAuthProviderMock,
+  buildAuthorizationRepoMock,
   buildEffectivePermissionsMock,
-  buildGrantsRepoMock,
   type EffectivePermissionsMock,
 } from './__test-support__/repository-mocks.js';
 import { SetUserPermissionOverrideUseCase } from './set-user-permission-override.use-case.js';
 import type { jest } from '@jest/globals';
 
 describe('SetUserPermissionOverrideUseCase', () => {
+  let repository: jest.Mocked<AuthorizationRepositoryPort>;
+  let effective: EffectivePermissionsMock;
   let useCase: SetUserPermissionOverrideUseCase;
-  let mockGrantsRepo: jest.Mocked<GrantsRepositoryPort>;
-  let mockAuthProvider: jest.Mocked<AuthProviderPort>;
-  let mockEffective: EffectivePermissionsMock;
 
   beforeEach(() => {
-    mockGrantsRepo = buildGrantsRepoMock();
-    mockAuthProvider = buildAuthProviderMock();
-    mockEffective = buildEffectivePermissionsMock();
+    repository = buildAuthorizationRepoMock();
+    effective = buildEffectivePermissionsMock();
     useCase = new SetUserPermissionOverrideUseCase(
-      mockGrantsRepo,
-      mockAuthProvider,
-      mockEffective as unknown as EffectivePermissionsService,
+      repository,
+      effective as unknown as EffectivePermissionsService,
     );
   });
 
-  it('persists an ALLOW override and invalidates caches', async () => {
-    mockGrantsRepo.setUserPermissionOverride.mockResolvedValue(undefined);
-    mockAuthProvider.invalidateUserSessions.mockResolvedValue(undefined);
-    mockEffective.refreshForUser.mockResolvedValue(undefined);
-
+  it('stores the override and refreshes authorization', async () => {
     await useCase.execute({
       userId: 'u1',
-      permissionId: 'p1',
-      effect: 'ALLOW',
-    });
-
-    expect(mockGrantsRepo.setUserPermissionOverride).toHaveBeenCalledWith(
-      'u1',
-      'p1',
-      'ALLOW',
-    );
-    expect(mockAuthProvider.invalidateUserSessions).toHaveBeenCalledWith('u1');
-    expect(mockEffective.refreshForUser).toHaveBeenCalledWith('u1');
-  });
-
-  it('persists a DENY override with the same invalidation flow', async () => {
-    mockGrantsRepo.setUserPermissionOverride.mockResolvedValue(undefined);
-    mockAuthProvider.invalidateUserSessions.mockResolvedValue(undefined);
-    mockEffective.refreshForUser.mockResolvedValue(undefined);
-
-    await useCase.execute({
-      userId: 'u1',
-      permissionId: 'p1',
+      permissionKey: 'files:delete',
       effect: 'DENY',
+      note: 'temporary',
     });
 
-    expect(mockGrantsRepo.setUserPermissionOverride).toHaveBeenCalledWith(
-      'u1',
-      'p1',
-      'DENY',
-    );
+    expect(repository.setUserPermissionOverride).toHaveBeenCalledWith('u1', {
+      permissionKey: 'files:delete',
+      effect: 'DENY',
+      note: 'temporary',
+    });
+    expect(effective.refreshForUser).toHaveBeenCalledWith('u1');
   });
 });

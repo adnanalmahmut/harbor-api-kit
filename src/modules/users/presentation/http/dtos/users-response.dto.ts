@@ -15,17 +15,14 @@ export class UserResponseDto {
   @ApiProperty({ example: true })
   emailVerified!: boolean;
 
-  @ApiProperty({ example: 'John Doe' })
-  name!: string;
-
   @ApiProperty({ required: false, nullable: true, example: null })
   image?: string | null;
 
-  @ApiProperty({ required: false, nullable: true, example: 'John' })
-  firstName?: string | null;
+  @ApiProperty({ example: 'John' })
+  firstName!: string;
 
-  @ApiProperty({ required: false, nullable: true, example: 'Doe' })
-  lastName?: string | null;
+  @ApiProperty({ example: 'Doe' })
+  lastName!: string;
 
   @ApiProperty({ required: false, nullable: true, example: 'en-US' })
   locale?: string | null;
@@ -33,7 +30,7 @@ export class UserResponseDto {
   @ApiProperty({ required: false, type: [String], example: ['user'] })
   roles?: string[];
 
-  @ApiProperty({ required: false, type: [String], example: ['users:read'] })
+  @ApiProperty({ required: false, type: [String], example: ['user:get'] })
   permissions?: string[];
 
   @ApiProperty({ example: '2026-02-01T06:58:00.450Z' })
@@ -49,17 +46,6 @@ export class ListUsersResponseDto {
   users!: UserResponseDto[];
 }
 
-// Role Response (for user roles)
-import { RoleResponseDto } from '#src/modules/rbac/index.js';
-
-export { RoleResponseDto };
-
-// User Roles Response
-export class UserRolesResponseDto {
-  @ApiProperty({ type: [RoleResponseDto] })
-  roles!: RoleResponseDto[];
-}
-
 // Permission Key Response
 export class PermissionKeyResponseDto {
   @ApiProperty({ example: 'users' })
@@ -71,14 +57,14 @@ export class PermissionKeyResponseDto {
 
 // Permission Override Response
 export class PermissionOverrideResponseDto {
-  @ApiProperty({ example: 'perm_123e4567-e89b-12d3-a456-426614174000' })
-  id!: string;
-
   @ApiProperty({ type: PermissionKeyResponseDto })
   key!: PermissionKeyResponseDto;
 
-  @ApiProperty({ required: false, example: 'Read users permission' })
-  description?: string;
+  @ApiProperty({ enum: ['ALLOW', 'DENY'] })
+  effect!: 'ALLOW' | 'DENY';
+
+  @ApiProperty({ required: false, example: 'Temporary exception' })
+  note?: string;
 }
 
 // User Permissions Response
@@ -103,7 +89,7 @@ export class EffectivePermissionsResponseDto {
 
   @ApiProperty({
     type: [String],
-    example: ['users:read', 'users:create', 'users:update'],
+    example: ['user:list', 'user:create', 'user:update'],
   })
   permissions!: string[];
 }

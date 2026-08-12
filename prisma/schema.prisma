@@ -10,8 +10,8 @@ datasource db {
 model User {
   id            String    @id
   name          String
-  firstName     String?   
-  lastName      String? 
+  firstName     String?
+  lastName      String?
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String    @default("")
@@ -19,45 +19,51 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
+  role          String?   @default("user")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
 
-  sessions      Session[]
-  accounts      Account[]
+  sessions    Session[]
+  accounts    Account[]
+  members     Member[]
+  invitations Invitation[]
 
-  roles         UserRole[]
   userPerms     UserPermission[]
-  assignedRoles UserRole[] @relation("AssignedByUser")
-  uploadedFiles File[]     @relation("FileUploader")
+  uploadedFiles File[]           @relation("FileUploader")
 
   @@map("user")
 }
 
 model Session {
-  id        String   @id                      
+  id        String    @id
   expiresAt DateTime
-  token     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  ipAddress String?
-  userAgent String?
-  city      String?
-  country   String?
+  ipAddress            String?
+  userAgent            String?
+  city                 String?
+  country              String?
+  impersonatedBy       String?
+  activeOrganizationId String?
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("session")
 }
 
 model Account {
-  id                    String   @id          
-  accountId             String
-  providerId            String
+  id         String @id
+  accountId  String
+  providerId String
 
-  userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   accessToken           String?
   refreshToken          String?
@@ -66,8 +72,8 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   deletedAt             DateTime?
 
   @@unique([providerId, accountId])
@@ -87,39 +93,64 @@ model Verification {
   @@map("verification")
 }
 
-model UserRole {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @map("user_id")       
-  roleId     String   @db.Uuid @map("role_id")
-  assignedBy String?  @map("assigned_by")   
+model Organization {
+  id          String       @id
+  name        String
+  slug        String       @unique
+  logo        String?
+  createdAt   DateTime
+  metadata    String?
+  members     Member[]
+  invitations Invitation[]
 
-  createdAt  DateTime @default(now()) @map("created_at")
+  @@map("organization")
+}
 
-  user           User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  assignedByUser User? @relation("AssignedByUser", fields: [assignedBy], references: [id], onDelete: SetNull)
+model Member {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  createdAt      DateTime
 
-  @@unique([userId, roleId])
-  @@index([roleId])
-  @@index([assignedBy])
-  @@map("user_roles")
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
 }
 
 model UserPermission {
-  id           String      @id @default(uuid()) @db.Uuid
-  userId       String      @map("user_id")           
-  permissionId String      @db.Uuid @map("permission_id")
-  effect       GrantEffect @default(ALLOW)
-  sourceRoleId String?     @db.Uuid @map("source_role_id")
-  note         String?
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String      @map("user_id")
+  permissionKey String      @map("permission_key")
+  effect        GrantEffect @default(ALLOW)
+  note          String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, permissionId])
+  @@unique([userId, permissionKey])
   @@index([userId])
-  @@index([userId, permissionId, effect], map: "idx_user_perm_uid_pid_effect")
+  @@index([userId, effect], map: "idx_user_perm_uid_effect")
   @@map("user_permissions")
 }
 
@@ -128,58 +159,6 @@ enum GrantEffect {
   DENY
 }
 
-model Role {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  slug        String   @unique
-  description String?
-  isSystem    Boolean  @default(false)
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  rolePerms   RolePermission[]
-  userRoles   UserRole[]
-
-  @@map("roles")
-}
-
-model Permission {
-  id          String   @id @default(uuid()) @db.Uuid
-  action      String
-  subject     String
-
-  index       Int      @unique @map("perm_index")
-
-  description String?
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  rolePerms   RolePermission[]
-  userPerms   UserPermission[]
-
-  @@unique([action, subject])
-  @@index([subject])
-  @@map("permissions")
-}
-
-model RolePermission {
-  id           String     @id @default(uuid()) @db.Uuid
-  roleId       String     @db.Uuid @map("role_id")
-  permissionId String     @db.Uuid @map("permission_id")
-
-  createdAt    DateTime   @default(now()) @map("created_at")
-
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([permissionId])
-  @@map("role_permissions")
-}
-
- 
 enum StorageDriver {
   S3_COMPAT
   LOCAL
@@ -195,14 +174,14 @@ model File {
   bucket       String?       @db.VarChar(100)
   driver       StorageDriver
   isPublic     Boolean       @default(false)
-  publicToken  String?       @unique 
+  publicToken  String?       @unique
   uploadedById String?       @map("uploaded_by_id")
 
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  deletedAt    DateTime?     @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  uploadedBy   User?     @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedBy User? @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([uploadedById])
   @@index([mimeType])

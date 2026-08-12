@@ -1,23 +1,22 @@
 import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
 import { User } from '../../domain/entities/user.entity.js';
 import { buildUserRepoMock } from './__test-support__/repository-mocks.js';
-import { GetAllUserUseCase } from './get-all-users.use-case.js';
+import { GetAllUsersUseCase } from './get-all-users.use-case.js';
 import type { jest } from '@jest/globals';
 
-describe('GetAllUserUseCase', () => {
-  let useCase: GetAllUserUseCase;
+describe('GetAllUsersUseCase', () => {
+  let useCase: GetAllUsersUseCase;
   let mockRepo: jest.Mocked<UserRepositoryPort>;
 
   beforeEach(() => {
     mockRepo = buildUserRepoMock();
-    useCase = new GetAllUserUseCase(mockRepo);
+    useCase = new GetAllUsersUseCase(mockRepo);
   });
 
   it('returns the full list from the repository', async () => {
     const users = [
       new User(
         'u1',
-        'n1',
         'n1',
         null,
         'a@b.com',

@@ -3,9 +3,8 @@ import { z } from 'zod';
 
 const createUserSchema = z.object({
   email: z.email(),
-  name: z.string().min(1),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().min(1).max(100),
   locale: z.string().optional(),
 });
 

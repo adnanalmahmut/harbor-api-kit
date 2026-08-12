@@ -18,7 +18,6 @@ describe('UpdateUserByIdUseCase', () => {
   it('applies only the fields present on the command', async () => {
     const existing = new User(
       'u1',
-      'Full',
       'Old',
       'Name',
       'old@example.com',
@@ -40,6 +39,7 @@ describe('UpdateUserByIdUseCase', () => {
 
     expect(result.firstName).toBe('New');
     expect(result.lastName).toBe('Name');
+    expect(result.fullName).toBe('New Name');
     expect(result.email).toBe('old@example.com');
     expect(mockRepo.update).toHaveBeenCalledWith(existing);
   });
