@@ -1,7 +1,15 @@
 {
+  "messages": {
+    "permission_override_set_success": "تم تعيين تجاوز الصلاحية بنجاح",
+    "permission_override_removed_success": "تمت إزالة تجاوز الصلاحية بنجاح",
+    "user_permissions_fetch_success": "تم جلب صلاحيات المستخدم بنجاح",
+    "user_permissions_replaced_success": "تم استبدال صلاحيات المستخدم بنجاح",
+    "user_effective_permissions_fetch_success": "تم جلب الصلاحيات الفعلية بنجاح"
+  },
   "errors": {
     "missing_permission": "الصلاحية المطلوبة غير متوفرة: {permission}",
     "invalid_permission_key": "صيغة مفتاح الصلاحية غير صالحة: {key}",
+    "permission_override_not_found": "تجاوز الصلاحية غير موجود",
     "unauthorized": "يجب تسجيل الدخول للوصول إلى هذا المورد",
     "database_error": "تعذر قراءة بيانات الصلاحيات أو تحديثها"
   }

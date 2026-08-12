@@ -44,7 +44,7 @@ These look "shared" because more than one feature touches them, but they fail si
 |------|------------------|---------------------|
 | `AuthGuard`, `PermissionsGuard`, session types | `auth` / `authorization` modules | They encode authentication and authorization rules. Other features consume them via the barrel. |
 | `Permissions` decorator | `authorization` module | Same — authorization-specific semantics. |
-| `UserResponseDto` | `users` module | Response shapes are owned by the feature whose entity they represent. |
+| `UserPermissionsResponseDto` | `authorization` module | Response shapes are owned by the feature whose concept they represent. |
 | `EmailProviderPort` and Resend adapter | `notify` module | Notifications are a feature even when async. |
 | Permission catalog / authorization value objects | `authorization` module | Pure authorization domain knowledge. |
 | Cache key prefixes for auth / authorization | `auth.cache.ts`, `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
@@ -65,7 +65,7 @@ Walk through the three signals first:
 
 If signals 2 or 3 fail, the right answer is: **the feature that owns the concept exposes it through its barrel**. The consumer imports it from `#src/modules/<owner>/index.js`. That is what cross-module integration *is* — it's not a sign that extraction is needed.
 
-Example: `PermissionsGuard` is needed by `users` and `files`. It does **not** belong in `core/` — it belongs in `authorization` (because it encodes authorization semantics) and is consumed via `#src/modules/authorization/index.js`.
+Example: `PermissionsGuard` is needed by `authorization` and `files`. It does **not** belong in `core/` — it belongs in `authorization` (because it encodes authorization semantics) and is consumed via `#src/modules/authorization/index.js`.
 
 ---
 

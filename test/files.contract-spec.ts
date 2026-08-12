@@ -13,6 +13,7 @@ describe('Files Module (E2E)', () => {
   let redisService: RedisService;
   let authHelper: AuthHelper;
   let adminCookies: string[];
+  let adminId: string;
   let csrfCookie: string | undefined;
   let csrfToken: string | undefined;
 
@@ -51,11 +52,12 @@ describe('Files Module (E2E)', () => {
       await clearRedisCache(redisService);
       const setup = await authHelper.setupAdmin();
       adminCookies = setup.cookies;
+      adminId = setup.userId;
     }
 
     // احصل على توكن CSRF بعد تسجيل الدخول (GET آمن يصدر الكوكي والتوكن)
     const meRes = await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${adminId}/permissions`)
       .set('Cookie', adminCookies);
 
     const setCookies = meRes.get('Set-Cookie') || [];

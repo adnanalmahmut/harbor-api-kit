@@ -10,9 +10,9 @@ Inside a feature module, code MAY import from exactly four sources:
 
 | Source | Example | When |
 |--------|---------|------|
-| **Same module, relative** | `import { User } from '../entities/user.entity.js';` | In-module references. The default. |
+| **Same module, relative** | `import { PermissionKeyVO } from '../value-objects/permission-key.vo.js';` | In-module references. The default. |
 | **`#src/core/...`** | `import { PrismaService } from '#src/core/index.js';` | Anything from `core/`. |
-| **`#src/modules/<other>/index.js`** | `import { USERS_TOKENS } from '#src/modules/users/index.js';` | Cross-module references. **Always via the barrel.** |
+| **`#src/modules/<other>/index.js`** | `import { AUTHORIZATION_TOKENS } from '#src/modules/authorization/index.js';` | Cross-module references. **Always via the barrel.** |
 | **External package** | `import { Module } from '@nestjs/common';` | Subject to layer restrictions in `eslint.config.mjs`. |
 
 Anything else is a violation.
@@ -24,16 +24,17 @@ Anything else is a violation.
 ### ✅ Allowed
 
 ```ts
-// In src/modules/users/application/use-cases/create-user.use-case.ts
-import { User } from '../../domain/entities/user.entity.js';            // relative, same module
-import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
-import { UsersException } from '../exceptions/users.exception.js';
+// In src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts
+import { isPermissionKey } from '../../domain/permissions.catalog.js';   // relative, same module
+import type { AuthorizationRepositoryPort } from '../../domain/ports/authorization.repository.port.js';
+import { AuthorizationException } from '../exceptions/authorization.exception.js';
 ```
 
 ```ts
-// In src/modules/users/users.module.ts
+// In src/modules/files/files.module.ts
 import { PrismaModule } from '#src/core/index.js';                       // from core
-import { AUTH_TOKENS, AuthModule } from '#src/modules/auth/index.js';    // from another module via barrel
+import { AuthModule } from '#src/modules/auth/auth.module.js';           // module class via direct file
+import { PermissionsGuard } from '#src/modules/authorization/index.js';  // provider via barrel
 ```
 
 ### ❌ Forbidden in new code
@@ -43,15 +44,15 @@ import { AUTH_TOKENS, AuthModule } from '#src/modules/auth/index.js';    // from
 import { AuthGuard } from '#src/modules/auth/presentation/http/auth.guard.js';
 
 // Self-reference via #src instead of relative
-// (inside src/modules/users/...)
-import { User } from '#src/modules/users/domain/entities/user.entity.js';
+// (inside src/modules/authorization/...)
+import { PermissionKeyVO } from '#src/modules/authorization/domain/value-objects/permission-key.vo.js';
 
 // Layer violation — application reaching into infrastructure
-// (inside src/modules/users/application/...)
-import { PrismaUserRepository } from '../infrastructure/persistence/prisma-user.repository.js';
+// (inside src/modules/authorization/application/...)
+import { PrismaAuthorizationRepository } from '../infrastructure/persistence/prisma-authorization.repository.js';
 
 // Layer violation — domain reaching into NestJS
-// (inside src/modules/users/domain/...)
+// (inside src/modules/authorization/domain/...)
 import { Injectable } from '@nestjs/common';
 
 // Forbidden globally
@@ -82,20 +83,19 @@ In code:
 
 ```ts
 // ✅ Correct
-import { USERS_TOKENS, UsersModule } from '#src/modules/users/index.js';
+import { AUTHORIZATION_TOKENS } from '#src/modules/authorization/index.js';
 
 // ❌ Forbidden in new code
-import { USERS_TOKENS } from '#src/modules/users/users.tokens.js';
-import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
+import { AUTHORIZATION_TOKENS } from '#src/modules/authorization/authorization.tokens.js';
+import { GetUserPermissionsUseCase } from '#src/modules/authorization/application/use-cases/get-user-permissions.use-case.js';
 ```
 
 When the symbol you need is not yet exported by the target barrel, the **only correct fix** is to extend that barrel:
 
 ```ts
-// src/modules/users/index.ts
-export * from './users.module.js';
-export * from './users.tokens.js';
-export * from './domain/ports/user.repository.port.js';   // ← add it here
+// src/modules/authorization/index.ts
+export * from './authorization.tokens.js';
+export type { AuthorizationRepositoryPort } from './domain/ports/authorization.repository.port.js';   // ← add it here
 ```
 
 Do **not** deep-import as a workaround.
@@ -123,7 +123,7 @@ Prisma is the most easily-leaked dependency. Rules:
 
 ## 6. Circular dependencies
 
-NestJS modules occasionally need bidirectional references (e.g., `users` ↔ `auth`). Rules:
+NestJS modules occasionally need bidirectional references (e.g., `auth` ↔ `authorization`). Rules:
 
 - Use `forwardRef(() => OtherModule)` in the `imports` array.
 - Document the cycle either in [ARCHITECTURE.md §5.1](../ARCHITECTURE.md#51-current-cross-module-dependency-map-migration-target) or with a one-line comment at the import site explaining why the cycle is unavoidable.

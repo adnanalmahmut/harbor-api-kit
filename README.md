@@ -39,7 +39,7 @@ I built Harbor API Kit to demonstrate how I structure production-oriented backen
 
 - **Authentication** - Cookie-based sessions via better-auth, OAuth (Google, GitHub), email/password with optional verification emails, session management (list/revoke/logout-all), geolocation tracking (IP, city, country)
 - **Authorization** - Static roles with permission inheritance, user-level ALLOW/DENY overrides, and effective-permission caching (L1 request-scoped + L2 Redis)
-- **Users** - Full CRUD, profile management, role/permission assignment, soft deletes
+- **Users** - Identity CRUD, bans, impersonation and session revocation served by the Better Auth admin plugin under `/auth/admin/*`, permission-checked against the same effective-permission service
 - **File Storage** - Multi-driver upload (S3/R2/Spaces, Local), magic bytes validation, presigned download URLs, public/private visibility toggle, public token-based access
 - **Notifications** - Async email delivery via BullMQ + Resend, retry with exponential backoff, HTML email templates
 - **Security** - CSRF double-submit cookies, rate limiting (global + per-route, IP/user/session strategies), application-level security headers, input validation (Zod strict mode), origin/referer allowlists
@@ -163,8 +163,7 @@ src/
       validation/    # GlobalValidationPipe, Strict Zod DTO helpers
   modules/
     auth/            # Authentication (better-auth, OAuth, sessions)
-    users/           # User CRUD, profiles, roles, permission overrides
-    authorization/   # Static policy, effective permissions, guards
+    authorization/   # Static policy, effective permissions, guards, per-user overrides
     files/           # File upload/download (S3, Local)
     notify/          # Email notifications (BullMQ + Resend)
     health/          # Health checks
@@ -258,8 +257,7 @@ Create a local admin user through the explicit one-off CLI when you need one:
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --first-name Admin \
-  --last-name User \
+  --name 'Admin User' \
   --locale ar-SY
 ```
 
@@ -304,7 +302,7 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 ## Testing
 
 - **Unit tests** (`src/**/*.spec.ts`): Domain logic, use-cases, validators
-- **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, users, authorization, files, security)
+- **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, authorization, user permissions, files, security)
 - **E2E tests** (`test/*.e2e-spec.ts`): Full integration with database and Redis
 
 ### Test environment setup

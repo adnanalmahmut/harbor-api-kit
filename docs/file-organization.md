@@ -42,17 +42,17 @@ Other auth slices follow the same pattern:
 
 ## 3. One-per-file — concrete examples in the repo
 
-### One use case per file (users)
+### One use case per file (authorization)
 
-[src/modules/users/application/use-cases/](../src/modules/users/application/use-cases/) keeps each use case in its own file: `create-user.use-case.ts`, `add-role-to-user.use-case.ts`, etc. This is the **default** and is preferable when:
+[src/modules/authorization/application/use-cases/](../src/modules/authorization/application/use-cases/) keeps each use case in its own file: `set-user-permission-override.use-case.ts`, `replace-user-permissions.use-case.ts`, etc. This is the **default** and is preferable when:
 
 - Use cases are independently consumed (different controllers, different modules).
 - Use cases have meaningfully different dependencies.
 - The total count is high enough that a single file would exceed the size threshold.
 
-### One DTO per file (users)
+### One DTO per file (authorization)
 
-[src/modules/users/presentation/http/dtos/](../src/modules/users/presentation/http/dtos/) keeps DTOs separate. This is the default; choose grouping only when DTOs are small and serve one controller.
+[src/modules/authorization/presentation/http/dtos/](../src/modules/authorization/presentation/http/dtos/) keeps DTOs separate. This is the default; choose grouping only when DTOs are small and serve one controller.
 
 ---
 

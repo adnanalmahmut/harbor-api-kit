@@ -1,7 +1,15 @@
 {
+  "messages": {
+    "permission_override_set_success": "Permission override set successfully",
+    "permission_override_removed_success": "Permission override removed successfully",
+    "user_permissions_fetch_success": "User permissions fetched successfully",
+    "user_permissions_replaced_success": "User permissions replaced successfully",
+    "user_effective_permissions_fetch_success": "Effective permissions fetched successfully"
+  },
   "errors": {
     "missing_permission": "Missing required permission: {permission}",
     "invalid_permission_key": "Invalid permission key format: {key}",
+    "permission_override_not_found": "Permission override not found",
     "unauthorized": "Authentication required to access this resource",
     "database_error": "Authorization data could not be read or updated"
   }

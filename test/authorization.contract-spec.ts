@@ -31,22 +31,21 @@ describe('Static authorization policy (contract)', () => {
   });
 
   it('inherits permissions directly from the static admin role', async () => {
-    const { cookies } = await auth.setupAdmin();
+    const { cookies, userId } = await auth.setupAdmin();
     await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${userId}/permissions`)
       .set('Cookie', cookies)
       .expect(200);
   });
 
   it('denies a default user without the required permission', async () => {
-    const { cookies } = await auth.registerAndLogin({
+    const { cookies, userId } = await auth.registerAndLogin({
       email: 'default@test.com',
       password: 'Password123!',
-      firstName: 'Default',
-      lastName: 'User',
+      name: 'Default User',
     });
     await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${userId}/permissions`)
       .set('Cookie', cookies)
       .expect(403);
   });
@@ -55,17 +54,16 @@ describe('Static authorization policy (contract)', () => {
     const { cookies, userId } = await auth.registerAndLogin({
       email: 'allow@test.com',
       password: 'Password123!',
-      firstName: 'Allowed',
-      lastName: 'User',
+      name: 'Allowed User',
     });
     await authorization.assignUserPermissionOverride(
       userId,
-      'user:list',
+      'user:set-permission',
       'ALLOW',
     );
 
     await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${userId}/permissions`)
       .set('Cookie', cookies)
       .expect(200);
   });
@@ -74,12 +72,12 @@ describe('Static authorization policy (contract)', () => {
     const { cookies, userId } = await auth.setupAdmin();
     await authorization.assignUserPermissionOverride(
       userId,
-      'user:list',
+      'user:set-permission',
       'DENY',
     );
 
     await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${userId}/permissions`)
       .set('Cookie', cookies)
       .expect(403);
   });

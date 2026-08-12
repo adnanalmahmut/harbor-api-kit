@@ -22,3 +22,11 @@ export { EffectivePermissionsService } from './application/services/effective-pe
 export { authorizationCacheKeys } from './application/authorization.cache-keys.js';
 export { PermissionsGuard } from './presentation/http/guards/permissions.guard.js';
 export { Permissions } from './presentation/http/decorators/permissions.decorator.js';
+
+// Response DTOs — consumed cross-module for OpenAPI composition
+export {
+  EffectivePermissionsResponseDto,
+  PermissionKeyResponseDto,
+  PermissionOverrideResponseDto,
+  UserPermissionsResponseDto,
+} from './presentation/http/dtos/user-permissions-response.dto.js';

@@ -38,7 +38,7 @@ Node.js 22 (ESM) · TypeScript 5.9 · NestJS 11 (Fastify 5) · Prisma 7 + Postgr
 ## 3. Public API boundary — MUST (ESLint-enforced)
 
 - Every module MUST expose its public API through its root `index.ts`.
-- Cross-module imports MUST target `#src/modules/<feature>/index.js`. Importing past the barrel — e.g., `#src/modules/users/application/use-cases/create-user.use-case.js` — is **forbidden and ESLint-enforced** (CI will fail).
+- Cross-module imports MUST target `#src/modules/<feature>/index.js`. Importing past the barrel — e.g., `#src/modules/authorization/application/use-cases/get-user-permissions.use-case.js` — is **forbidden and ESLint-enforced** (CI will fail).
 - **NestJS module classes** are the one exception: they are NOT in the barrel (to avoid ESM circular initialization). Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
 - When a needed symbol is not yet exported by a target module's barrel, the correct fix is to **add the export to that module's `index.ts`** — never to deep-import.
 - Inside a module, use **relative imports** for in-feature references. Do not self-reference via `#src/modules/<own-feature>/...`.
@@ -77,7 +77,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 - Port interfaces: `{name}.port.ts` in `domain/ports/`. Interface: `{Name}Port`.
 - Value objects: `{name}.vo.ts` in `domain/value-objects/`. Class: `{Name}VO`.
 - DTOs: `{intent}.dto.ts` (or grouped `<feature>.dto.ts`). Class extends `createStrictZodDto(...)`.
-- Exception class: `{Module}Exception` in `<module>/<layer>/exceptions/{module}.exception.ts`. Static factories return new instances (see [src/modules/users/application/exceptions/users.exception.ts](src/modules/users/application/exceptions/users.exception.ts)).
+- Exception class: `{Module}Exception` in `<module>/<layer>/exceptions/{module}.exception.ts`. Static factories return new instances (see [src/modules/authorization/application/exceptions/authorization.exception.ts](src/modules/authorization/application/exceptions/authorization.exception.ts)).
 - Tokens: `{MODULE}_TOKENS` constant of `Symbol`-keyed entries in `<feature>.tokens.ts`.
 - Unit specs: co-located as `*.spec.ts`.
 - Contract tests: `test/<module>.contract-spec.ts`.
@@ -95,7 +95,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 8. Validation — MUST
 
-- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/users/presentation/http/dtos/create-user.dto.ts](src/modules/users/presentation/http/dtos/create-user.dto.ts).
+- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/authorization/presentation/http/dtos/set-permission-override.dto.ts](src/modules/authorization/presentation/http/dtos/set-permission-override.dto.ts).
 - Strict mode rejects unknown keys. Do not relax it without justification documented in the PR.
 - `class-validator` is **forbidden globally** (ESLint-enforced).
 

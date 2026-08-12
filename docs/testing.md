@@ -14,7 +14,7 @@ There are three test layers: **unit**, **contract**, and **e2e**. Each has a fix
 | Contract | `test/`                | `test/<module>.contract-spec.ts` | `test/jest-e2e.json`  |
 | E2E      | `test/`                | `test/<module>.e2e-spec.ts`      | `test/jest-e2e.json`  |
 
-Unit specs live next to the file they test (e.g., [src/modules/users/application/use-cases/create-user.use-case.spec.ts](../src/modules/users/application/use-cases/create-user.use-case.spec.ts) next to `create-user.use-case.ts`).
+Unit specs live next to the file they test (e.g., [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts](../src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts) next to `set-user-permission-override.use-case.ts`).
 
 Contract and e2e specs live under [test/](../test/) and use the helpers in [test/helpers/](../test/helpers/).
 
@@ -33,52 +33,44 @@ Boilerplate:
 
 ```ts
 import { jest } from '@jest/globals';
-import { CreateUserUseCase } from './create-user.use-case.js';
-import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
-import { UsersException } from '../exceptions/users.exception.js';
+import { SetUserPermissionOverrideUseCase } from './set-user-permission-override.use-case.js';
+import type { AuthorizationRepositoryPort } from '../../domain/ports/authorization.repository.port.js';
+import type { EffectivePermissionsService } from '../services/effective-permissions.service.js';
 
-describe('CreateUserUseCase', () => {
-  let repo: jest.Mocked<UserRepositoryPort>;
-  let useCase: CreateUserUseCase;
+describe('SetUserPermissionOverrideUseCase', () => {
+  let repo: jest.Mocked<AuthorizationRepositoryPort>;
+  let effective: { refreshForUser: jest.Mock };
+  let useCase: SetUserPermissionOverrideUseCase;
 
   beforeEach(() => {
     repo = {
-      findByEmail: jest.fn(),
-      create: jest.fn(),
-      findById: jest.fn(),
-      findAll: jest.fn(),
-      update: jest.fn(),
+      getUserRole: jest.fn(),
+      listUserOverrides: jest.fn(),
+      setUserPermissionOverride: jest.fn(),
+      removeUserPermissionOverride: jest.fn(),
+      replaceUserPermissions: jest.fn(),
     };
-    useCase = new CreateUserUseCase(repo);
+    effective = { refreshForUser: jest.fn() };
+    useCase = new SetUserPermissionOverrideUseCase(
+      repo,
+      effective as unknown as EffectivePermissionsService,
+    );
   });
 
-  it('creates a user when email is unique', async () => {
-    repo.findByEmail.mockResolvedValue(null);
-    repo.create.mockImplementation(async (u) => u);
-
+  it('stores the override and refreshes the cached authorization', async () => {
     await useCase.execute({
-      email: 'a@b.c',
-      firstName: 'Test',
-      lastName: 'User',
+      userId: 'u1',
+      permissionKey: 'files:delete',
+      effect: 'DENY',
     });
 
-    expect(repo.create).toHaveBeenCalledTimes(1);
-  });
-
-  it('throws conflict when the email already exists', async () => {
-    repo.findByEmail.mockResolvedValue({} as never);
-    await expect(
-      useCase.execute({
-        email: 'a@b.c',
-        firstName: 'Test',
-        lastName: 'User',
-      }),
-    ).rejects.toBeInstanceOf(UsersException);
+    expect(repo.setUserPermissionOverride).toHaveBeenCalledTimes(1);
+    expect(effective.refreshForUser).toHaveBeenCalledWith('u1');
   });
 });
 ```
 
-Reference: [src/modules/users/application/use-cases/create-user.use-case.spec.ts](../src/modules/users/application/use-cases/create-user.use-case.spec.ts).
+Reference: [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts](../src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts).
 
 ---
 
@@ -99,7 +91,7 @@ Use the existing helpers:
 - [test/helpers/test-db.helper.ts](../test/helpers/test-db.helper.ts) — `resetDb(prisma)` between tests.
 - [test/helpers/test-redis.helper.ts](../test/helpers/test-redis.helper.ts) — `clearRedisCache(redis)` between tests.
 
-Reference: [test/users.contract-spec.ts](../test/users.contract-spec.ts).
+Reference: [test/user-permissions.contract-spec.ts](../test/user-permissions.contract-spec.ts) — the per-user permission routes owned by the `authorization` module.
 
 ### Contract test rules
 
@@ -146,7 +138,7 @@ npm test
 npm run test:e2e
 
 # Run a single contract spec
-npm run test:e2e -- users.contract-spec
+npm run test:e2e -- user-permissions.contract-spec
 
 # Reset the test DB manually
 docker exec -i harbor_api_kit_test_db psql -U test_user -d harbor_api_kit_test -c "TRUNCATE ... CASCADE;"
@@ -161,7 +153,7 @@ docker exec -i harbor_api_kit_test_redis redis-cli FLUSHALL
 
 Whenever a test asserts on a user-facing message (success or error), it MUST:
 
-1. Either assert on the **messageKey** (e.g., `'users.errors.user_not_found'`) and confirm a key was looked up,
+1. Either assert on the **messageKey** (e.g., `'authorization.errors.permission_override_not_found'`) and confirm a key was looked up,
 2. Or assert on the translated value for a **specific locale** by setting an `Accept-Language` or query-string locale.
 
 New i18n keys MUST exist in **both** `locales/en-US/<module>.json` and `locales/ar-SY/<module>.json` before the test passes — a missing locale fails the Definition of Done even if no test catches it.

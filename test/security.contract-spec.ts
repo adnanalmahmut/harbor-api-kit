@@ -31,12 +31,11 @@ describe('Permission and CSRF security (contract)', () => {
     const user = await auth.registerAndLogin({
       email: 'permission-only@test.com',
       password: 'Password123!',
-      firstName: 'Permission',
-      lastName: 'Only',
+      name: 'Permission Only',
     });
 
     await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${user.userId}/permissions`)
       .set('Cookie', user.cookies)
       .expect(403);
   });
@@ -45,20 +44,16 @@ describe('Permission and CSRF security (contract)', () => {
     const admin = await auth.setupAdmin();
 
     await request(app.getHttpServer())
-      .post('/api/v1/users')
+      .post(`/api/v1/users/${admin.userId}/permissions`)
       .set('Cookie', admin.cookies)
-      .send({
-        email: 'created@test.com',
-        firstName: 'Created',
-        lastName: 'User',
-      })
+      .send({ permissionKey: 'files:delete', effect: 'ALLOW' })
       .expect(403);
   });
 
   it('allows a Nest mutation with the double-submit CSRF token', async () => {
     const admin = await auth.setupAdmin();
     const safeResponse = await request(app.getHttpServer())
-      .get('/api/v1/users')
+      .get(`/api/v1/users/${admin.userId}/permissions`)
       .set('Cookie', admin.cookies)
       .expect(200);
     const match = (safeResponse.get('Set-Cookie') || [])
@@ -67,14 +62,10 @@ describe('Permission and CSRF security (contract)', () => {
     if (!match) throw new Error('CSRF token was not issued.');
 
     await request(app.getHttpServer())
-      .post('/api/v1/users')
+      .post(`/api/v1/users/${admin.userId}/permissions`)
       .set('Cookie', [...admin.cookies, match[0]])
       .set('X-CSRF-Token', match[1])
-      .send({
-        email: 'created@test.com',
-        firstName: 'Created',
-        lastName: 'User',
-      })
+      .send({ permissionKey: 'files:delete', effect: 'ALLOW' })
       .expect(201);
   });
 });
