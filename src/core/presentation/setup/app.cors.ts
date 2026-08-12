@@ -1,17 +1,14 @@
+import type { httpConfig, i18nConfig } from '#src/config/index.js';
 import { AppException } from '#src/core/domain/index.js';
-import { AppConfigService } from '#src/core/infrastructure/index.js';
+import type { ConfigType } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 export function setupCors(
   app: NestFastifyApplication,
-  config: AppConfigService,
+  http: ConfigType<typeof httpConfig>,
+  i18n: ConfigType<typeof i18nConfig>,
 ) {
-  const i18nConfig = config.i18n();
-  const corsConfig = config.cors();
-  const csrfConfig = config.csrf();
-  const requestIdConfig = config.requestId();
-
-  const allowedOrigins = new Set(corsConfig.originAllowlist);
+  const allowedOrigins = new Set(http.cors.originAllowlist);
 
   app.enableCors({
     credentials: true,
@@ -27,11 +24,11 @@ export function setupCors(
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
-      i18nConfig.headerName,
-      csrfConfig.headerName,
-      requestIdConfig.headerName,
+      i18n.headerName,
+      http.csrf.headerName,
+      http.requestId.headerName,
     ],
-    exposedHeaders: [requestIdConfig.headerName],
+    exposedHeaders: [http.requestId.headerName],
     maxAge: 86400,
   });
 }

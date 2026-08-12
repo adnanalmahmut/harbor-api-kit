@@ -29,7 +29,7 @@ import {
 import { hydrateLinkedAccount } from './better-auth.hydrators.js';
 
 export function createSocialOps(deps: BetterAuthDeps) {
-  const { auth, prisma, config, logger } = deps;
+  const { auth, prisma, appConfig, logger } = deps;
 
   return {
     async signInSocial(
@@ -47,7 +47,7 @@ export function createSocialOps(deps: BetterAuthDeps) {
         const data = response;
         const cookies = readCookiesFromHeaders(headers);
 
-        if (config.app().env === 'test' && context.ip) {
+        if (appConfig.env === 'test' && context.ip) {
           cookies.push({
             name: 'x-test-ip',
             value: context.ip,

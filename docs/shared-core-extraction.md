@@ -24,7 +24,7 @@ If any signal is false, the code stays where it is. Move it later, not now — p
 |------|------|-----|
 | `PrismaService` | `core/infrastructure/db/` | Framework infra; every feature persists. |
 | `RedisService` | `core/infrastructure/redis/` | Framework infra; cache + session store. |
-| `AppConfigService` + env schema | `core/infrastructure/config/` | Cross-cutting; only place that reads `process.env`. |
+| Namespaced configuration factories + schemas | `src/config/` | Cross-cutting bootstrap concern; only runtime application folder that reads `process.env`. |
 | Pino logger wiring + request context | `core/infrastructure/logger/`, `core/infrastructure/context/` | Cross-cutting; correlation IDs across modules. |
 | BullMQ wiring | `core/infrastructure/queue/` | Framework infra; enqueue from anywhere. |
 | i18n module setup | `core/infrastructure/i18n/` | Cross-cutting; controllers and exception filter both translate. |

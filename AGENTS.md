@@ -87,8 +87,8 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 7. Config & secrets — MUST
 
-- All env reads MUST go through `AppConfigService` (`#src/core/infrastructure/config/`). Direct `process.env.*` access outside that folder is forbidden.
-- Env keys MUST be declared in the env schema (`env.schema.ts`). Schema validation MUST run at bootstrap.
+- All runtime env reads MUST be contained in namespaced factories under `src/config/`. Consumers MUST inject the relevant factory with `@Inject(<config>.KEY)` and `ConfigType`; direct `process.env.*` access outside `src/config/` is forbidden.
+- Env keys MUST be declared in the relevant Zod schema under `src/config/`. Every factory MUST be registered in `configurations.ts` so validation runs at bootstrap.
 - Secrets MUST NOT be committed. `.env.example` and `.env.test.example` are the only env files in source control.
 
 ---
@@ -211,7 +211,7 @@ e. Use `@SkipEnvelope()` outside a documented webhook.
 f. Catch `AppException` to suppress it from the global filter.
 g. Add a runtime dependency without explicit approval in the PR.
 h. Merge architectural layers into one file (e.g., putting a use case and a repository in the same file).
-i. Read `process.env` directly outside `core/infrastructure/config/`.
+i. Read `process.env` directly outside `src/config/`.
 j. Use `console.*` instead of the injected Pino logger.
 k. Mock out the database in contract or e2e tests. Use the real test Postgres on port 5435.
 l. Skip writing the contract test for a new endpoint.

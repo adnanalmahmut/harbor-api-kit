@@ -1,4 +1,4 @@
-import { AppConfigModule, QueueModule } from '#src/core/index.js';
+import { QueueModule } from '#src/core/index.js';
 import { BullMqEmailQueueAdapter } from './infrastructure/bullmq/bullmq-email-queue.adapter.js';
 import { EmailProcessor } from './infrastructure/bullmq/email.processor.js';
 import { ResendEmailProvider } from './infrastructure/resend/resend.provider.js';
@@ -7,7 +7,6 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
-    AppConfigModule,
     QueueModule,
     BullModule.registerQueue({
       name: 'email',

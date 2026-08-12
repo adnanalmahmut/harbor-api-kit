@@ -9,7 +9,12 @@
 // current shape, prefer promoting it to an injectable class rather
 // than expanding the factory bundle further.
 import {
-  AppConfigService,
+  appConfig,
+  authConfig,
+  httpConfig,
+  i18nConfig,
+} from '#src/config/index.js';
+import {
   PrismaService,
   RedisService,
   type RequestContext,
@@ -37,7 +42,8 @@ import type {
   User,
   VerifyEmailCommand,
 } from '../../domain/index.js';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { toNodeHandler } from 'better-auth/node';
 import { PinoLogger } from 'nestjs-pino';
 import { createBetterAuth, type BetterAuthInstance } from './auth.js';
@@ -64,7 +70,14 @@ export class BetterAuthProvider implements AuthProviderPort {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: AppConfigService,
+    @Inject(authConfig.KEY)
+    private readonly authConfiguration: ConfigType<typeof authConfig>,
+    @Inject(appConfig.KEY)
+    private readonly appConfiguration: ConfigType<typeof appConfig>,
+    @Inject(httpConfig.KEY)
+    private readonly httpConfiguration: ConfigType<typeof httpConfig>,
+    @Inject(i18nConfig.KEY)
+    private readonly i18nConfiguration: ConfigType<typeof i18nConfig>,
     private readonly authEmailHooks: AuthEmailHooks,
     private readonly redisService: RedisService,
     private readonly logger: PinoLogger,
@@ -72,7 +85,9 @@ export class BetterAuthProvider implements AuthProviderPort {
     this.logger.setContext(BetterAuthProvider.name);
     this.auth = createBetterAuth(
       this.prisma,
-      this.config,
+      this.authConfiguration,
+      this.appConfiguration,
+      this.httpConfiguration,
       this.authEmailHooks,
       this.logger,
     );
@@ -81,7 +96,8 @@ export class BetterAuthProvider implements AuthProviderPort {
     const deps: BetterAuthDeps = {
       auth: this.auth,
       prisma: this.prisma,
-      config: this.config,
+      appConfig: this.appConfiguration,
+      i18nConfig: this.i18nConfiguration,
       redisService: this.redisService,
       logger: this.logger,
     };

@@ -1,4 +1,4 @@
-import { AppConfigModule, PrismaModule } from '#src/core/index.js';
+import { PrismaModule } from '#src/core/index.js';
 import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { AUTH_TOKENS, type AuthProviderPort } from '#src/modules/auth/index.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
@@ -28,12 +28,7 @@ import { UsersController } from './presentation/http/users.controller.js';
 import { USERS_TOKENS } from './users.tokens.js';
 
 @Module({
-  imports: [
-    PrismaModule,
-    RbacModule,
-    forwardRef(() => AuthModule),
-    AppConfigModule,
-  ],
+  imports: [PrismaModule, RbacModule, forwardRef(() => AuthModule)],
   controllers: [UsersController],
   providers: [
     {

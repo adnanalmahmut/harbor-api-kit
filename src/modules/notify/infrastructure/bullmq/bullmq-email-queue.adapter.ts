@@ -1,10 +1,11 @@
-import { AppConfigService } from '#src/core/index.js';
+import { notificationConfig } from '#src/config/index.js';
 import {
   type EmailProviderPort,
   type SendEmailParams,
 } from '../../domain/email.provider.port.js';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { PinoLogger } from 'nestjs-pino';
 
@@ -35,14 +36,15 @@ function maskEmail(email: string): string {
 export class BullMqEmailQueueAdapter implements EmailProviderPort {
   constructor(
     @InjectQueue('email') private readonly emailQueue: Queue,
-    private readonly config: AppConfigService,
+    @Inject(notificationConfig.KEY)
+    private readonly config: ConfigType<typeof notificationConfig>,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(BullMqEmailQueueAdapter.name);
   }
 
   async sendEmail(params: SendEmailParams): Promise<void> {
-    const { retryAttempts, retryDelayMs } = this.config.notify().email;
+    const { retryAttempts, retryDelayMs } = this.config.email;
     this.logger.debug({
       msg: 'Enqueuing email job',
       toMasked: maskEmail(params.to),

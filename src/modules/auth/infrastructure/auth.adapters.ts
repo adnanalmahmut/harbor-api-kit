@@ -1,21 +1,26 @@
-import { AppConfigService, CacheTTL, RedisService } from '#src/core/index.js';
+import { authConfig } from '#src/config/index.js';
+import { CacheTTL, RedisService } from '#src/core/index.js';
 import type { AuthConfigPort, SessionTrackerPort } from '../domain/index.js';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { AuthCacheKeys } from '../application/index.js';
 
 @Injectable()
 export class AuthConfigAdapter implements AuthConfigPort {
-  constructor(private readonly config: AppConfigService) {}
+  constructor(
+    @Inject(authConfig.KEY)
+    private readonly config: ConfigType<typeof authConfig>,
+  ) {}
 
   get sessionTokenCookie(): string {
-    return this.config.auth().sessionTokenCookie;
+    return this.config.sessionTokenCookie;
   }
 
   get sessionLookupCacheTtlSec(): number {
     return Math.min(
       CacheTTL.FIFTEEN_MINUTES,
-      this.config.auth().session.rollingUpdateAgeSec,
+      this.config.session.rollingUpdateAgeSec,
     );
   }
 }

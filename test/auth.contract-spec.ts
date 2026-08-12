@@ -1,9 +1,7 @@
-import {
-  AppConfigService,
-  PrismaService,
-  RedisService,
-} from '#src/core/index.js';
+import { authConfig } from '#src/config/index.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
 import { HttpStatus } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AuthHelper } from './helpers/auth.helper.js';
@@ -16,7 +14,7 @@ describe('Auth API Contract (E2E)', () => {
   let prisma: PrismaService;
   let redisService: RedisService;
   let authHelper: AuthHelper;
-  let config: AppConfigService;
+  let config: ConfigType<typeof authConfig>;
 
   const extractCsrf = (cookies: string[] = []) => {
     for (const c of cookies) {
@@ -49,7 +47,7 @@ describe('Auth API Contract (E2E)', () => {
     prisma = factory.prisma;
     redisService = factory.redis;
     authHelper = new AuthHelper(app);
-    config = app.get(AppConfigService);
+    config = app.get(authConfig.KEY);
   });
 
   afterAll(async () => {
@@ -172,12 +170,12 @@ describe('Auth API Contract (E2E)', () => {
 
       const sessionCookie = findCookie(
         res.get('Set-Cookie'),
-        config.auth().sessionTokenCookie,
+        config.sessionTokenCookie,
       );
 
       expect(sessionCookie).toBeDefined();
       expect(sessionCookie).toContain(
-        `Max-Age=${config.auth().session.persistentExpiresInSec}`,
+        `Max-Age=${config.session.persistentExpiresInSec}`,
       );
     });
 
@@ -201,7 +199,7 @@ describe('Auth API Contract (E2E)', () => {
 
       const sessionCookie = findCookie(
         res.get('Set-Cookie'),
-        config.auth().sessionTokenCookie,
+        config.sessionTokenCookie,
       );
 
       expect(sessionCookie).toBeDefined();
@@ -279,9 +277,8 @@ describe('Auth API Contract (E2E)', () => {
         lastName: 'User',
       });
 
-      const persistentExpiresInSec =
-        config.auth().session.persistentExpiresInSec;
-      const rollingUpdateAgeSec = config.auth().session.rollingUpdateAgeSec;
+      const persistentExpiresInSec = config.session.persistentExpiresInSec;
+      const rollingUpdateAgeSec = config.session.rollingUpdateAgeSec;
       const session = await prisma.session.findFirst({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -311,7 +308,7 @@ describe('Auth API Contract (E2E)', () => {
 
       const refreshedSessionCookie = findCookie(
         res.get('Set-Cookie'),
-        config.auth().sessionTokenCookie,
+        config.sessionTokenCookie,
       );
       const updatedSession = await prisma.session.findUnique({
         where: { id: session!.id },

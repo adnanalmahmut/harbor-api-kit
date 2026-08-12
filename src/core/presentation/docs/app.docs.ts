@@ -1,4 +1,5 @@
-import { AppConfigService } from '#src/core/infrastructure/index.js';
+import type { appConfig, httpConfig } from '#src/config/index.js';
+import type { ConfigType } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -21,21 +22,19 @@ function getCookieValue(
 
 export function setupApiDocs(
   app: NestFastifyApplication,
-  config: AppConfigService,
+  appConfigValue: ConfigType<typeof appConfig>,
+  http: ConfigType<typeof httpConfig>,
 ) {
-  if (!config.docs().enabled) return;
+  if (!http.docs.enabled) return;
 
-  const appCfg = config.app();
-  const csrfCfg = config.csrf();
-
-  const csrfCookieName = csrfCfg.cookieName;
-  const csrfHeaderName = String(csrfCfg.headerName).toLowerCase();
+  const csrfCookieName = http.csrf.cookieName;
+  const csrfHeaderName = http.csrf.headerName;
 
   const docConfig = new DocumentBuilder()
-    .setTitle(appCfg.name)
+    .setTitle(appConfigValue.name)
     .setDescription(
       `## API Reference
-This API build for ${appCfg.name} application`,
+This API build for ${appConfigValue.name} application`,
     )
     .setVersion('1.0')
     .addCookieAuth()
@@ -118,7 +117,7 @@ This API build for ${appCfg.name} application`,
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(appCfg.name)} Docs</title>
+    <title>${escapeHtml(appConfigValue.name)} Docs</title>
     <style>
       html, body, #app {
         width: 100%;

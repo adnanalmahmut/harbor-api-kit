@@ -1,10 +1,14 @@
 import { AppModule } from '#src/app.module.js';
-import type { RequestContextStorePort } from '#src/core/domain/index.js';
 import {
-  AppConfigService,
-  RedisService,
-  validateEnv,
-} from '#src/core/infrastructure/index.js';
+  appConfig,
+  authConfig,
+  httpConfig,
+  i18nConfig,
+  parseHttpConfig,
+  tenantConfig,
+} from '#src/config/index.js';
+import type { RequestContextStorePort } from '#src/core/domain/index.js';
+import { RedisService } from '#src/core/infrastructure/index.js';
 import {
   CsrfGuard,
   GlobalExceptionFilter,
@@ -22,6 +26,7 @@ import {
   type LogLevel,
   type LoggerService,
 } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -34,14 +39,12 @@ import { CORE_TOKENS } from './core.tokens.js';
 export async function createApp(opts?: {
   logger?: false | LogLevel[] | LoggerService;
 }): Promise<NestFastifyApplication> {
-  // Use validateEnv for consistent configuration (single source of truth)
-  const validatedEnv = validateEnv(process.env);
-  const trustProxy = validatedEnv.FASTIFY_TRUST_PROXY;
+  const http = parseHttpConfig();
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
-      trustProxy,
+      trustProxy: http.trustProxy,
     }),
     //  { logger: opts?.logger === false ? false : ['error', 'warn'] },
     // { logger: opts?.logger ?? false },
@@ -57,7 +60,13 @@ export function configureApp(app: NestFastifyApplication) {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
-  const config = app.get(AppConfigService);
+  const appConfiguration = app.get<ConfigType<typeof appConfig>>(appConfig.KEY);
+  const auth = app.get<ConfigType<typeof authConfig>>(authConfig.KEY);
+  const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
+  const i18nConfigValue = app.get<ConfigType<typeof i18nConfig>>(
+    i18nConfig.KEY,
+  );
+  const tenant = app.get<ConfigType<typeof tenantConfig>>(tenantConfig.KEY);
   const reflector = app.get(Reflector);
   const i18n = app.get<I18nService<Record<string, any>>>(I18nService);
 
@@ -73,9 +82,9 @@ export function configureApp(app: NestFastifyApplication) {
     },
   });
 
-  app.useGlobalGuards(new CsrfGuard(config, reflector));
+  app.useGlobalGuards(new CsrfGuard(appConfiguration, auth, http, reflector));
 
-  setupCors(app, config);
+  setupCors(app, http, i18nConfigValue);
 
   app.setGlobalPrefix('api');
 
@@ -90,7 +99,8 @@ export function configureApp(app: NestFastifyApplication) {
   );
 
   const requestContextHook = createRequestContextHook(
-    config,
+    http,
+    tenant,
     contextStore,
     redisService,
   );
@@ -122,15 +132,15 @@ export function configureApp(app: NestFastifyApplication) {
   );
 
   app.useGlobalFilters(
-    new GlobalExceptionFilter(logger, i18n, config, contextStore),
+    new GlobalExceptionFilter(logger, i18n, http, contextStore),
   );
 
-  setupApiDocs(app, config);
-  return config;
+  setupApiDocs(app, appConfiguration, http);
+  return appConfiguration;
 }
 
 export async function setup() {
   const app = await createApp();
   const config = configureApp(app);
-  await app.listen({ port: config.app().port, host: '0.0.0.0' });
+  await app.listen({ port: config.port, host: '0.0.0.0' });
 }

@@ -1,11 +1,11 @@
 import {
-  AppConfigModule,
   I18nSetupModule,
   LoggerSetupModule,
   PrismaModule,
   RateLimitModule,
   RedisModule,
 } from '#src/core/index.js';
+import { ConfigurationModule } from '#src/config/index.js';
 import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { FilesModule } from '#src/modules/files/files.module.js';
 import { HealthModule } from '#src/modules/health/health.module.js';
@@ -15,7 +15,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
-    AppConfigModule,
+    ConfigurationModule,
     PrismaModule,
     LoggerSetupModule,
     I18nSetupModule,

@@ -1,5 +1,6 @@
-import { AppConfigService } from '#src/core/index.js';
+import { storageConfig } from '#src/config/index.js';
 import type { FactoryProvider } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { IStorageDriver } from '../application/index.js';
 import { FILES_TOKENS } from '../files.tokens.js';
 import { LocalDriver, S3Driver } from './index.js';
@@ -7,11 +8,11 @@ import { LocalDriver, S3Driver } from './index.js';
 export const StorageDriverProvider: FactoryProvider<IStorageDriver> = {
   provide: FILES_TOKENS.STORAGE_DRIVER,
   useFactory: (
-    configService: AppConfigService,
+    config: ConfigType<typeof storageConfig>,
     local: LocalDriver,
     s3: S3Driver,
   ) => {
-    const driver = configService.storage().driver;
+    const driver = config.driver;
 
     switch (driver) {
       case 's3':
@@ -23,5 +24,5 @@ export const StorageDriverProvider: FactoryProvider<IStorageDriver> = {
         return local;
     }
   },
-  inject: [AppConfigService, LocalDriver, S3Driver],
+  inject: [storageConfig.KEY, LocalDriver, S3Driver],
 };

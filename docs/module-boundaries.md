@@ -68,7 +68,7 @@ These are mechanically enforced in [eslint.config.mjs](../eslint.config.mjs). A 
 |-------|-------------------|
 | `domain/` | `@nestjs/*`, `@prisma/client`, generated Prisma types, `ioredis`, `redis`, `nestjs-i18n`, `class-validator`, `class-transformer`, `application/`, `infrastructure/`, `presentation/`, request context internals |
 | `application/` | `@prisma/client`, generated Prisma types, `@nestjs/*`, `ioredis`, `redis`, `nestjs-i18n`, `class-validator`, `class-transformer`, `infrastructure/`, `presentation/`, request context internals |
-| `presentation/` | `@prisma/client`, generated Prisma types, `ioredis`, `redis`, `class-validator`, `class-transformer`, `infrastructure/` (except `core/infrastructure/config/` and `core/infrastructure/logger/`) |
+| `presentation/` | `@prisma/client`, generated Prisma types, `ioredis`, `redis`, `class-validator`, `class-transformer`, `infrastructure/` (except `core/infrastructure/logger/`); configuration comes from `#src/config/index.js` |
 | `infrastructure/` | `presentation/`, `class-validator`, `class-transformer` |
 | **All of `src/`** | `class-validator`, `class-transformer`. `@prisma/client` and generated Prisma types outside `infrastructure/` and `core/db/prisma/`. |
 
@@ -152,6 +152,7 @@ Within `core/`, the same layer rules apply:
 | Reference Prisma | Only from `infrastructure/`. |
 | Reference another feature's port | Import the port from `#src/modules/<other>/index.js`. If not exported there, extend that barrel first. |
 | Reference another feature's guard / decorator / response DTO | Same: through the barrel. Extend it if needed. |
-| Reference `PrismaService` / `RedisService` / `AppConfigService` | `import { ... } from '#src/core/index.js';` |
-| Add a new env var | Declare in `core/infrastructure/config/env.schema.ts`, read via `AppConfigService`. Never `process.env`. |
+| Reference `PrismaService` / `RedisService` | `import { ... } from '#src/core/index.js';` |
+| Reference runtime configuration | Import its factory from `#src/config/index.js`, then inject `<factory>.KEY` with `ConfigType<typeof factory>`. |
+| Add a new env var | Declare it in the relevant Zod schema under `src/config/` and expose it from that namespace. Never read `process.env` in a consumer. |
 | Throw a domain/application error | Subclass `AppException` in `<feature>/<layer>/exceptions/`. Never throw raw `Error` or framework errors at the application boundary. |

@@ -1,5 +1,5 @@
+import { authConfig, i18nConfig } from '#src/config/index.js';
 import {
-  AppConfigService,
   resolveLocaleFromSource,
   type RequestContext,
 } from '#src/core/index.js';
@@ -9,13 +9,17 @@ import type {
 } from '../../../domain/index.js';
 import type { EmailProviderPort } from '#src/modules/notify/index.js';
 import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class AuthEmailHooks implements AuthEmailSenderPort {
   constructor(
-    private readonly config: AppConfigService,
+    @Inject(authConfig.KEY)
+    private readonly authConfiguration: ConfigType<typeof authConfig>,
+    @Inject(i18nConfig.KEY)
+    private readonly i18nConfiguration: ConfigType<typeof i18nConfig>,
     @Inject('EmailProviderPort')
     private readonly emailProvider: EmailProviderPort,
     private readonly i18n: I18nService,
@@ -25,7 +29,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
   }
 
   private getLocale(user: any, context?: RequestContext): string {
-    const { headerName, queryName } = this.config.i18n();
+    const { headerName, queryName } = this.i18nConfiguration;
     let locale = user.locale;
 
     if (context) {
@@ -40,7 +44,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
       if (resolved) locale = resolved;
     }
 
-    return locale || this.config.i18n().defaultLocale || 'en-US';
+    return locale || this.i18nConfiguration.defaultLocale || 'en-US';
   }
 
   async sendVerificationEmail(
@@ -49,7 +53,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
   ) {
     const { user, token } = params;
     const locale = this.getLocale(user, context);
-    const betterAuthUrl = this.config.auth().betterAuthUrl;
+    const betterAuthUrl = this.authConfiguration.betterAuthUrl;
 
     try {
       await this.emailProvider.sendEmail({
@@ -78,7 +82,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
   ) {
     const { user, token } = params;
     const locale = this.getLocale(user, context);
-    const betterAuthUrl = this.config.auth().betterAuthUrl;
+    const betterAuthUrl = this.authConfiguration.betterAuthUrl;
 
     try {
       await this.emailProvider.sendEmail({
@@ -109,7 +113,7 @@ export class AuthEmailHooks implements AuthEmailSenderPort {
   ) {
     const { user, token, newEmail } = params;
     const locale = this.getLocale(user, context);
-    const betterAuthUrl = this.config.auth().betterAuthUrl;
+    const betterAuthUrl = this.authConfiguration.betterAuthUrl;
 
     try {
       await this.emailProvider.sendEmail({

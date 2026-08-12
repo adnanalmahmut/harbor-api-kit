@@ -1,10 +1,12 @@
+import { appConfig, authConfig, httpConfig } from '#src/config/index.js';
 import { AppErrorCode, AppException } from '#src/core/domain/index.js';
-import { AppConfigService } from '#src/core/infrastructure/index.js';
 import {
+  Inject,
   Injectable,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CSRF_METHODS } from './csrf.constants.js';
@@ -14,7 +16,12 @@ import { isAllowedByOriginOrReferer, makeCsrfToken } from './csrf.util.js';
 @Injectable()
 export class CsrfGuard implements CanActivate {
   constructor(
-    private readonly cfg: AppConfigService,
+    @Inject(appConfig.KEY)
+    private readonly app: ConfigType<typeof appConfig>,
+    @Inject(authConfig.KEY)
+    private readonly auth: ConfigType<typeof authConfig>,
+    @Inject(httpConfig.KEY)
+    private readonly http: ConfigType<typeof httpConfig>,
     private readonly reflector?: Reflector,
   ) {}
 
@@ -29,7 +36,7 @@ export class CsrfGuard implements CanActivate {
   }
 
   private hasAuthCookie(req: FastifyRequest): boolean {
-    const { sessionTokenCookie, sessionDataCookie } = this.cfg.auth();
+    const { sessionTokenCookie, sessionDataCookie } = this.auth;
     const cookies = (req as any).cookies as Record<string, string> | undefined;
     const cookieHeader = String(req.headers?.cookie ?? '');
 
@@ -80,9 +87,9 @@ export class CsrfGuard implements CanActivate {
 
   private assertOriginAllowed(
     req: FastifyRequest,
-    csrf: ReturnType<AppConfigService['csrf']>,
+    csrf: ConfigType<typeof httpConfig>['csrf'],
   ) {
-    if (!this.cfg.isProd()) return;
+    if (!this.app.isProduction) return;
 
     const secFetchSite = req.headers?.['sec-fetch-site'];
     if (typeof secFetchSite === 'string') {
@@ -115,7 +122,7 @@ export class CsrfGuard implements CanActivate {
   }
 
   canActivate(context: ExecutionContext): boolean {
-    const csrf = this.cfg.csrf();
+    const csrf = this.http.csrf;
     if (!csrf.enabled) return true;
 
     const http = context.switchToHttp();

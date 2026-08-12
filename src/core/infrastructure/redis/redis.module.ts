@@ -1,7 +1,7 @@
+import { redisConfig } from '#src/config/index.js';
 import { Global, Module } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { Redis as RedisClient } from 'ioredis';
-import { AppConfigModule } from '../config/app-config.module.js';
-import { AppConfigService } from '../config/app-config.service.js';
 import { RedisService } from './redis.service.js';
 
 const REDIS_CLIENT = Symbol('REDIS_CLIENT');
@@ -15,17 +15,15 @@ function resolveRedisCtor(mod: any): RedisCtor {
 
 @Global()
 @Module({
-  imports: [AppConfigModule],
   providers: [
     {
       provide: REDIS_CLIENT,
-      inject: [AppConfigService],
-      useFactory: async (cfg: AppConfigService) => {
+      inject: [redisConfig.KEY],
+      useFactory: async (config: ConfigType<typeof redisConfig>) => {
         const mod = await import('ioredis');
         const Redis = resolveRedisCtor(mod);
 
-        const { url } = cfg.redis();
-        return new Redis(url, {
+        return new Redis(config.url, {
           maxRetriesPerRequest: 20,
           enableReadyCheck: true,
         });
@@ -33,11 +31,11 @@ function resolveRedisCtor(mod: any): RedisCtor {
     },
     {
       provide: RedisService,
-      inject: [REDIS_CLIENT, AppConfigService],
-      useFactory: (client: RedisClient, cfg: AppConfigService) => {
-        const { prefix } = cfg.redis();
-        return new RedisService(client, prefix);
-      },
+      inject: [REDIS_CLIENT, redisConfig.KEY],
+      useFactory: (
+        client: RedisClient,
+        config: ConfigType<typeof redisConfig>,
+      ) => new RedisService(client, config.prefix),
     },
   ],
   exports: [RedisService],
