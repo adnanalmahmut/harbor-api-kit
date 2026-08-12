@@ -12,10 +12,6 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { PinoLogger } from 'nestjs-pino';
-import {
-  hideInternalUserName,
-  normalizeBetterAuthUserRequest,
-} from './better-auth-user-fields.js';
 
 const ADMIN_PERMISSION_BY_PATH: Readonly<
   Record<string, readonly PermissionKey[]>
@@ -37,6 +33,18 @@ const ADMIN_PERMISSION_BY_PATH: Readonly<
   '/admin/has-permission': ['user:manage'],
 };
 
+/**
+ * Mounts Better Auth's own handler on the raw Fastify instance, deliberately
+ * outside the Nest pipeline. Better Auth owns input validation, error codes,
+ * status codes, response shape and CSRF/origin checks for every `/auth/*`
+ * route; this class adds exactly one thing on top — an effective-permission
+ * check in front of `/admin/*` so per-user DENY overrides stay authoritative,
+ * because the admin plugin's own check is role-only.
+ *
+ * Consequences (documented in docs/auth-authorization.md): these routes do not
+ * pass through `CsrfGuard`, `ResponseInterceptor` (no `{success, message, data}`
+ * envelope) or `GlobalExceptionFilter`.
+ */
 @Injectable()
 export class BetterAuthRouteRegistrar implements OnModuleInit {
   constructor(
@@ -93,19 +101,7 @@ export class BetterAuthRouteRegistrar implements OnModuleInit {
         }
       }
 
-      const normalized = normalizeBetterAuthUserRequest(
-        relativePath,
-        request.body,
-      );
-      if (normalized.error) {
-        reply.status(400).send({
-          code: 'INVALID_USER_NAME',
-          message: normalized.error,
-        });
-        return;
-      }
-
-      const body = this.serializeBody(normalized.body);
+      const body = this.serializeBody(request.body);
       const response = await this.auth.handler(
         new Request(url, {
           method: request.method,
@@ -135,16 +131,9 @@ export class BetterAuthRouteRegistrar implements OnModuleInit {
         reply.send();
         return;
       }
-      const responseText = await response.text();
-      if (response.headers.get('content-type')?.includes('application/json')) {
-        try {
-          reply.send(hideInternalUserName(JSON.parse(responseText)));
-          return;
-        } catch {
-          // Forward malformed provider payloads unchanged.
-        }
-      }
-      reply.send(responseText);
+      // Forwarded verbatim: Better Auth owns the payload shape, validation
+      // errors and status codes for these routes.
+      reply.send(await response.text());
     } catch (error) {
       this.logger.error({ error }, 'Better Auth native route failed');
       reply.status(500).send({

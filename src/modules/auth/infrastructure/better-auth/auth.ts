@@ -81,6 +81,12 @@ export function createAuthFeatures(
     secret: betterAuthSecret,
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
 
+    // `/auth/*` is served by Better Auth's own handler, outside the Nest guard
+    // chain, so Better Auth's origin check is the CSRF protection for these
+    // routes. Declare the browser origins explicitly instead of relying on the
+    // baseURL-only default. See docs/auth-authorization.md.
+    trustedOrigins: [authUrl.origin, ...httpConfiguration.cors.originAllowlist],
+
     plugins: [
       admin({
         ac: authAccessControl,
