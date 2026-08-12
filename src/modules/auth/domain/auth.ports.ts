@@ -1,23 +1,36 @@
-import type { RequestContext } from '#src/core/index.js';
-
 export type AuthEmailUser = {
   email: string;
-  firstName?: string | null;
-  lastName?: string | null;
   name?: string | null;
   locale?: string | null;
 };
 
-export type ChangeEmailVerificationParams = {
+/**
+ * Request-derived hints used to pick the email language. Passed explicitly by
+ * the Better Auth callbacks rather than read from ambient request state, so the
+ * sender has no hidden dependency on the request context.
+ */
+export type AuthEmailLocaleSource = {
+  headers?: Record<string, string | string[] | undefined>;
+  query?: Record<string, string | string[] | undefined>;
+};
+
+export type AuthEmailDelivery = {
   user: AuthEmailUser;
-  token: string;
+  /** Action link produced by the auth provider; used verbatim. */
+  url: string;
+  localeSource?: AuthEmailLocaleSource;
+};
+
+export type ChangeEmailConfirmationDelivery = AuthEmailDelivery & {
+  /** The address being claimed — the confirmation is sent there, not to the current one. */
   newEmail: string;
 };
 
 export interface AuthEmailSenderPort {
-  sendChangeEmailVerification(
-    params: ChangeEmailVerificationParams,
-    context: RequestContext,
+  sendVerificationEmail(delivery: AuthEmailDelivery): Promise<void>;
+  sendResetPasswordEmail(delivery: AuthEmailDelivery): Promise<void>;
+  sendChangeEmailConfirmation(
+    delivery: ChangeEmailConfirmationDelivery,
   ): Promise<void>;
 }
 

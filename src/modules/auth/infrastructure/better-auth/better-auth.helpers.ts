@@ -1,4 +1,26 @@
-import type { CookieDirective } from '../../domain/index.js';
+import type {
+  AuthEmailLocaleSource,
+  CookieDirective,
+} from '../../domain/index.js';
+
+/**
+ * Snapshots the language-relevant parts of the request Better Auth hands to its
+ * email callbacks, so the sender receives them as an explicit argument instead
+ * of reaching for ambient request state.
+ */
+export function readLocaleSource(request?: Request): AuthEmailLocaleSource {
+  if (!request) return {};
+
+  const headers = Object.fromEntries(request.headers.entries());
+  let query: Record<string, string> = {};
+  try {
+    query = Object.fromEntries(new URL(request.url).searchParams.entries());
+  } catch {
+    // Relative or malformed URLs carry no query hints; headers still apply.
+  }
+
+  return { headers, query };
+}
 
 function parseAttributes(parts: string[]): CookieDirective['options'] {
   const options: {
