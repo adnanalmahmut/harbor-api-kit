@@ -1,21 +1,16 @@
+import { loggerConfig } from '#src/config/index.js';
 import { Global, Module } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
-import { AppConfigModule } from '../config/app-config.module.js';
-import { AppConfigService } from '../config/app-config.service.js';
 import { createPinoOptions } from './pino-options.js';
 
 @Global()
 @Module({
   imports: [
-    AppConfigModule,
     LoggerModule.forRootAsync({
-      imports: [AppConfigModule],
-      inject: [AppConfigService],
-      useFactory: (config: AppConfigService) => ({
-        pinoHttp: createPinoOptions(
-          config.logger().level,
-          config.logger().pretty,
-        ),
+      inject: [loggerConfig.KEY],
+      useFactory: (config: ConfigType<typeof loggerConfig>) => ({
+        pinoHttp: createPinoOptions(config.level, config.pretty),
       }),
     }),
   ],

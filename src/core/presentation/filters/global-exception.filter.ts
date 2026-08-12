@@ -1,3 +1,4 @@
+import { httpConfig } from '#src/config/index.js';
 import { CORE_TOKENS } from '#src/core/core.tokens.js';
 import {
   AppErrorCode,
@@ -9,7 +10,6 @@ import {
   type RequestContextStorePort,
   type ValidationIssue,
 } from '#src/core/domain/index.js';
-import { AppConfigService } from '#src/core/infrastructure/index.js';
 import {
   Catch,
   HttpException,
@@ -17,6 +17,7 @@ import {
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Logger } from 'nestjs-pino';
@@ -39,7 +40,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   constructor(
     private readonly logger: Logger,
     private readonly i18n: I18nService,
-    private readonly config: AppConfigService,
+    @Inject(httpConfig.KEY)
+    private readonly config: ConfigType<typeof httpConfig>,
     @Inject(CORE_TOKENS.REQUEST_CONTEXT_STORE)
     private readonly contextStore: RequestContextStorePort,
   ) {}
@@ -94,7 +96,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     }
 
-    const requestIdHeader = this.config.requestId().headerName;
+    const requestIdHeader = this.config.requestId.headerName;
     const requestId =
       context?.requestId ??
       (req.headers[requestIdHeader] as string | undefined) ??

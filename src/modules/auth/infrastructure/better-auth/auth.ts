@@ -1,8 +1,9 @@
+import { appConfig, authConfig, httpConfig } from '#src/config/index.js';
 import {
-  AppConfigService,
   getRequestContextStatic,
   type PrismaService,
 } from '#src/core/index.js';
+import type { ConfigType } from '@nestjs/config';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { organization } from 'better-auth/plugins';
@@ -11,7 +12,9 @@ import type { AuthEmailHooks } from './hooks/auth-email.hooks.js';
 
 export function createBetterAuth(
   prisma: PrismaService,
-  config: AppConfigService,
+  authConfiguration: ConfigType<typeof authConfig>,
+  appConfiguration: ConfigType<typeof appConfig>,
+  httpConfiguration: ConfigType<typeof httpConfig>,
   emailHooks: AuthEmailHooks,
   logger: PinoLogger,
 ) {
@@ -21,10 +24,10 @@ export function createBetterAuth(
     betterAuthSecret,
     betterAuthUrl,
     session: sessionConfig,
-  } = config.auth();
+  } = authConfiguration;
 
-  const isProd = config.isProd();
-  const domainAllowlist = config.cookies().domainAllowlist;
+  const isProd = appConfiguration.isProduction;
+  const domainAllowlist = httpConfiguration.cookies.domainAllowlist;
   const COOKIE_DOMAIN = isProd ? domainAllowlist[0] : undefined;
 
   const prismaWithSoftDelete = prisma.$extends({
@@ -191,14 +194,14 @@ export function createBetterAuth(
 
     socialProviders: {
       google: {
-        clientId: config.auth().providers.google.clientId || '',
-        clientSecret: config.auth().providers.google.clientSecret || '',
-        enabled: !!config.auth().providers.google.clientId,
+        clientId: authConfiguration.providers.google.clientId || '',
+        clientSecret: authConfiguration.providers.google.clientSecret || '',
+        enabled: !!authConfiguration.providers.google.clientId,
       },
       github: {
-        clientId: config.auth().providers.github.clientId || '',
-        clientSecret: config.auth().providers.github.clientSecret || '',
-        enabled: !!config.auth().providers.github.clientId,
+        clientId: authConfiguration.providers.github.clientId || '',
+        clientSecret: authConfiguration.providers.github.clientSecret || '',
+        enabled: !!authConfiguration.providers.github.clientId,
       },
     },
 

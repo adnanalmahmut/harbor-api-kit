@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/core/index.js';
+import { storageConfig } from '#src/config/index.js';
 import {
   FilesException,
   type FileMetadata,
@@ -7,7 +7,8 @@ import {
   type SignedUrlOptions,
   type UploadResult,
 } from '../../application/index.js';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -16,12 +17,11 @@ import { pipeline } from 'node:stream/promises';
 @Injectable()
 export class LocalDriver implements IStorageDriver {
   private readonly storagePath: string;
-  private readonly appUrl: string;
-
-  constructor(configService: AppConfigService) {
-    const storageConfig = configService.storage();
-    this.storagePath = path.resolve(storageConfig.local.path);
-    this.appUrl = configService.app().publicUrl;
+  constructor(
+    @Inject(storageConfig.KEY)
+    config: ConfigType<typeof storageConfig>,
+  ) {
+    this.storagePath = path.resolve(config.local.path);
 
     if (!fs.existsSync(this.storagePath)) {
       fs.mkdirSync(this.storagePath, { recursive: true });

@@ -1,4 +1,4 @@
-import { AppConfigService } from '#src/core/index.js';
+import { storageConfig } from '#src/config/index.js';
 import {
   FilesException,
   type FileMetadata,
@@ -15,7 +15,8 @@ import {
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { Readable } from 'node:stream';
 
 @Injectable()
@@ -23,9 +24,10 @@ export class S3Driver implements IStorageDriver {
   private readonly client: S3Client;
   private readonly bucket: string;
 
-  constructor(configService: AppConfigService) {
-    const config = configService.storage();
-
+  constructor(
+    @Inject(storageConfig.KEY)
+    config: ConfigType<typeof storageConfig>,
+  ) {
     this.bucket = config.s3.bucket!;
     this.client = new S3Client({
       region: config.s3.region,

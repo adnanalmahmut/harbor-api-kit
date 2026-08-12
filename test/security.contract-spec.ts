@@ -18,8 +18,6 @@ import { clearRedisCache } from './helpers/test-redis.helper.js';
 import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { RbacModule } from '#src/modules/rbac/rbac.module.js';
 
-import { AppConfigModule } from '#src/core/index.js';
-
 @Controller('test-security')
 @UseGuards(AuthGuard, RbacGuard)
 class TestController {
@@ -63,7 +61,7 @@ describe('Security Config Contract (E2E)', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AppModule, AuthModule, RbacModule, AppConfigModule],
+      imports: [AppModule, AuthModule, RbacModule],
       controllers: [TestController],
     }).compile();
 

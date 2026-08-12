@@ -32,7 +32,7 @@ export function createSessionOps(
   deps: BetterAuthDeps,
   nodeHandler: BetterAuthNodeHandler,
 ) {
-  const { auth, prisma, config, redisService, logger } = deps;
+  const { auth, prisma, appConfig, redisService, logger } = deps;
 
   return {
     async handleRequest(req: unknown, res: unknown): Promise<void> {
@@ -43,7 +43,7 @@ export function createSessionOps(
 
       let clientIp = fastifyReq.ip;
 
-      if (config.app().env === 'test') {
+      if (appConfig.env === 'test') {
         const testIp = fastifyReq.cookies?.['x-test-ip'];
         if (testIp) {
           clientIp = testIp;

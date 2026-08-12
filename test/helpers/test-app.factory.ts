@@ -1,10 +1,8 @@
 import { AppModule } from '#src/app.module.js';
+import { appConfig } from '#src/config/index.js';
 import { configureApp } from '#src/core/app.bootstrap.js';
-import {
-  AppConfigService,
-  PrismaService,
-  RedisService,
-} from '#src/core/index.js';
+import { PrismaService, RedisService } from '#src/core/index.js';
+import type { ConfigType } from '@nestjs/config';
 import {
   FastifyAdapter,
   type NestFastifyApplication,
@@ -16,7 +14,7 @@ export class TestAppFactory {
     app: NestFastifyApplication;
     module: TestingModule;
     prisma: PrismaService;
-    config: AppConfigService;
+    config: ConfigType<typeof appConfig>;
     redis: RedisService;
   }> {
     const moduleFixture: TestingModule = await Test.createTestingModule({

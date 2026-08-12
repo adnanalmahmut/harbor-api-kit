@@ -8,10 +8,11 @@ Execution rules (the operating rules an AI agent or contributor follows when wri
 
 ## 1. Architectural style
 
-The project is a **feature-first backend** organized around **Clean Architecture**. The codebase is split in two top-level concerns:
+The project is a **feature-first backend** organized around **Clean Architecture**. The codebase is split into three top-level concerns:
 
 - **`src/modules/<feature>/`** — feature modules. Each module owns its full vertical: domain, application, infrastructure, presentation. Modules are the unit of architectural ownership.
-- **`src/core/`** — cross-cutting infrastructure and primitives that are not owned by any single feature: configuration, HTTP pipeline, response envelope, validation, logging, persistence service, Redis client, queues, i18n, security middleware, exception filter.
+- **`src/config/`** — namespaced runtime configuration factories and their Zod environment schemas.
+- **`src/core/`** — cross-cutting infrastructure and primitives that are not owned by any single feature: HTTP pipeline, response envelope, validation, logging, persistence service, Redis client, queues, i18n, security middleware, exception filter.
 
 The split is enforced by ESLint layer rules ([eslint.config.mjs](eslint.config.mjs)). Layer boundaries are mechanical, not stylistic — violations fail CI.
 
@@ -118,7 +119,7 @@ infrastructure ┘                       ▲
 
 - `domain/` MUST NOT import `@nestjs/*`, `@prisma/client`, `ioredis`, `nestjs-i18n`, `class-validator`, `class-transformer`, generated Prisma types, `application/`, `infrastructure/`, `presentation/`, or request context internals.
 - `application/` MUST NOT import Prisma, NestJS, Redis, i18n libs, `infrastructure/`, or `presentation/`.
-- `presentation/` MUST NOT import Prisma, Redis, or `infrastructure/` (except `core/infrastructure/config/` and `core/infrastructure/logger/`).
+- `presentation/` MUST NOT import Prisma, Redis, or `infrastructure/` (except `core/infrastructure/logger/`). Namespaced configuration is imported from `#src/config/index.js`.
 - `infrastructure/` MUST NOT import `presentation/`.
 - Globally: `class-validator` and `class-transformer` are forbidden in all of `src/`.
 - Prisma (`@prisma/client`, generated types) MUST NOT be imported outside `infrastructure/` or `core/db/prisma/`.
@@ -233,9 +234,10 @@ These thresholds are heuristics, not hard limits. The intent is: keep files smal
 
 ### 8.1 What lives in `core/`
 
+`src/config/` owns namespaced `registerAs(...)` factories and their Zod environment schemas. `ConfigurationModule` registers every factory globally with caching; this is the only runtime application folder that reads `process.env`.
+
 `core/` owns cross-cutting infrastructure that is genuinely shared across modules and has no feature-specific domain meaning:
 
-- **`core/infrastructure/config/`** — `AppConfigService`, environment schema (`env.schema.ts`). The only place that reads `process.env`.
 - **`core/infrastructure/db/`** — `PrismaService` (global Prisma client).
 - **`core/infrastructure/redis/`** — `RedisService` wrapper around `ioredis`.
 - **`core/infrastructure/queue/`** — BullMQ wiring.
@@ -273,7 +275,7 @@ The following are **forbidden** in new code. A code review or AI agent finding a
 - **Deep cross-module imports** (`#src/modules/<other>/<layer>/...`) in new code. Use the module barrel.
 - **Prisma in `application/` or `presentation/`** — Prisma belongs in `infrastructure/` only.
 - **`class-validator` or `class-transformer` anywhere.** Validation is Zod via `createStrictZodDto`.
-- **`process.env` reads in runtime application code.** Use the injected `AppConfigService`. The only legitimate `process.env` usage is in bootstrap/config-loader code (`core/app.bootstrap.ts`, `core/infrastructure/config/app-config.module.ts`) where `AppConfigService` does not yet exist, and in seed/test scripts outside `src/`.
+- **`process.env` reads outside `src/config/` in runtime application code.** Consumers inject a namespaced configuration factory via its `.KEY` and `ConfigType`. Seed and test scripts outside `src/` may prepare their own environment.
 - **`console.log/info/warn/error` anywhere in `src/`.** Use the injected Pino logger.
 - **`@SkipEnvelope()` outside documented webhook handlers.** Every other endpoint MUST use the global response envelope.
 - **Catching `AppException` to swallow it.** Let it propagate to the global exception filter.

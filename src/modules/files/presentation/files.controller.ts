@@ -1,8 +1,5 @@
-import {
-  ApiResponses,
-  AppConfigService,
-  ResponseMessage,
-} from '#src/core/index.js';
+import { appConfig } from '#src/config/index.js';
+import { ApiResponses, ResponseMessage } from '#src/core/index.js';
 import { AuthGuard } from '#src/modules/auth/index.js';
 import {
   FileResponseMapper,
@@ -20,6 +17,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
@@ -27,6 +25,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
 import {
   ApiBearerAuth,
@@ -67,7 +66,8 @@ export class FilesController {
     private readonly getFileMetaUseCase: GetFileMetaUseCase,
     private readonly setVisibilityUseCase: SetVisibilityUseCase,
     private readonly streamFileUseCase: StreamFileUseCase,
-    private readonly config: AppConfigService,
+    @Inject(appConfig.KEY)
+    private readonly config: ConfigType<typeof appConfig>,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -112,7 +112,7 @@ export class FilesController {
       isPublic,
     });
 
-    return FileResponseMapper.map(file, this.config.app().publicUrl);
+    return FileResponseMapper.map(file, this.config.publicUrl);
   }
 
   @UseGuards(AuthGuard)
@@ -156,7 +156,7 @@ export class FilesController {
       throw FilesException.invalidRequest('no_file_uploaded');
     }
 
-    const publicUrl = this.config.app().publicUrl;
+    const publicUrl = this.config.publicUrl;
     return files.map((file) => FileResponseMapper.map(file, publicUrl));
   }
 
@@ -180,7 +180,7 @@ export class FilesController {
       actorUserId: userId,
       actorIsAdmin: isAdmin,
     });
-    return FileResponseMapper.map(file, this.config.app().publicUrl);
+    return FileResponseMapper.map(file, this.config.publicUrl);
   }
 
   @Get(':id/download')
@@ -259,6 +259,6 @@ export class FilesController {
       actorUserId: userId,
       actorIsAdmin: isAdmin,
     });
-    return FileResponseMapper.map(file, this.config.app().publicUrl);
+    return FileResponseMapper.map(file, this.config.publicUrl);
   }
 }

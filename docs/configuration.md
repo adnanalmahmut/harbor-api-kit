@@ -1,7 +1,23 @@
 # Configuration
 
-All runtime configuration goes through `AppConfigService`. Application code must
-not read `process.env` directly outside the config infrastructure.
+All runtime configuration is defined as namespaced `registerAs(...)` factories
+under `src/config/`. Each namespace owns a Zod schema, parses its environment
+variables at bootstrap, and returns the typed shape consumed by the application.
+Application code must not read `process.env` outside `src/config/`.
+
+`ConfigurationModule` registers `configurations` globally with caching. A
+consumer injects only the namespace it needs:
+
+```ts
+constructor(
+  @Inject(appConfig.KEY)
+  private readonly app: ConfigType<typeof appConfig>,
+) {}
+```
+
+When adding a variable, update the relevant schema and returned object. When
+adding a namespace, also export it from `src/config/index.ts` and add its factory
+to `src/config/configurations.ts`.
 
 ## Environment Files
 
@@ -9,17 +25,22 @@ not read `process.env` directly outside the config infrastructure.
 - `.env.test.example` is the test template.
 - Real `.env`, `.env.test`, and production env files should not be committed.
 
-## Main Groups
+## Configuration Namespaces
 
-- App: name, environment, port, public URLs.
-- Database: PostgreSQL connection and Docker service settings.
-- Redis: queue/cache URL, key prefix, and default TTL.
-- Auth: better-auth URL, secret, session cookie names, session lifetime.
-- CSRF: double-submit cookie/header settings.
-- CORS and redirects: allowed origins for browsers and callback URLs.
-- Storage: local or S3-compatible file storage.
-- Email: Resend sender and API key.
-- i18n: locale negotiation and defaults.
+- `app`: name, environment, port, and public URLs.
+- `auth`: better-auth URL and secret, session settings, and OAuth providers.
+- `database`: PostgreSQL connection URL.
+- `redis`: queue/cache URL, key prefix, and default TTL.
+- `http`: proxy trust, CORS, redirects, cookies, CSRF, request IDs, docs, and rate limiting.
+- `storage`: local or S3-compatible file storage.
+- `notification`: Resend sender, API key, and email retry policy.
+- `logger`: log level and pretty-printing.
+- `i18n`: locale negotiation and defaults.
+- `tenant`: tenant resolution strategy, requirement, and header name.
+
+The `POSTGRES_*` variables in the environment templates configure the Docker
+PostgreSQL service; application runtime access uses `DATABASE_URL` through the
+`database` namespace.
 
 ## Bootstrap Configuration
 

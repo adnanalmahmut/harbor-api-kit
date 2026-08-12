@@ -1,9 +1,15 @@
-import { AppConfigService, resolveSupportedLocale } from '#src/core/index.js';
+import {
+  appConfig,
+  i18nConfig,
+  notificationConfig,
+} from '#src/config/index.js';
+import { resolveSupportedLocale } from '#src/core/index.js';
 import {
   EmailProviderPort,
   type SendEmailParams,
 } from '../../domain/email.provider.port.js';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import { PinoLogger } from 'nestjs-pino';
 import * as path from 'path';
@@ -39,11 +45,18 @@ export class ResendEmailProvider implements EmailProviderPort {
   private readonly resend: Resend;
 
   constructor(
-    private readonly config: AppConfigService,
+    @Inject(notificationConfig.KEY)
+    private readonly notificationConfiguration: ConfigType<
+      typeof notificationConfig
+    >,
+    @Inject(i18nConfig.KEY)
+    private readonly i18nConfiguration: ConfigType<typeof i18nConfig>,
+    @Inject(appConfig.KEY)
+    private readonly appConfiguration: ConfigType<typeof appConfig>,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(ResendEmailProvider.name);
-    const apiKey = this.config.email().resend.apiKey;
+    const apiKey = this.notificationConfiguration.email.resend.apiKey;
     this.resend = new Resend(apiKey);
   }
 
@@ -54,7 +67,8 @@ export class ResendEmailProvider implements EmailProviderPort {
     try {
       const html = await this.loadTemplate(template, locale, data);
 
-      const from = `${this.config.email().from.name} <${this.config.email().from.email}>`;
+      const fromConfig = this.notificationConfiguration.email.from;
+      const from = `${fromConfig.name} <${fromConfig.email}>`;
 
       this.logger.info({
         msg: 'Sending email',
@@ -104,7 +118,7 @@ export class ResendEmailProvider implements EmailProviderPort {
   ): Promise<string> {
     const resolvedLocale =
       resolveSupportedLocale(locale) ??
-      this.config.i18n().defaultLocale ??
+      this.i18nConfiguration.defaultLocale ??
       'en-US';
     const projectRoot = process.cwd();
     const templatePath = path.join(
@@ -119,10 +133,12 @@ export class ResendEmailProvider implements EmailProviderPort {
       let content = await fs.readFile(templatePath, 'utf-8');
 
       const defaults = {
-        brandName: this.config.email().from.name || this.config.app().name,
+        brandName:
+          this.notificationConfiguration.email.from.name ||
+          this.appConfiguration.name,
         year: new Date().getFullYear(),
-        supportEmail: this.config.email().from.email,
-        websiteUrl: this.config.app().frontendPublicUrl,
+        supportEmail: this.notificationConfiguration.email.from.email,
+        websiteUrl: this.appConfiguration.frontendPublicUrl,
       };
 
       const finalData: Record<string, any> = { ...defaults, ...data };

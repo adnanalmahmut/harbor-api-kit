@@ -22,7 +22,7 @@ import {
 import { hydrateUser } from './better-auth.hydrators.js';
 
 export function createCredentialsOps(deps: BetterAuthDeps) {
-  const { auth, prisma, config, logger } = deps;
+  const { auth, prisma, i18nConfig, logger } = deps;
 
   return {
     async signUpEmail(
@@ -30,7 +30,7 @@ export function createCredentialsOps(deps: BetterAuthDeps) {
     ): Promise<AuthResult<SignUpResultData>> {
       try {
         const { email, password, firstName, lastName, context } = cmd;
-        const { headerName, queryName } = config.i18n();
+        const { headerName, queryName } = i18nConfig;
         const locale =
           resolveLocaleFromSource(
             { headers: context.headers, query: context.query },

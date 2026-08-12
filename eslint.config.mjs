@@ -288,15 +288,13 @@ export default [
                 '#src/modules/*/infrastructure/**',
                 '#src/core/infrastructure',
                 '#src/core/infrastructure/**',
-                '!#src/core/infrastructure/config',
-                '!#src/core/infrastructure/config/**',
                 '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
                 '!#src/core/infrastructure/rate-limit/rate-limiter.module',
                 '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
               ],
               message:
-                'Dependence on non-config/logger infrastructure is prohibited in Presentation. Only the RateLimiterModule class file is whitelisted from rate-limit/ so Presentation-side modules can wire the port.',
+                'Dependence on core infrastructure is prohibited in Presentation except for logger wiring and the RateLimiterModule class used to wire its port. Import configuration from #src/config/index.js.',
             },
             {
               group: [
@@ -429,15 +427,13 @@ export default [
                 '#src/modules/*/infrastructure/**',
                 '#src/core/infrastructure',
                 '#src/core/infrastructure/**',
-                '!#src/core/infrastructure/config',
-                '!#src/core/infrastructure/config/**',
                 '!#src/core/infrastructure/logger',
                 '!#src/core/infrastructure/logger/**',
                 '!#src/core/infrastructure/rate-limit/rate-limiter.module',
                 '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
               ],
               message:
-                'Dependence on non-config/logger infrastructure is prohibited in Presentation. Only the RateLimiterModule class file is whitelisted from rate-limit/ so Presentation-side modules can wire the port.',
+                'Dependence on core infrastructure is prohibited in Presentation except for logger wiring and the RateLimiterModule class used to wire its port. Import configuration from #src/config/index.js.',
             },
             {
               group: [

@@ -1,5 +1,5 @@
+import { appConfig, httpConfig } from '#src/config/index.js';
 import {
-  AppConfigService,
   assertAllowedRedirectURL,
   CORE_TOKENS,
   InvalidRedirectURLError,
@@ -9,6 +9,7 @@ import {
 } from '#src/core/index.js';
 import { AuthException } from '../../application/index.js';
 import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
 
 @Injectable()
@@ -16,7 +17,10 @@ export class AuthHttpSupport {
   constructor(
     @Inject(CORE_TOKENS.REQUEST_CONTEXT_STORE)
     private readonly contextStore: RequestContextStorePort,
-    private readonly config: AppConfigService,
+    @Inject(appConfig.KEY)
+    private readonly appConfiguration: ConfigType<typeof appConfig>,
+    @Inject(httpConfig.KEY)
+    private readonly httpConfiguration: ConfigType<typeof httpConfig>,
   ) {}
 
   requireContext(): RequestContext {
@@ -27,8 +31,8 @@ export class AuthHttpSupport {
 
   validateCallbackURL(url?: string): void {
     try {
-      const frontendPublicUrl = this.config.app().frontendPublicUrl;
-      const allowedOrigins = this.config.auth().redirectAllowlist;
+      const frontendPublicUrl = this.appConfiguration.frontendPublicUrl;
+      const allowedOrigins = this.httpConfiguration.redirects.originAllowlist;
       assertAllowedRedirectURL(url, [frontendPublicUrl, ...allowedOrigins]);
     } catch (e) {
       if (e instanceof InvalidRedirectURLError) {
@@ -39,7 +43,7 @@ export class AuthHttpSupport {
   }
 
   issueCsrfCookie(reply: FastifyReply) {
-    const csrf = this.config.csrf();
+    const csrf = this.httpConfiguration.csrf;
     if (!csrf.enabled) return;
 
     const token = makeCsrfToken();

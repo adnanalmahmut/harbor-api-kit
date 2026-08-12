@@ -1,9 +1,4 @@
-import {
-  AppConfigModule,
-  PrismaModule,
-  RateLimitModule,
-  RedisModule,
-} from '#src/core/index.js';
+import { PrismaModule, RateLimitModule, RedisModule } from '#src/core/index.js';
 import { Module } from '@nestjs/common';
 import { HealthCheckerService } from './application/health-checker.service.js';
 import type { CacheHealthPort, DbHealthPort } from './domain/index.js';
@@ -13,7 +8,7 @@ import { RedisCacheHealthAdapter } from './infrastructure/redis-cache-health.ada
 import { HealthController } from './presentation/http/health.controller.js';
 
 @Module({
-  imports: [AppConfigModule, RateLimitModule, PrismaModule, RedisModule],
+  imports: [RateLimitModule, PrismaModule, RedisModule],
   controllers: [HealthController],
   providers: [
     PrismaDbHealthAdapter,

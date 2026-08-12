@@ -140,9 +140,9 @@ This project was built with AI-assisted pair programming for scaffolding, docume
 
 ```
 src/
+  config/            # registerAs factories + per-namespace Zod schemas
   core/
     infrastructure/
-      config/        # AppConfigService (centralized, no process.env drift)
       db/prisma/     # PrismaModule + PrismaService
       redis/         # RedisModule + RedisService
       logger/        # Pino setup
@@ -334,9 +334,9 @@ Note: `npm run test:e2e` automatically runs `test:e2e:prepare` which starts Dock
 
 ## Configuration
 
-All runtime configuration is centralized through `AppConfigService`. Direct `process.env` reads are forbidden in application code.
+Runtime configuration is split into validated namespaces under `src/config/` and registered globally through `ConfigurationModule`. Consumers inject only the namespace they need; direct `process.env` reads outside `src/config/` are forbidden.
 
-Key configuration sections: `app`, `db`, `redis`, `auth`, `cors`, `csrf`, `rateLimit`, `storage`, `logger`, `i18n`, `cookies`, `fastify`.
+Key configuration namespaces: `app`, `auth`, `database`, `redis`, `http`, `storage`, `notification`, `logger`, `i18n`, and `tenant`.
 
 See [.env.example](.env.example) and [docs/configuration.md](docs/configuration.md) for the full list of environment variables with descriptions.
 

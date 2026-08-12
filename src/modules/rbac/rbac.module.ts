@@ -1,5 +1,4 @@
 import {
-  AppConfigModule,
   CORE_TOKENS,
   PrismaModule,
   RedisModule,
@@ -35,12 +34,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 
 @Module({
-  imports: [
-    PrismaModule,
-    RedisModule,
-    forwardRef(() => AuthModule),
-    AppConfigModule,
-  ],
+  imports: [PrismaModule, RedisModule, forwardRef(() => AuthModule)],
   controllers: [RbacController],
   providers: [
     // 1. Base Repositories (Prisma)

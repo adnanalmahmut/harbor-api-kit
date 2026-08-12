@@ -1,11 +1,13 @@
-import { AppConfigService } from '#src/core/infrastructure/index.js';
+import { appConfig } from '#src/config/index.js';
 import {
+  Inject,
   Injectable,
   SetMetadata,
   type CallHandler,
   type ExecutionContext,
   type NestInterceptor,
 } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { catchError, EMPTY, map, type Observable } from 'rxjs';
@@ -35,7 +37,8 @@ export const RedirectOnResult = (config: RedirectConfig) =>
 export class AuthRedirectInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
-    private readonly config: AppConfigService,
+    @Inject(appConfig.KEY)
+    private readonly config: ConfigType<typeof appConfig>,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -52,7 +55,7 @@ export class AuthRedirectInterceptor implements NestInterceptor {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<FastifyRequest>();
     const reply = httpContext.getResponse<FastifyReply>();
-    const frontendPublicUrl = this.config.app().frontendPublicUrl;
+    const frontendPublicUrl = this.config.frontendPublicUrl;
 
     return next.handle().pipe(
       map(() => {

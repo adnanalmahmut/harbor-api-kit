@@ -1,4 +1,4 @@
-import { AppConfigModule, PrismaModule } from '#src/core/index.js';
+import { PrismaModule } from '#src/core/index.js';
 import { AuthAccountController } from './presentation/http/auth.account.controller.js';
 import { AuthCredentialsController } from './presentation/http/auth.credentials.controller.js';
 import { AuthHttpSupport } from './presentation/http/auth.http.support.js';
@@ -16,14 +16,7 @@ import { authExports } from './auth.exports.js';
 import { authUseCaseProviders } from './auth.use-cases.providers.js';
 
 @Module({
-  imports: [
-    PrismaModule,
-    AppConfigModule,
-    RbacModule,
-    NotifyModule,
-    UsersModule,
-    SharedModule,
-  ],
+  imports: [PrismaModule, RbacModule, NotifyModule, UsersModule, SharedModule],
   controllers: [
     AuthCredentialsController,
     AuthPasswordController,

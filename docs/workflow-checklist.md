@@ -67,7 +67,7 @@ A change is **done** when every box below is ticked:
 - [ ] No new `@ts-ignore` / `@ts-expect-error` to bypass architectural constraints.
 - [ ] All new cross-module imports go through the target module's root `index.ts`. No deep imports.
 - [ ] Layer rules respected: domain pure, application port-only, infrastructure adapters, presentation thin.
-- [ ] No new `process.env` reads outside `core/infrastructure/config/`.
+- [ ] No new `process.env` reads outside `src/config/`.
 - [ ] No new `console.*` calls.
 - [ ] No new `class-validator` / `class-transformer` imports.
 

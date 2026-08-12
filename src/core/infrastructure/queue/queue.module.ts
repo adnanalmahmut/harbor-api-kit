@@ -1,17 +1,16 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { AppConfigModule } from '../config/app-config.module.js';
-import { AppConfigService } from '../config/app-config.service.js';
+import type { ConfigType } from '@nestjs/config';
+import { redisConfig } from '#src/config/index.js';
 
 @Module({
   imports: [
     BullModule.forRootAsync({
-      imports: [AppConfigModule],
-      useFactory: (config: AppConfigService) => ({
+      useFactory: (config: ConfigType<typeof redisConfig>) => ({
         connection: {
-          url: config.redis().url,
+          url: config.url,
         },
-        prefix: `{${config.redis().prefix}:bmq}`,
+        prefix: `{${config.prefix}:bmq}`,
         defaultJobOptions: {
           removeOnComplete: 1000,
           removeOnFail: 5000,
@@ -22,7 +21,7 @@ import { AppConfigService } from '../config/app-config.service.js';
           },
         },
       }),
-      inject: [AppConfigService],
+      inject: [redisConfig.KEY],
     }),
   ],
   exports: [BullModule],

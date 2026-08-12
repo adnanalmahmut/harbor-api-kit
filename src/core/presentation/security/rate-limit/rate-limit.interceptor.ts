@@ -1,10 +1,10 @@
+import { httpConfig } from '#src/config/index.js';
 import { CORE_TOKENS } from '#src/core/core.tokens.js';
 import {
   SecurityException,
   stripQuery,
   type RateLimiterPort,
 } from '#src/core/domain/index.js';
-import { AppConfigService } from '#src/core/infrastructure/config/app-config.service.js';
 import {
   Inject,
   Injectable,
@@ -12,6 +12,7 @@ import {
   type ExecutionContext,
   type NestInterceptor,
 } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Observable } from 'rxjs';
@@ -39,14 +40,15 @@ export class RateLimitInterceptor implements NestInterceptor {
     private readonly reflector: Reflector,
     @Inject(CORE_TOKENS.RATE_LIMITER)
     private readonly rateLimiter: RateLimiterPort,
-    private readonly cfg: AppConfigService,
+    @Inject(httpConfig.KEY)
+    private readonly config: ConfigType<typeof httpConfig>,
   ) {}
 
   async intercept(
     ctx: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<unknown>> {
-    const rl = this.cfg.rateLimit();
+    const rl = this.config.rateLimit;
     if (!rl.enabled) return next.handle();
 
     const handler = ctx.getHandler();
