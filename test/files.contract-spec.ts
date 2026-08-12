@@ -3,7 +3,6 @@ import { HttpStatus } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AuthHelper } from './helpers/auth.helper.js';
-import { RbacHelper } from './helpers/rbac.helper.js';
 import { TestAppFactory } from './helpers/test-app.factory.js';
 import { resetDb } from './helpers/test-db.helper.js';
 import { clearRedisCache } from './helpers/test-redis.helper.js';
@@ -13,7 +12,6 @@ describe('Files Module (E2E)', () => {
   let prisma: PrismaService;
   let redisService: RedisService;
   let authHelper: AuthHelper;
-  let rbacHelper: RbacHelper;
   let adminCookies: string[];
   let csrfCookie: string | undefined;
   let csrfToken: string | undefined;
@@ -35,7 +33,6 @@ describe('Files Module (E2E)', () => {
     prisma = factory.prisma;
     redisService = factory.redis;
     authHelper = new AuthHelper(app);
-    rbacHelper = new RbacHelper(prisma, redisService);
   });
 
   afterAll(async () => {
@@ -52,13 +49,13 @@ describe('Files Module (E2E)', () => {
     if (!adminCookies) {
       await resetDb(prisma);
       await clearRedisCache(redisService);
-      const setup = await authHelper.setupAdmin(rbacHelper);
+      const setup = await authHelper.setupAdmin();
       adminCookies = setup.cookies;
     }
 
     // احصل على توكن CSRF بعد تسجيل الدخول (GET آمن يصدر الكوكي والتوكن)
     const meRes = await request(app.getHttpServer())
-      .get('/api/v1/auth/me')
+      .get('/api/v1/users')
       .set('Cookie', adminCookies);
 
     const setCookies = meRes.get('Set-Cookie') || [];

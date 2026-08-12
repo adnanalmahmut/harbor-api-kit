@@ -1,206 +1,206 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client.js';
-import { DEFAULT_ROLES } from '../src/modules/rbac/domain/permissions.catalog.js';
-import { bootstrapRbac } from './bootstrap-rbac.js';
+import { z } from 'zod';
+import { composeUserName } from '../src/modules/users/index.js';
 
-type AdminInput = {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  locale: string;
-  image?: string;
-};
+const adminInputSchema = z.object({
+  email: z.email().transform((value) => value.trim().toLowerCase()),
+  password: z.string().min(12).max(128),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().min(1).max(100),
+  locale: z.enum(['ar-SY', 'en-US']),
+  image: z.url().optional(),
+});
+
+type AdminInput = z.infer<typeof adminInputSchema>;
 
 function loadScriptEnv(): void {
   if (process.env.APP_ENV === 'production') return;
 
   const envFile = process.env.APP_ENV === 'test' ? '.env.test' : '.env';
-  dotenv.config({ path: path.resolve(process.cwd(), envFile) });
-}
-
-function mustEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required env: ${name}`);
-  return value;
+  dotenv.config({ path: path.resolve(process.cwd(), envFile), quiet: true });
 }
 
 function argValue(name: string): string | undefined {
-  const prefixed = `--${name}`;
-  const index = process.argv.indexOf(prefixed);
-  if (index === -1) return undefined;
-  return process.argv[index + 1];
+  const index = process.argv.indexOf(`--${name}`);
+  const value = index === -1 ? undefined : process.argv[index + 1];
+  return value && !value.startsWith('--') ? value : undefined;
 }
 
-function readInput(): AdminInput {
-  const email = argValue('email') ?? process.env.ADMIN_EMAIL;
-  const password = argValue('password') ?? process.env.ADMIN_PASSWORD;
-  const firstName =
-    argValue('first-name') ?? process.env.ADMIN_FIRST_NAME ?? 'Admin';
-  const lastName =
-    argValue('last-name') ?? process.env.ADMIN_LAST_NAME ?? 'User';
-  const locale =
-    argValue('locale') ??
-    process.env.ADMIN_LOCALE ??
-    process.env.I18N_DEFAULT_LOCALE ??
-    'ar-SY';
-  const image = argValue('image') ?? process.env.ADMIN_IMAGE;
+function hasFlag(name: string): boolean {
+  return process.argv.includes(`--${name}`);
+}
 
-  const missing = [
-    ['--email or ADMIN_EMAIL', email],
-    ['--password or ADMIN_PASSWORD', password],
-  ]
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
+function printHelp(): void {
+  process.stdout.write(`Create the first administrator account.
 
-  if (missing.length > 0) {
-    throw new Error(`Missing required admin input: ${missing.join(', ')}`);
+Usage:
+  npm run admin:create -- --email admin@example.com
+
+Options:
+  --email <email>          Required unless ADMIN_EMAIL is set
+  --first-name <name>      Defaults to Admin
+  --last-name <name>       Defaults to User
+  --locale <locale>        ar-SY or en-US; defaults to I18N_DEFAULT_LOCALE
+  --image <url>            Optional profile image URL
+  --allow-production       Required when APP_ENV=production
+  --help                   Show this help
+
+Password:
+  Entered and confirmed through hidden interactive prompts, or read from
+  ADMIN_PASSWORD for non-interactive secret injection. Do not pass it as a
+  CLI argument.
+`);
+}
+
+async function readHiddenPassword(prompt: string): Promise<string> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error(
+      'ADMIN_PASSWORD is required when the CLI is not running interactively.',
+    );
   }
 
-  if (password!.length < 12) {
-    throw new Error('Admin password must be at least 12 characters long.');
+  process.stdout.write(prompt);
+  process.stdin.setEncoding('utf8');
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+
+  return new Promise<string>((resolve, reject) => {
+    let value = '';
+
+    const cleanup = () => {
+      process.stdin.off('data', onData);
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+    };
+
+    const onData = (chunk: string | Buffer) => {
+      for (const character of String(chunk)) {
+        if (character === '\u0003') {
+          cleanup();
+          process.stdout.write('\n');
+          reject(new Error('Admin creation cancelled.'));
+          return;
+        }
+        if (character === '\r' || character === '\n') {
+          cleanup();
+          process.stdout.write('\n');
+          resolve(value);
+          return;
+        }
+        if (character === '\u007f' || character === '\b') {
+          value = value.slice(0, -1);
+          continue;
+        }
+        if (character >= ' ') value += character;
+      }
+    };
+
+    process.stdin.on('data', onData);
+  });
+}
+
+async function readInput(): Promise<AdminInput> {
+  const passwordFromEnvironment = process.env.ADMIN_PASSWORD;
+  delete process.env.ADMIN_PASSWORD;
+  const password =
+    passwordFromEnvironment ?? (await readHiddenPassword('Admin password: '));
+
+  if (!passwordFromEnvironment) {
+    const confirmation = await readHiddenPassword('Confirm password: ');
+    if (password !== confirmation) {
+      throw new Error('Admin passwords do not match.');
+    }
   }
 
-  return {
-    email: email!,
-    password: password!,
-    firstName,
-    lastName,
-    locale,
-    image,
-  };
-}
-
-function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: mustEnv('DATABASE_URL') });
-  return new PrismaClient({ adapter });
-}
-
-function createCliAuth(prisma: PrismaClient) {
-  return betterAuth({
-    baseURL: mustEnv('BETTER_AUTH_URL'),
-    secret: mustEnv('BETTER_AUTH_SECRET'),
-    database: prismaAdapter(prisma as never, { provider: 'postgresql' }),
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: false,
-    },
-    user: { modelName: 'User' },
-    session: { modelName: 'Session', storeSessionInDatabase: true },
-    account: { modelName: 'Account' },
-    verification: { modelName: 'Verification' },
+  return adminInputSchema.parse({
+    email: argValue('email') ?? process.env.ADMIN_EMAIL,
+    password,
+    firstName:
+      argValue('first-name') ?? process.env.ADMIN_FIRST_NAME ?? 'Admin',
+    lastName: argValue('last-name') ?? process.env.ADMIN_LAST_NAME ?? 'User',
+    locale:
+      argValue('locale') ??
+      process.env.ADMIN_LOCALE ??
+      process.env.I18N_DEFAULT_LOCALE ??
+      'ar-SY',
+    image: argValue('image') ?? process.env.ADMIN_IMAGE,
   });
 }
 
-async function createOrUpdateAdmin(
-  prisma: PrismaClient,
-  input: AdminInput,
-): Promise<{ created: boolean; userId: string }> {
-  const existing = await prisma.user.findUnique({
-    where: { email: input.email },
-    select: { id: true },
-  });
-
-  const name = `${input.firstName} ${input.lastName}`.trim();
-
-  if (existing) {
-    await prisma.user.update({
-      where: { id: existing.id },
-      data: {
-        name,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        locale: input.locale,
-        image: input.image,
-        emailVerified: true,
-      },
-    });
-
-    return { created: false, userId: existing.id };
+function assertEnvironmentSafety(): void {
+  const environment = process.env.APP_ENV ?? 'development';
+  if (environment === 'test') {
+    throw new Error('The admin bootstrap CLI cannot run with APP_ENV=test.');
   }
-
-  const auth = createCliAuth(prisma);
-
-  await auth.api.signUpEmail({
-    body: {
-      email: input.email,
-      password: input.password,
-      name,
-    },
-  });
-
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-    select: { id: true },
-  });
-
-  if (!user) throw new Error('Admin user was not created.');
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      firstName: input.firstName,
-      lastName: input.lastName,
-      locale: input.locale,
-      image: input.image,
-      emailVerified: true,
-    },
-  });
-
-  return { created: true, userId: user.id };
-}
-
-async function assignAdminRole(
-  prisma: PrismaClient,
-  userId: string,
-): Promise<void> {
-  const adminRole = await prisma.role.findUnique({
-    where: { slug: DEFAULT_ROLES.ADMIN.slug },
-    select: { id: true },
-  });
-
-  if (!adminRole) throw new Error('Admin role was not bootstrapped.');
-
-  await prisma.userRole.upsert({
-    where: {
-      userId_roleId: {
-        userId,
-        roleId: adminRole.id,
-      },
-    },
-    update: {},
-    create: {
-      userId,
-      roleId: adminRole.id,
-    },
-  });
+  if (environment === 'production' && !hasFlag('allow-production')) {
+    throw new Error(
+      'Refusing to modify production without --allow-production.',
+    );
+  }
 }
 
 async function main(): Promise<void> {
   loadScriptEnv();
-  const input = readInput();
-  const prisma = createPrismaClient();
+  if (hasFlag('help')) {
+    printHelp();
+    return;
+  }
+
+  assertEnvironmentSafety();
+  const input = await readInput();
+  const { auth, prisma } = await import('../better-auth.js');
 
   try {
-    await bootstrapRbac(prisma);
-    const result = await createOrUpdateAdmin(prisma, input);
-    await assignAdminRole(prisma, result.userId);
+    const existing = await prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new Error(
+        'A user with this email already exists. Promote it through an authenticated admin flow instead.',
+      );
+    }
 
-    console.log(
-      result.created
-        ? `Admin user created and assigned: ${input.email}`
-        : `Admin user already exists; profile and role ensured: ${input.email}`,
-    );
+    const name = composeUserName(input.firstName, input.lastName);
+    const created = await auth.api.signUpEmail({
+      body: {
+        email: input.email,
+        password: input.password,
+        name,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        locale: input.locale,
+        ...(input.image ? { image: input.image } : {}),
+      },
+    });
+
+    try {
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: created.user.id },
+          data: {
+            emailVerified: true,
+            role: 'admin',
+          },
+        }),
+        prisma.session.deleteMany({ where: { userId: created.user.id } }),
+      ]);
+    } catch (error) {
+      await prisma.user
+        .delete({ where: { id: created.user.id } })
+        .catch(() => undefined);
+      throw error;
+    }
+
+    process.stdout.write(`Admin user created: ${input.email}\n`);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main().catch((error) => {
-  console.error('Admin CLI failed:', error);
-  process.exit(1);
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  process.stderr.write(`Admin CLI failed: ${message}\n`);
+  process.exitCode = 1;
 });

@@ -1,9 +1,11 @@
-import type { GrantsRepositoryPort } from '#src/modules/rbac/index.js';
+import type { AuthorizationRepositoryPort } from '#src/modules/authorization/index.js';
 
 export class GetUserPermissionsUseCase {
-  constructor(private readonly grantsRepo: GrantsRepositoryPort) {}
+  constructor(
+    private readonly authorizationRepo: AuthorizationRepositoryPort,
+  ) {}
 
   async execute(userId: string) {
-    return this.grantsRepo.listUserOverrides(userId);
+    return this.authorizationRepo.listUserOverrides(userId);
   }
 }

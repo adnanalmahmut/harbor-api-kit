@@ -42,18 +42,17 @@ The `POSTGRES_*` variables in the environment templates configure the Docker
 PostgreSQL service; application runtime access uses `DATABASE_URL` through the
 `database` namespace.
 
-## Bootstrap Configuration
+## Admin Configuration
 
-`npm run bootstrap:rbac` uses the normal database configuration and may run in
-development, test, staging, or production. It idempotently ensures roles,
-permissions, and built-in role-permission assignments. It does not create users,
-sessions, demo accounts, or passwords.
+Authorization roles and permissions are static code and require no environment-backed
+bootstrap step.
 
 `npm run admin:create` is an explicit one-off admin creation operation. It
-requires admin input through CLI flags or `ADMIN_*` environment variables. No
-admin password is defined in `.env.example`; use one-off secrets from your shell
-or deployment platform. First name defaults to `Admin`; last name defaults to
-`User`.
+accepts profile input through CLI flags or `ADMIN_*` environment variables.
+The password is collected through a hidden prompt, or from `ADMIN_PASSWORD`
+when injected by a deployment secret store. No admin password is defined in
+`.env.example`. First name defaults to `Admin`; last name defaults to `User`.
+For an Arabic development profile, pass `--locale ar-SY` explicitly.
 
 ## Auth Defaults
 

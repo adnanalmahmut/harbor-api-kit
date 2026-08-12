@@ -1,84 +1,48 @@
 import { PrismaService, RedisService } from '#src/core/index.js';
-import { RegisterDto } from '#src/modules/auth/index.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import { TestAppFactory, clearRedisCache, resetDb } from './test-utils.js';
+import { AuthHelper } from './helpers/auth.helper.js';
+import { TestAppFactory } from './helpers/test-app.factory.js';
+import { resetDb } from './helpers/test-db.helper.js';
+import { clearRedisCache } from './helpers/test-redis.helper.js';
 
-describe('Auth Module (E2E)', () => {
+describe('Better Auth native flow (E2E)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaService;
-  let redisService: RedisService;
+  let redis: RedisService;
+  let auth: AuthHelper;
 
   beforeAll(async () => {
     const factory = await TestAppFactory.create();
     app = factory.app;
     prisma = factory.prisma;
-    redisService = factory.redis;
+    redis = factory.redis;
+    auth = new AuthHelper(app);
   });
 
-  afterAll(async () => {
-    await app.close();
-  });
+  afterAll(async () => TestAppFactory.teardown(app));
 
   beforeEach(async () => {
     await resetDb(prisma);
-    await clearRedisCache(redisService);
+    await clearRedisCache(redis);
   });
 
-  const registerDto: RegisterDto = {
-    email: 'test@example.com',
-    password: 'Password123!',
-    confirmPassword: 'Password123!',
-    firstName: 'Test',
-    lastName: 'User',
-  };
-
-  const extractCsrf = (cookieList: string[] = []) => {
-    for (const c of cookieList) {
-      const match = c.match(/__Host-csrf=([^;]+)/);
-      if (match) return { cookie: c, token: match[1] };
-    }
-    return undefined;
-  };
-
-  it('should register, login, cache session, and logout', async () => {
-    const registerRes = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send(registerDto)
-      .expect(201);
-    expect(registerRes.body.data.token).toBeUndefined();
-
-    const loginRes = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email: registerDto.email, password: registerDto.password })
-      .expect(200);
-    expect(loginRes.body.data.token).toBeUndefined();
-
-    const loginCookies = loginRes.get('Set-Cookie') || [];
-    expect(loginCookies).toBeDefined();
-    expect(loginCookies.length).toBeGreaterThan(0);
-
-    const meRes1 = await request(app.getHttpServer())
-      .get('/api/v1/auth/me')
-      .set('Cookie', loginCookies)
-      .expect(200);
-
-    expect(meRes1.body.data.user.email).toBe(registerDto.email);
-
-    const freshCookies = meRes1.get('Set-Cookie') || [];
-    const csrf = extractCsrf(freshCookies) ?? extractCsrf(loginCookies);
-    expect(csrf).toBeDefined();
+  it('creates a database session and revokes it on sign-out', async () => {
+    const { cookies, userId } = await auth.registerAndLogin({
+      email: 'flow@test.com',
+      password: 'Password123!',
+      firstName: 'Flow',
+      lastName: 'User',
+    });
+    expect(await prisma.session.count({ where: { userId } })).toBeGreaterThan(
+      0,
+    );
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-out')
-      .set('Cookie', [...loginCookies, csrf!.cookie])
-      .set('X-CSRF-Token', csrf!.token)
+      .set('Cookie', cookies)
       .expect(200);
 
-    // After logout, session should be invalidated
-    await request(app.getHttpServer())
-      .get('/api/v1/auth/me')
-      .set('Cookie', loginCookies)
-      .expect(401);
+    expect(await prisma.session.count({ where: { userId } })).toBe(0);
   });
 });

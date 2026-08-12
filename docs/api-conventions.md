@@ -51,9 +51,21 @@ JSON error body.
 
 ## Authentication
 
-Authentication is cookie-based. Login/register responses set HttpOnly session
-cookies through `Set-Cookie`; they do not return bearer tokens in the response
-body.
+Authentication is cookie-based and is served through Better Auth's canonical
+routes under `/api/v1/auth/*`, such as `/sign-up/email`, `/sign-in/email`,
+`/get-session`, and `/sign-out`. These native routes use Better Auth's response
+contract and are intentionally not wrapped by the Nest response envelope.
+
+Outside production, when documentation is enabled, these native routes are
+generated from Better Auth and merged into the application OpenAPI 3.1.1
+document. The published path prefix comes from `BETTER_AUTH_URL`, so Scalar
+shows the same URLs handled at runtime rather than unprefixed Better Auth route
+fragments.
+
+User identity payloads expose `firstName` and `lastName`. Email sign-up and
+admin user creation require both fields. Better Auth's required `name` value is
+derived and synchronized inside the application and is intentionally absent
+from public request schemas and JSON responses.
 
 Cookie-bearing mutating requests require CSRF protection:
 

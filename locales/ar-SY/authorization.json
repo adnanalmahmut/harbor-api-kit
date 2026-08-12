@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "missing_permission": "الصلاحية المطلوبة غير متوفرة: {permission}",
+    "invalid_permission_key": "صيغة مفتاح الصلاحية غير صالحة: {key}",
+    "unauthorized": "يجب تسجيل الدخول للوصول إلى هذا المورد",
+    "database_error": "تعذر قراءة بيانات الصلاحيات أو تحديثها"
+  }
+}

@@ -26,18 +26,14 @@ describe('API Contract (E2E)', () => {
   });
 
   it('should return wrapped validation error', async () => {
-    // Hit register with bad data
+    // Better Auth native routes return their own error contract.
     const res = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: 'bad-email' }) // Missing fields
+      .post('/api/v1/auth/sign-up/email')
+      .send({ email: 'bad-email' })
       .expect(400);
 
-    expect(res.body.success).toBe(false);
-    // Expect: { message: "...", errors: [...] }
-    expect(res.body).toHaveProperty('errors');
-    expect(Array.isArray(res.body.errors)).toBe(true);
-    expect(res.body.errors[0]).toHaveProperty('path');
-    expect(res.body.errors[0]).toHaveProperty('message');
+    expect(res.body).toHaveProperty('code');
+    expect(res.body).toHaveProperty('message');
   });
 
   it('should return i18n keys for standard errors', async () => {

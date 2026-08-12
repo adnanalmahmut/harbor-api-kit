@@ -1,5 +1,5 @@
 import { LinkedAccount, Session, User } from '../../domain/index.js';
-import { safeJsonParse } from './better-auth.helpers.js';
+import { parseStoredRoles } from '#src/modules/authorization/index.js';
 
 /** Raw shape returned by BetterAuth API for user objects. */
 export interface RawBetterAuthUser {
@@ -12,9 +12,7 @@ export interface RawBetterAuthUser {
   image?: string | null;
   locale?: string | null;
 
-  // stored as string in better-auth additionalFields
-  roles?: string | null;
-  permissions?: string | null;
+  role?: string | null;
 
   createdAt?: string | Date;
   updatedAt?: string | Date;
@@ -47,8 +45,7 @@ export function hydrateUser(raw: unknown): User {
   if (!raw) return null as unknown as User;
   const r = raw as RawBetterAuthUser;
 
-  const roles = safeJsonParse<string[]>(r.roles, []);
-  const permissions = safeJsonParse<string[]>(r.permissions, []);
+  const { roles } = parseStoredRoles(r.role);
 
   return new User(
     r.id,
@@ -60,7 +57,7 @@ export function hydrateUser(raw: unknown): User {
     r.image ?? '',
     r.locale || null,
     roles,
-    permissions,
+    [],
     r.createdAt ? new Date(r.createdAt) : new Date(),
     r.updatedAt ? new Date(r.updatedAt) : new Date(),
     r.deletedAt ? new Date(r.deletedAt) : null,

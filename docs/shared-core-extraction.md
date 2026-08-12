@@ -42,12 +42,12 @@ These look "shared" because more than one feature touches them, but they fail si
 
 | Code | Where it belongs | Why **not** in core |
 |------|------------------|---------------------|
-| `AuthGuard`, `RbacGuard`, session types | `auth` / `rbac` modules | They encode the auth/RBAC domain. Other features consume them via the barrel. |
-| `Roles`, `Permissions` decorators | `rbac` module | Same — RBAC-specific semantics. |
-| `UserResponseDto`, `RoleResponseDto` | `users` / `rbac` modules | Response shapes are owned by the feature whose entity they represent. |
+| `AuthGuard`, `PermissionsGuard`, session types | `auth` / `authorization` modules | They encode authentication and authorization rules. Other features consume them via the barrel. |
+| `Permissions` decorator | `authorization` module | Same — authorization-specific semantics. |
+| `UserResponseDto` | `users` module | Response shapes are owned by the feature whose entity they represent. |
 | `EmailProviderPort` and Resend adapter | `notify` module | Notifications are a feature even when async. |
-| Permission catalog / RBAC value objects | `rbac` module | Pure domain knowledge of RBAC. |
-| Cache key prefixes for auth / RBAC | `auth.cache.ts`, `rbac.cache-keys.ts` | Each feature owns its own cache namespace. |
+| Permission catalog / authorization value objects | `authorization` module | Pure authorization domain knowledge. |
+| Cache key prefixes for auth / authorization | `auth.cache.ts`, `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
 | Feature-specific exception subclasses | `<feature>/<layer>/exceptions/` | They extend `AppException` (which lives in `core/`) but encode feature semantics. |
 | User mappers, role mappers | The owning feature's `application/mappers/` | They translate that feature's domain to its response shape. |
 
@@ -65,7 +65,7 @@ Walk through the three signals first:
 
 If signals 2 or 3 fail, the right answer is: **the feature that owns the concept exposes it through its barrel**. The consumer imports it from `#src/modules/<owner>/index.js`. That is what cross-module integration *is* — it's not a sign that extraction is needed.
 
-Example: `RbacGuard` is needed by `auth`, `users`, and `files`. It does **not** belong in `core/` — it belongs in `rbac` (because it encodes RBAC semantics) and is consumed via `#src/modules/rbac/index.js`.
+Example: `PermissionsGuard` is needed by `users` and `files`. It does **not** belong in `core/` — it belongs in `authorization` (because it encodes authorization semantics) and is consumed via `#src/modules/authorization/index.js`.
 
 ---
 

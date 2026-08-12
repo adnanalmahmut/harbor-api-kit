@@ -54,11 +54,11 @@ export class UsersException extends AppException {
   /**
    * Permission override not found (404)
    */
-  static permissionOverrideNotFound(permissionId?: string) {
+  static permissionOverrideNotFound(permissionKey?: string) {
     return new UsersException({
       code: AppErrorCode.NOT_FOUND,
       messageKey: 'users.errors.permission_override_not_found',
-      details: permissionId ? { permissionId } : undefined,
+      details: permissionKey ? { permissionKey } : undefined,
     });
   }
 

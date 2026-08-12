@@ -125,7 +125,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 - All Redis keys MUST use the `hak:` prefix.
 - Every cache entry MUST set an explicit TTL. No infinite caches.
-- Caches MUST be invalidated on logout, session revocation, role mutation, permission mutation, and any RBAC change. Cache MUST NOT override an authoritative deny.
+- Caches MUST be invalidated on logout, session revocation, role mutation, permission mutation, and any authorization change. Cache MUST NOT override an authoritative deny.
 - L1 caches are request-scoped only. L2 is Redis.
 
 ---
@@ -134,7 +134,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 - CSRF: global guard for cookie-bearing POST/PUT/PATCH/DELETE. Exemptions MUST be explicit and documented.
 - Rate-limit: global baseline; per-route overrides for sensitive endpoints (auth, registration, password reset).
-- Auth/RBAC checks: **fail-closed** on uncertainty. If a permission check throws or returns ambiguous, deny.
+- Authentication/authorization checks: **fail-closed** on uncertainty. If a permission check throws or returns ambiguous, deny.
 - File uploads: validate magic bytes, prevent SSRF in URL fetchers, prevent path traversal in storage drivers.
 
 ---

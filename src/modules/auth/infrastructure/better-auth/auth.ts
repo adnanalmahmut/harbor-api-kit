@@ -3,20 +3,59 @@ import {
   getRequestContextStatic,
   type PrismaService,
 } from '#src/core/index.js';
+import {
+  ADMIN_ROLES,
+  AUTHORIZATION_STATEMENTS,
+  DEFAULT_ROLE,
+  ROLE_GRANTS,
+} from '#src/modules/authorization/index.js';
+import {
+  composeUserName,
+  normalizeUserNamePart,
+  splitUserName,
+} from '#src/modules/users/index.js';
 import type { ConfigType } from '@nestjs/config';
-import { betterAuth } from 'better-auth';
+import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { organization } from 'better-auth/plugins';
-import type { PinoLogger } from 'nestjs-pino';
-import type { AuthEmailHooks } from './hooks/auth-email.hooks.js';
+import { createAccessControl } from 'better-auth/plugins/access';
+import { admin, openAPI, organization } from 'better-auth/plugins';
 
-export function createBetterAuth(
+export type BetterAuthEmailHooks = {
+  sendResetPasswordEmail(
+    data: { user: any; url: string; token: string },
+    context: Parameters<
+      import('./hooks/auth-email.hooks.js').AuthEmailHooks['sendResetPasswordEmail']
+    >[1],
+  ): Promise<void>;
+  sendVerificationEmail(
+    data: { user: any; token: string },
+    context: Parameters<
+      import('./hooks/auth-email.hooks.js').AuthEmailHooks['sendVerificationEmail']
+    >[1],
+  ): Promise<void>;
+};
+
+export type BetterAuthLogger = {
+  error(value: unknown, message?: string): void;
+  warn(value: unknown, message?: string): void;
+  info(value: unknown, message?: string): void;
+  debug(value: unknown, message?: string): void;
+};
+
+export const authAccessControl = createAccessControl(AUTHORIZATION_STATEMENTS);
+
+export const betterAuthRoles = {
+  user: authAccessControl.newRole(ROLE_GRANTS.user),
+  admin: authAccessControl.newRole(ROLE_GRANTS.admin),
+};
+
+export function createAuthFeatures(
   prisma: PrismaService,
   authConfiguration: ConfigType<typeof authConfig>,
   appConfiguration: ConfigType<typeof appConfig>,
   httpConfiguration: ConfigType<typeof httpConfig>,
-  emailHooks: AuthEmailHooks,
-  logger: PinoLogger,
+  emailHooks: BetterAuthEmailHooks,
+  logger: BetterAuthLogger,
 ) {
   const {
     sessionTokenCookie,
@@ -105,16 +144,39 @@ export function createBetterAuth(
     sameSite: 'lax' as const, // Lax is generally safer and works for oAuth on localhost
   };
 
-  return betterAuth({
-    baseURL: betterAuthUrl,
+  const authUrl = new URL(betterAuthUrl);
+  const basePath = authUrl.pathname.replace(/\/$/, '') || '/api/auth';
+
+  return {
+    baseURL: authUrl.origin,
+    basePath,
     secret: betterAuthSecret,
     // Cast to any because adapter types might not fully align with extended client types perfectly
     database: prismaAdapter(prismaWithSoftDelete as any, {
       provider: 'postgresql',
     }),
 
-    // ✅ plugins inline (بدون متغير)
-    plugins: [organization()],
+    plugins: [
+      admin({
+        ac: authAccessControl,
+        roles: betterAuthRoles,
+        defaultRole: DEFAULT_ROLE,
+        adminRoles: [...ADMIN_ROLES],
+      }),
+      organization(),
+      openAPI({ disableDefaultReference: true }),
+    ],
+
+    rateLimit: {
+      enabled: httpConfiguration.rateLimit.enabled,
+      window: httpConfiguration.rateLimit.durationSec,
+      max: httpConfiguration.rateLimit.points,
+      customRules: {
+        '/sign-in/email': { window: 60, max: 5 },
+        '/sign-up/email': { window: 60, max: 5 },
+        '/forget-password': { window: 60, max: 3 },
+      },
+    },
 
     emailAndPassword: {
       enabled: true,
@@ -145,7 +207,9 @@ export function createBetterAuth(
 
     advanced: {
       cookiePrefix: isProd ? 'core' : 'core-dev',
-      ipAddressHeaders: ['x-forwarded-for', 'x-real-ip', 'cf-connecting-ip'],
+      ipAddress: {
+        ipAddressHeaders: ['x-forwarded-for', 'x-real-ip', 'cf-connecting-ip'],
+      },
       cookies: {
         session_token: {
           name: sessionTokenCookie,
@@ -170,11 +234,9 @@ export function createBetterAuth(
         enabled: true,
       },
       additionalFields: {
-        firstName: { type: 'string', required: false },
-        lastName: { type: 'string', required: false },
+        firstName: { type: 'string', required: true },
+        lastName: { type: 'string', required: true },
         locale: { type: 'string', required: false },
-        roles: { type: 'string', required: false },
-        permissions: { type: 'string', required: false },
       },
     },
 
@@ -208,26 +270,41 @@ export function createBetterAuth(
     databaseHooks: {
       user: {
         create: {
+          before: (user) => {
+            const fallback = splitUserName(user.name);
+            const firstName = normalizeUserNamePart(
+              typeof user.firstName === 'string'
+                ? user.firstName
+                : fallback.firstName,
+            );
+            const lastName = normalizeUserNamePart(
+              typeof user.lastName === 'string'
+                ? user.lastName
+                : fallback.lastName,
+            );
+
+            return Promise.resolve({
+              data: {
+                ...user,
+                firstName,
+                lastName,
+                name: composeUserName(firstName, lastName),
+              },
+            });
+          },
+        },
+        update: {
           after: async (user) => {
-            try {
-              if (user.name && (!user.firstName || !user.lastName)) {
-                const nameParts = user.name.trim().split(/\s+/);
-                const firstName = nameParts[0] || null;
-                const lastName = nameParts.slice(1).join(' ') || null;
-
-                if (firstName || lastName) {
-                  await prisma.user.update({
-                    where: { id: user.id },
-                    data: { firstName, lastName },
-                  });
-
-                  logger.info(
-                    `Extracted name parts for user ${user.id}: ${firstName} ${lastName}`,
-                  );
-                }
-              }
-            } catch (err) {
-              logger.error(err, `Failed post-create hook for user ${user.id}`);
+            const firstName =
+              typeof user.firstName === 'string' ? user.firstName : '';
+            const lastName =
+              typeof user.lastName === 'string' ? user.lastName : '';
+            const name = composeUserName(firstName, lastName);
+            if (name && user.name !== name) {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { name },
+              });
             }
           },
         },
@@ -250,22 +327,26 @@ export function createBetterAuth(
                   });
 
                   logger.debug(
-                    `Session ${session.id}: geo ${geo.city}, ${geo.country}`,
+                    { city: geo.city, country: geo.country },
+                    'Session geolocation stored',
                   );
                 }
               } catch (err) {
-                logger.warn(
-                  err,
-                  `Geolocation failed for session ${session.id}`,
-                );
+                logger.warn(err, 'Session geolocation failed');
               }
             }
           },
         },
       },
     },
-  });
+  } satisfies BetterAuthOptions;
 }
 
-// ✅ النوع الصحيح يُستنتج من createBetterAuth نفسها
+export function createBetterAuth(
+  ...dependencies: Parameters<typeof createAuthFeatures>
+) {
+  const authFeatures = createAuthFeatures(...dependencies);
+  return betterAuth(authFeatures);
+}
+
 export type BetterAuthInstance = ReturnType<typeof createBetterAuth>;

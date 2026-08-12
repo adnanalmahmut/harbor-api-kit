@@ -1,4 +1,5 @@
 import { DatabaseException, PrismaService } from '#src/core/index.js';
+import { parseStoredRoles } from '#src/modules/authorization/index.js';
 import { User } from '../../domain/entities/user.entity.js';
 import type { UserRepositoryPort } from '../../domain/ports/user.repository.port.js';
 import { Injectable } from '@nestjs/common';
@@ -19,15 +20,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   async findAll(): Promise<User[] | null> {
     try {
-      const records = await this.prisma.user.findMany({
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
-        },
-      });
+      const records = await this.prisma.user.findMany();
       return records ? records.map((record) => this.toDomain(record)) : null;
     } catch (e) {
       this.handleError(e);
@@ -40,21 +33,15 @@ export class PrismaUserRepository implements UserRepositoryPort {
         data: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: user.fullName,
           firstName: user.firstName,
           lastName: user.lastName,
           emailVerified: user.emailVerified,
           image: user.image,
           locale: user.locale,
+          role: user.roles.join(',') || 'user',
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
-        },
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
         },
       });
       return this.toDomain(created);
@@ -65,16 +52,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   async findById(id: string): Promise<User | null> {
     try {
-      const record = await this.prisma.user.findUnique({
-        where: { id },
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
-        },
-      });
+      const record = await this.prisma.user.findUnique({ where: { id } });
       return record ? this.toDomain(record) : null;
     } catch (e) {
       this.handleError(e);
@@ -83,16 +61,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   async findByEmail(email: string): Promise<User | null> {
     try {
-      const record = await this.prisma.user.findUnique({
-        where: { email },
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
-        },
-      });
+      const record = await this.prisma.user.findUnique({ where: { email } });
       return record ? this.toDomain(record) : null;
     } catch (e) {
       this.handleError(e);
@@ -104,21 +73,15 @@ export class PrismaUserRepository implements UserRepositoryPort {
       const updated = await this.prisma.user.update({
         where: { id: user.id },
         data: {
-          name: user.name,
+          name: user.fullName,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
           emailVerified: user.emailVerified,
           image: user.image,
           locale: user.locale,
+          role: user.roles.join(',') || 'user',
           updatedAt: new Date(),
-        },
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
         },
       });
       return this.toDomain(updated);
@@ -128,8 +91,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
   }
 
   private toDomain(record: any): User {
-    // 1. Roles
-    const roles = record.roles?.map((r: any) => r.role.slug) || [];
+    const { roles } = parseStoredRoles(record.role);
 
     // 2. Permissions: Repository should NOT calculate effective permissions.
     // Use EffectivePermissionsService in Application layer only.
@@ -138,7 +100,6 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
     return new User(
       record.id,
-      record.name,
       record.firstName,
       record.lastName,
       record.email,

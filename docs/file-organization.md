@@ -12,7 +12,7 @@ The codebase tolerates two file styles for use cases and DTOs: **one-per-file** 
 |---|-----------|------------|
 | **Use cases** | Cohesive set under a single bounded concern (e.g., password lifecycle). | > ~6 use cases per file, > ~400 LOC, or two unrelated concerns appearing. |
 | **Request/response DTOs** | All DTOs for a single controller. | Cross-controller DTO sharing — extract to a feature-level `presentation/http/dtos/` folder. |
-| **Port interfaces** | A small, cohesive set for one feature (e.g., `auth.ports.ts` holds `AuthProviderPort` + `AuthEmailSenderPort`). | Each port begins serving an unrelated purpose. |
+| **Port interfaces** | A small, cohesive set for one feature (e.g., `auth.ports.ts` holds auth configuration and email ports). | Each port begins serving an unrelated purpose. |
 | **Cache keys / constants** | Per feature in `<feature>.cache-keys.ts`. | Mixing constants from multiple bounded concerns. |
 | **Architectural layers** | Never. | Always. |
 

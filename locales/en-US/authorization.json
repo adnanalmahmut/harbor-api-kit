@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "missing_permission": "Missing required permission: {permission}",
+    "invalid_permission_key": "Invalid permission key format: {key}",
+    "unauthorized": "Authentication required to access this resource",
+    "database_error": "Authorization data could not be read or updated"
+  }
+}

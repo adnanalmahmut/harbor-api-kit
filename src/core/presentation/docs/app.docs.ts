@@ -3,6 +3,24 @@ import type { ConfigType } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+type BetterAuthOpenApiDocument = {
+  openapi: string;
+  paths: Record<string, unknown>;
+  servers: Array<{ url: string }>;
+  components?: {
+    schemas?: Record<string, unknown>;
+    securitySchemes?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  tags?: Array<{ name: string; description?: string }>;
+};
+
+export type BetterAuthOpenApiProvider = {
+  api: {
+    generateOpenAPISchema(): Promise<BetterAuthOpenApiDocument>;
+  };
+};
+
 function getCookieValue(
   cookieHeader: string | undefined,
   name: string,
@@ -20,11 +38,15 @@ function getCookieValue(
   return value ? decodeURIComponent(value) : null;
 }
 
-export function setupApiDocs(
+export async function setupApiDocs(
   app: NestFastifyApplication,
   appConfigValue: ConfigType<typeof appConfig>,
   http: ConfigType<typeof httpConfig>,
-) {
+  auth: BetterAuthOpenApiProvider,
+  transformAuthDocument: (
+    document: BetterAuthOpenApiDocument,
+  ) => BetterAuthOpenApiDocument = (document) => document,
+): Promise<void> {
   if (!http.docs.enabled) return;
 
   const csrfCookieName = http.csrf.cookieName;
@@ -52,7 +74,41 @@ This API build for ${appConfigValue.name} application`,
     })
     .build();
 
-  const openApiDocument = SwaggerModule.createDocument(app, docConfig);
+  const nestDocument = SwaggerModule.createDocument(app, docConfig, {
+    deepScanRoutes: true,
+  });
+  const authDocument = transformAuthDocument(
+    await auth.api.generateOpenAPISchema(),
+  );
+  const authServer = authDocument.servers.at(0);
+
+  if (!authServer) {
+    throw new Error('Better Auth OpenAPI document has no server URL');
+  }
+
+  const authServerUrl = new URL(authServer.url);
+  const authPaths = prefixPaths(authDocument.paths, authServerUrl.pathname);
+  const openApiDocument = {
+    ...nestDocument,
+    openapi: '3.1.1',
+    paths: {
+      ...nestDocument.paths,
+      ...authPaths,
+    },
+    components: {
+      ...nestDocument.components,
+      ...authDocument.components,
+      schemas: {
+        ...nestDocument.components?.schemas,
+        ...authDocument.components?.schemas,
+      },
+      securitySchemes: {
+        ...nestDocument.components?.securitySchemes,
+        ...authDocument.components?.securitySchemes,
+      },
+    },
+    tags: mergeTags(nestDocument.tags, authDocument.tags),
+  };
 
   // اجعل السيرفر الظاهر في docs هو البروكسي الخاص بالتوثيق
   openApiDocument.servers = [
@@ -145,6 +201,45 @@ This API build for ${appConfigValue.name} application`,
 
     reply.type('text/html').send(html);
   });
+}
+
+export function prefixPaths<T>(
+  paths: Record<string, T>,
+  basePath: string,
+): Record<string, T> {
+  const normalizedBasePath = normalizePath(basePath);
+
+  return Object.fromEntries(
+    Object.entries(paths).map(([path, definition]) => {
+      const normalizedPath = normalizePath(path);
+      const alreadyPrefixed =
+        normalizedBasePath === '/' ||
+        normalizedPath === normalizedBasePath ||
+        normalizedPath.startsWith(`${normalizedBasePath}/`);
+      const fullPath = alreadyPrefixed
+        ? normalizedPath
+        : `${normalizedBasePath}${normalizedPath}`;
+
+      return [fullPath, definition];
+    }),
+  );
+}
+
+function normalizePath(path: string): string {
+  const withLeadingSlash = path.startsWith('/') ? path : `/${path}`;
+  const withoutTrailingSlash = withLeadingSlash.replace(/\/+$/, '');
+  return withoutTrailingSlash || '/';
+}
+
+function mergeTags(
+  nestTags: Array<{ name: string; description?: string }> | undefined,
+  authTags: Array<{ name: string; description?: string }> | undefined,
+): Array<{ name: string; description?: string }> {
+  const tags = new Map<string, { name: string; description?: string }>();
+  for (const tag of [...(nestTags ?? []), ...(authTags ?? [])]) {
+    if (!tags.has(tag.name)) tags.set(tag.name, tag);
+  }
+  return [...tags.values()];
 }
 
 function escapeHtml(value: string): string {

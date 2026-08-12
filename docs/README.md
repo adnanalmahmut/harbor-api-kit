@@ -21,12 +21,13 @@ Everything in `docs/` exists to make those two documents executable.
 3. [configuration.md](configuration.md)
 4. [api-conventions.md](api-conventions.md)
 5. [admin-bootstrap.md](admin-bootstrap.md)
-6. [adding-a-feature.md](adding-a-feature.md)
-7. [module-boundaries.md](module-boundaries.md)
-8. [file-organization.md](file-organization.md)
-9. [shared-core-extraction.md](shared-core-extraction.md)
-10. [testing.md](testing.md)
-11. [workflow-checklist.md](workflow-checklist.md)
+6. [auth-authorization.md](auth-authorization.md)
+7. [adding-a-feature.md](adding-a-feature.md)
+8. [module-boundaries.md](module-boundaries.md)
+9. [file-organization.md](file-organization.md)
+10. [shared-core-extraction.md](shared-core-extraction.md)
+11. [testing.md](testing.md)
+12. [workflow-checklist.md](workflow-checklist.md)
 
 ## Index
 
@@ -39,7 +40,8 @@ Everything in `docs/` exists to make those two documents executable.
 | [quickstart.md](quickstart.md)                         | Fast local setup for new users.                                                     |
 | [configuration.md](configuration.md)                   | Environment files and runtime configuration groups.                                 |
 | [api-conventions.md](api-conventions.md)               | Response envelopes, auth cookies, CSRF, and validation.                             |
-| [admin-bootstrap.md](admin-bootstrap.md)               | RBAC bootstrap and first-admin CLI usage.                                           |
+| [admin-bootstrap.md](admin-bootstrap.md)               | First-admin CLI usage.                                                              |
+| [auth-authorization.md](auth-authorization.md)         | Better Auth native routing and the static authorization policy.                     |
 | [deployment.md](deployment.md)                         | Docker production reference and deployment notes.                                   |
 | [roadmap.md](roadmap.md)                               | Implemented and planned work.                                                       |
 | [testing.md](testing.md)                               | Unit, contract, and e2e test expectations. Test environment setup. Troubleshooting. |

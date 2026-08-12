@@ -3,11 +3,11 @@
 // module barrels re-export the NestJS module class, which depends on core.
 // Cache key constants are side-effect-free value objects — safe to import directly.
 import { AuthCacheKeys } from '#src/modules/auth/application/auth.cache.js';
-import { rbacCacheKeys } from '#src/modules/rbac/application/rbac.cache-keys.js';
+import { authorizationCacheKeys } from '#src/modules/authorization/application/authorization.cache-keys.js';
 
 export const redisKeys = {
   ...AuthCacheKeys,
-  ...rbacCacheKeys,
+  ...authorizationCacheKeys,
   rateLimit: (key: string) => `rl:${key}`,
   lock: (resource: string) => `lock:${resource}`,
 } as const;

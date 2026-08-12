@@ -8,17 +8,22 @@ export * from './users.tokens.js';
 
 // Domain ports — consumed by other modules via DI tokens
 export type { UserRepositoryPort } from './domain/ports/user.repository.port.js';
+export {
+  composeUserName,
+  normalizeUserNamePart,
+  splitUserName,
+} from './domain/user-name.policy.js';
+export type { UserNameParts } from './domain/user-name.policy.js';
 
 // Application use-cases — exported so other modules can depend on them via Nest DI
 export { CreateUserUseCase } from './application/use-cases/create-user.use-case.js';
-export { GetUserByIdUseCase } from './application/use-cases/get-users.use-case.js';
+export { GetUserByIdUseCase } from './application/use-cases/get-user-by-id.use-case.js';
 export { UpdateUserByIdUseCase } from './application/use-cases/update-user-by-id.use-case.js';
 
 // Response DTOs — consumed cross-module for OpenAPI composition
 export {
   UserResponseDto,
   ListUsersResponseDto,
-  UserRolesResponseDto,
   UserPermissionsResponseDto,
   EffectivePermissionsResponseDto,
   PermissionOverrideResponseDto,

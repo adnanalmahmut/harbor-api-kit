@@ -36,12 +36,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     );
     if (skip) return next.handle();
 
-    const rolesReq = this.reflector.getAllAndOverride<{
-      roles: string[];
-      mode: 'AND' | 'ANY';
-    }>(CONSTANTS_KEYS.ROLES, [context.getHandler(), context.getClass()]);
-    const isAdminRoute = rolesReq?.roles.includes('admin');
-
     const messageKey = this.reflector.getAllAndOverride<string>(
       CONSTANTS_KEYS.RESPONSE_MESSAGE,
       [context.getHandler(), context.getClass()],
@@ -61,7 +55,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<
         if (message) result.message = message;
 
         let finalData = data;
-        if (!isAdminRoute && data !== null && data !== undefined) {
+        if (data !== null && data !== undefined) {
           finalData = this.pruneFields(data);
         }
 

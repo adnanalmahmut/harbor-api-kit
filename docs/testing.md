@@ -56,7 +56,11 @@ describe('CreateUserUseCase', () => {
     repo.findByEmail.mockResolvedValue(null);
     repo.create.mockImplementation(async (u) => u);
 
-    await useCase.execute({ email: 'a@b.c', name: 'A' });
+    await useCase.execute({
+      email: 'a@b.c',
+      firstName: 'Test',
+      lastName: 'User',
+    });
 
     expect(repo.create).toHaveBeenCalledTimes(1);
   });
@@ -64,7 +68,11 @@ describe('CreateUserUseCase', () => {
   it('throws conflict when the email already exists', async () => {
     repo.findByEmail.mockResolvedValue({} as never);
     await expect(
-      useCase.execute({ email: 'a@b.c', name: 'A' }),
+      useCase.execute({
+        email: 'a@b.c',
+        firstName: 'Test',
+        lastName: 'User',
+      }),
     ).rejects.toBeInstanceOf(UsersException);
   });
 });
@@ -87,7 +95,7 @@ Use the existing helpers:
 
 - [test/helpers/test-app.factory.ts](../test/helpers/test-app.factory.ts) — boots a NestJS app against the test DB and Redis.
 - [test/helpers/auth.helper.ts](../test/helpers/auth.helper.ts) — sets up authenticated cookies.
-- [test/helpers/rbac.helper.ts](../test/helpers/rbac.helper.ts) — creates test-specific roles/permissions.
+- [test/helpers/authorization.helper.ts](../test/helpers/authorization.helper.ts) — assigns test-specific roles and permission overrides.
 - [test/helpers/test-db.helper.ts](../test/helpers/test-db.helper.ts) — `resetDb(prisma)` between tests.
 - [test/helpers/test-redis.helper.ts](../test/helpers/test-redis.helper.ts) — `clearRedisCache(redis)` between tests.
 
@@ -107,12 +115,12 @@ Reference: [test/users.contract-spec.ts](../test/users.contract-spec.ts).
 Contract tests cover one module's endpoints. E2E tests cover **flows that span modules**:
 
 - Auth flow: register → verify email → login → fetch session → logout.
-- RBAC flow: assign role → call protected endpoint → revoke role → verify 403.
+- Authorization flow: assign role → call protected endpoint → add a deny override → verify 403.
 - Files flow: upload → list → download → delete.
 
 Add an e2e spec when the value of the test is in the _interaction_ between modules, not in the individual endpoints.
 
-Reference: [test/auth.e2e-spec.ts](../test/auth.e2e-spec.ts), [test/rbac-admin.e2e-spec.ts](../test/rbac-admin.e2e-spec.ts).
+Reference: [test/auth.e2e-spec.ts](../test/auth.e2e-spec.ts), [test/authorization-admin.e2e-spec.ts](../test/authorization-admin.e2e-spec.ts).
 
 ---
 
@@ -167,7 +175,7 @@ Coverage is measured by **what is asserted**, not by line percentage:
 - Every public use case → ≥ 1 happy-path unit test.
 - Every distinct error case a use case throws → ≥ 1 unit test.
 - Every controller endpoint → ≥ 1 contract test for happy path + every documented failure status code.
-- Every cross-module flow → 1 e2e test if business-critical (auth, RBAC, payments later, files lifecycle).
+- Every cross-module flow → 1 e2e test if business-critical (auth, authorization, payments later, files lifecycle).
 - Cache invalidation logic → ≥ 1 contract test that exercises the invalidation trigger and verifies post-conditions.
 
 Line-percentage coverage is informational only. A 100%-covered use case missing the conflict path is **not** done.
@@ -180,7 +188,7 @@ Line-percentage coverage is informational only. A 100%-covered use case missing 
 | -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | 403 after role assignment in a contract test | `clearRedisCache()` did not match the prefix actually used | Add the relevant prefix pattern to `clearRedisCache` in [test/helpers/test-redis.helper.ts](../test/helpers/test-redis.helper.ts) |
 | Migrate / reset hits the wrong DB            | `APP_ENV` did not override `DATABASE_URL`                  | Set `DATABASE_URL` explicitly for the command, or run via the npm script that wires `.env.test`                                   |
-| RBAC bootstrap fails                         | `.env.test` was not loaded or the test DB is not migrated  | Run `npm run test:e2e:prepare`, then retry `npm run bootstrap:rbac` with `.env.test` loaded                                       |
+| Authorization tests fail                     | `.env.test` was not loaded or the test DB is not migrated  | Run `npm run test:e2e:prepare`; roles and inherited permissions require no seed step                                              |
 | `jest is not defined` in a spec              | Missing import                                             | `import { jest } from '@jest/globals';`                                                                                           |
 | `jest.fn()` types are `any`                  | Generic missing                                            | Type as `jest.Mocked<PortInterface>`                                                                                              |
 | CSRF token missing in a contract test        | Did not call the helper that fetches it                    | Call `fetchCsrf(cookies)` before the mutating request                                                                             |

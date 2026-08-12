@@ -1,7 +1,4 @@
-import { authConfig } from '#src/config/index.js';
 import { PrismaService, RedisService } from '#src/core/index.js';
-import { HttpStatus } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { AuthHelper } from './helpers/auth.helper.js';
@@ -9,885 +6,215 @@ import { TestAppFactory } from './helpers/test-app.factory.js';
 import { resetDb } from './helpers/test-db.helper.js';
 import { clearRedisCache } from './helpers/test-redis.helper.js';
 
-describe('Auth API Contract (E2E)', () => {
+describe('Better Auth native routes (contract)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaService;
-  let redisService: RedisService;
-  let authHelper: AuthHelper;
-  let config: ConfigType<typeof authConfig>;
-
-  const extractCsrf = (cookies: string[] = []) => {
-    for (const c of cookies) {
-      const match = c.match(/__Host-csrf=([^;]+)/);
-      if (match) return { cookie: c, token: match[1] };
-    }
-    return undefined;
-  };
-
-  const findCookie = (cookies: string[] = [], name: string) =>
-    cookies.find((cookie) => cookie.startsWith(`${name}=`));
-
-  const buildCsrfHeaders = async (cookies: string[]) => {
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/auth/me')
-      .set('Cookie', cookies)
-      .expect(200);
-
-    const setCookies = res.get('Set-Cookie') || [];
-    const found = extractCsrf(setCookies) ?? extractCsrf(cookies);
-    if (!found) throw new Error('CSRF token missing in auth contract tests');
-
-    const cookieHeader = [...cookies, found.cookie].join('; ');
-    return { Cookie: cookieHeader, 'X-CSRF-Token': found.token };
-  };
+  let redis: RedisService;
+  let auth: AuthHelper;
 
   beforeAll(async () => {
-    const factory = await TestAppFactory.create();
-    app = factory.app;
-    prisma = factory.prisma;
-    redisService = factory.redis;
-    authHelper = new AuthHelper(app);
-    config = app.get(authConfig.KEY);
+    const docsEnabled = process.env.ENABLE_DOCS;
+    process.env.ENABLE_DOCS = 'true';
+    try {
+      const factory = await TestAppFactory.create();
+      app = factory.app;
+      prisma = factory.prisma;
+      redis = factory.redis;
+      auth = new AuthHelper(app);
+    } finally {
+      if (docsEnabled === undefined) delete process.env.ENABLE_DOCS;
+      else process.env.ENABLE_DOCS = docsEnabled;
+    }
   });
 
-  afterAll(async () => {
-    await TestAppFactory.teardown(app);
-  });
+  afterAll(async () => TestAppFactory.teardown(app));
 
   beforeEach(async () => {
     await resetDb(prisma);
-    await clearRedisCache(redisService);
+    await clearRedisCache(redis);
   });
 
-  describe('POST /auth/register', () => {
-    it('should register a new user successfully', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'Password123!',
-          confirmPassword: 'Password123!',
-          firstName: 'Test',
-          lastName: 'User',
-        })
-        .expect(201);
+  it('publishes Better Auth native routes with the configured base path', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/documentation/openapi.json')
+      .expect(200);
+    const paths = response.body.paths as Record<string, unknown>;
 
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.user.email).toBe('test@example.com');
-      expect(res.body.data.token).toBeUndefined();
-      // Expect cookie
-      expect(res.get('Set-Cookie')).toBeDefined();
+    expect(response.body.openapi).toBe('3.1.1');
+    expect(paths).toHaveProperty('/api/v1/auth/sign-in/email');
+    expect(paths).toHaveProperty('/api/v1/auth/get-session');
+    expect(paths).toHaveProperty('/api/v1/auth/admin/list-users');
+    expect(paths).not.toHaveProperty('/sign-in/email');
+    const signUpOperation = (paths['/api/v1/auth/sign-up/email'] as any).post;
+    const signInOperation = (paths['/api/v1/auth/sign-in/email'] as any).post;
+    const expectedClientIpParameter = expect.objectContaining({
+      name: 'X-Forwarded-For',
+      in: 'header',
+      required: true,
+      example: '192.29.224.220',
+      schema: expect.objectContaining({
+        default: '192.29.224.220',
+        example: '192.29.224.220',
+      }),
     });
+    expect(signUpOperation.parameters).toContainEqual(
+      expectedClientIpParameter,
+    );
+    expect(signInOperation.parameters).toContainEqual(
+      expectedClientIpParameter,
+    );
+    const signUpSchema =
+      signUpOperation.requestBody.content['application/json'].schema;
+    expect(signUpSchema.properties).toHaveProperty('firstName');
+    expect(signUpSchema.properties).toHaveProperty('lastName');
+    expect(signUpSchema.properties).not.toHaveProperty('name');
+    expect(signUpSchema.required).toEqual(
+      expect.arrayContaining(['email', 'password', 'firstName', 'lastName']),
+    );
+    const updateSchema = (paths['/api/v1/auth/update-user'] as any).post
+      .requestBody.content['application/json'].schema;
+    expect(updateSchema.properties).toHaveProperty('firstName');
+    expect(updateSchema.properties).toHaveProperty('lastName');
+    expect(updateSchema.properties).not.toHaveProperty('name');
+    const adminCreateSchema = (paths[
+      '/api/v1/auth/admin/create-user'
+    ] as any).post.requestBody.content['application/json'].schema;
+    expect(adminCreateSchema.properties).toHaveProperty('firstName');
+    expect(adminCreateSchema.properties).toHaveProperty('lastName');
+    expect(adminCreateSchema.properties).not.toHaveProperty('name');
+    const adminUpdateSchema = (paths[
+      '/api/v1/auth/admin/update-user'
+    ] as any).post.requestBody.content['application/json'].schema;
+    expect(adminUpdateSchema.properties.data.properties).toHaveProperty(
+      'firstName',
+    );
+    expect(adminUpdateSchema.properties.data.properties).toHaveProperty(
+      'lastName',
+    );
+    expect(adminUpdateSchema.properties.data.properties).not.toHaveProperty(
+      'name',
+    );
+    expect(response.body.components.schemas.User.properties).not.toHaveProperty(
+      'name',
+    );
+  });
 
-    it('should fail with validation error for invalid email', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({
-          email: 'invalid-email',
-          password: 'Password123!',
-          firstName: 'Test',
-          lastName: 'User',
-        })
-        .expect(400);
-
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toBeDefined();
-      expect(res.body.errors).toBeDefined();
-      expect(res.body.errors[0].path).toBe('email');
-    });
-
-    it('should fail if email already exists', async () => {
-      await authHelper.registerAndLogin({
-        email: 'test@example.com',
+  it('registers and signs in through Better Auth canonical paths', async () => {
+    const signUp = await request(app.getHttpServer())
+      .post('/api/v1/auth/sign-up/email')
+      .send({
+        email: 'native@test.com',
         password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Existing',
+        firstName: 'Native',
         lastName: 'User',
-      });
+      })
+      .expect(200);
 
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'Password123!',
-          confirmPassword: 'Password123!',
-          firstName: 'Another',
-          lastName: 'User',
-        })
-        .expect(409);
+    expect(signUp.body.user.email).toBe('native@test.com');
+    expect(signUp.body.user).toMatchObject({
+      firstName: 'Native',
+      lastName: 'User',
+      role: 'user',
+    });
+    expect(signUp.body.user).not.toHaveProperty('name');
+    const stored = await prisma.user.findUniqueOrThrow({
+      where: { email: 'native@test.com' },
+      select: { name: true, firstName: true, lastName: true },
+    });
+    expect(stored).toEqual({
+      name: 'Native User',
+      firstName: 'Native',
+      lastName: 'User',
+    });
 
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toBeDefined();
-      // Ensure no Prisma error leakage
-      expect(res.body.message).not.toContain('Unique constraint');
+    const signIn = await request(app.getHttpServer())
+      .post('/api/v1/auth/sign-in/email')
+      .send({ email: 'native@test.com', password: 'Password123!' })
+      .expect(200);
+
+    expect(signIn.body.user.email).toBe('native@test.com');
+    expect(signIn.get('Set-Cookie')?.length).toBeGreaterThan(0);
+  });
+
+  it('returns the native session payload for an authenticated request', async () => {
+    const { cookies, userId } = await auth.registerAndLogin({
+      email: 'session@test.com',
+      password: 'Password123!',
+      firstName: 'Session',
+      lastName: 'User',
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/auth/get-session')
+      .set('Cookie', cookies)
+      .expect(200);
+
+    expect(response.body.user.id).toBe(userId);
+    expect(response.body.user).not.toHaveProperty('name');
+    expect(response.body.session.userId).toBe(userId);
+    expect(response.body.success).toBeUndefined();
+  });
+
+  it('updates public name fields and synchronizes the internal name', async () => {
+    const { cookies, userId } = await auth.registerAndLogin({
+      email: 'rename@test.com',
+      password: 'Password123!',
+      firstName: 'Before',
+      lastName: 'Rename',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/update-user')
+      .set('Cookie', cookies)
+      .send({ firstName: 'After' })
+      .expect(200);
+
+    expect(response.body).toEqual({ status: true });
+    expect(response.body).not.toHaveProperty('name');
+
+    const stored = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { name: true, firstName: true, lastName: true },
+    });
+    expect(stored).toEqual({
+      name: 'After Rename',
+      firstName: 'After',
+      lastName: 'Rename',
     });
   });
 
-  describe('POST /auth/login', () => {
-    it('should login successfully with valid credentials', async () => {
-      await authHelper.registerAndLogin({
-        email: 'login@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Login',
-        lastName: 'User',
-      });
-
-      // Since registerAndLogin already logs in, let's login again explicitly
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({
-          email: 'login@example.com',
-          password: 'Password123!',
-        })
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.user.email).toBe('login@example.com');
-      expect(res.body.data.token).toBeUndefined();
-      expect(res.get('Set-Cookie')).toBeDefined();
-    });
-
-    it('should return a persistent session cookie when rememberMe is true', async () => {
-      await authHelper.registerAndLogin({
-        email: 'rememberme@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Remember',
-        lastName: 'Me',
-      });
-
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({
-          email: 'rememberme@example.com',
-          password: 'Password123!',
-          rememberMe: true,
-        })
-        .expect(200);
-
-      const sessionCookie = findCookie(
-        res.get('Set-Cookie'),
-        config.sessionTokenCookie,
-      );
-
-      expect(sessionCookie).toBeDefined();
-      expect(sessionCookie).toContain(
-        `Max-Age=${config.session.persistentExpiresInSec}`,
-      );
-    });
-
-    it('should keep the session cookie non-persistent when rememberMe is false', async () => {
-      await authHelper.registerAndLogin({
-        email: 'sessiononly@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Session',
-        lastName: 'Only',
-      });
-
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({
-          email: 'sessiononly@example.com',
-          password: 'Password123!',
-          rememberMe: false,
-        })
-        .expect(200);
-
-      const sessionCookie = findCookie(
-        res.get('Set-Cookie'),
-        config.sessionTokenCookie,
-      );
-
-      expect(sessionCookie).toBeDefined();
-      expect(sessionCookie).not.toContain('Max-Age=');
-    });
-
-    it('should fail with 401 for invalid credentials', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({
-          email: 'nonexistent@example.com',
-          password: 'Password123!',
-        })
-        .expect(401);
-
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toBeDefined();
-    });
+  it('rejects invalid native sign-up input', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/sign-up/email')
+      .send({ email: 'not-an-email' })
+      .expect(400);
   });
 
-  describe('POST /auth/sign-out', () => {
-    it('should sign out successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'signout@example.com',
+  it('rejects the internal name field without firstName and lastName', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/sign-up/email')
+      .send({
+        email: 'legacy-name@test.com',
         password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Sign',
-        lastName: 'Out',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      const signOutRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/sign-out')
-        .set(headers)
-        .expect(HttpStatus.OK); // OK (Success Envelope)
-
-      expect(signOutRes.body.success).toBe(true);
-
-      // Verify validation (should be 401 now)
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .set('Cookie', cookies)
-        .expect(401);
-    });
+        name: 'Legacy Name',
+      })
+      .expect(400);
   });
 
-  describe('GET /auth/me', () => {
-    it('should return current user session', async () => {
-      const { cookies, userId } = await authHelper.registerAndLogin({
-        email: 'me@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Me',
-        lastName: 'User',
-      });
-
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .set('Cookie', cookies)
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.user.id).toBe(userId);
-      // Ensure roles/permissions are present (even if empty)
-      // expect(res.body.data.roles).toBeDefined(); // Need to verify if response shape includes these
-      // Based on previous chats, they should be there.
-    });
-
-    it('should forward refreshed Better Auth cookies when session refresh is due', async () => {
-      const { cookies, userId } = await authHelper.registerAndLogin({
-        email: 'refresh@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Refresh',
-        lastName: 'User',
-      });
-
-      const persistentExpiresInSec = config.session.persistentExpiresInSec;
-      const rollingUpdateAgeSec = config.session.rollingUpdateAgeSec;
-      const session = await prisma.session.findFirst({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      expect(session).toBeDefined();
-
-      const refreshDueExpiresAt = new Date(
-        Date.now() +
-          Math.max(1, persistentExpiresInSec - rollingUpdateAgeSec - 10) * 1000,
-      );
-
-      await prisma.session.update({
-        where: { id: session!.id },
-        data: {
-          expiresAt: refreshDueExpiresAt,
-          updatedAt: new Date(Date.now() - (rollingUpdateAgeSec + 60) * 1000),
-        },
-      });
-
-      await clearRedisCache(redisService);
-
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .set('Cookie', cookies)
-        .expect(200);
-
-      const refreshedSessionCookie = findCookie(
-        res.get('Set-Cookie'),
-        config.sessionTokenCookie,
-      );
-      const updatedSession = await prisma.session.findUnique({
-        where: { id: session!.id },
-      });
-
-      expect(refreshedSessionCookie).toBeDefined();
-      // Allow a small tolerance: better-auth computes Max-Age from
-      // (expiresAt - now)/1000, so 1-2s of elapsed processing time can shave
-      // the value down from the expected boundary.
-      const maxAgeMatch = refreshedSessionCookie!.match(/Max-Age=(\d+)/);
-      expect(maxAgeMatch).not.toBeNull();
-      const maxAge = Number(maxAgeMatch![1]);
-      expect(maxAge).toBeGreaterThanOrEqual(persistentExpiresInSec - 5);
-      expect(maxAge).toBeLessThanOrEqual(persistentExpiresInSec);
-      expect(updatedSession).toBeDefined();
-      expect(updatedSession!.expiresAt.getTime()).toBeGreaterThan(
-        refreshDueExpiresAt.getTime(),
-      );
-    });
-
-    it('should return 401 if unauthenticated', async () => {
-      await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
-    });
-  });
-
-  // ... (More tests can be added here following the same pattern)
-  // Due to context size, I am starting with these core flows.
-  // I will add Password, Session, and User Lifecycle tests in subsequent steps if needed or in this file.
-  // The user asked for ALL routes. I will try to add more now.
-
-  describe('Password Management', () => {
-    it('should change password successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'changepass@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Change',
-        lastName: 'Pass',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/change-password')
-        .set(headers)
-        .send({
-          currentPassword: 'Password123!',
-          newPassword: 'NewPassword123!',
-          revokeOtherSessions: true,
-        })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.success).toBe(true);
-        });
-
-      // Verify login with new password
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({
-          email: 'changepass@example.com',
-          password: 'NewPassword123!',
-        })
-        .expect(200);
-    });
-  });
-
-  describe('User Lifecycle', () => {
-    it('should update user profile', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'lifecycle@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Old',
-        lastName: 'Name',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/update-user')
-        .set(headers)
-        .send({
-          firstName: 'New',
-          lastName: 'Name',
-        })
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      // better-auth returns { status: true } on successful update
-      expect(res.body.data.status).toBe(true);
-
-      // Note: /auth/me may return cached session data;
-      // full verification would require cache invalidation or DB check
-    });
-
-    it('should fail to update user when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/update-user')
-        .send({ firstName: 'New' })
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should delete user account', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'delete@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'To',
-        lastName: 'Delete',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/delete-user')
-        .set(headers)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.success).toBe(true);
-        });
-
-      // Subsequent login should fail (depending on implementation, may check soft-delete or hard-delete)
-      // If hard delete: 401/404. If soft: 403?
-      // Let's assume login fails.
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'delete@example.com', password: 'Password123!' })
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        }); // or 400/422 depending on implementation of login check
-    });
-
-    it('should fail to delete user when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/delete-user')
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-  });
-
-  describe('Password Verification', () => {
-    it('should verify password successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'verifypass@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Verify',
-        lastName: 'Pass',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/verify-password')
-        .set(headers)
-        .send({ password: 'Password123!' })
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-    });
-
-    it('should return valid: false with wrong password', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'verifypass2@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Verify',
-        lastName: 'Pass',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/verify-password')
-        .set(headers)
-        .send({ password: 'WrongPassword123!' })
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.valid).toBe(false);
-    });
-
-    it('should fail when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/verify-password')
-        .send({ password: 'Password123!' })
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should fail change password with wrong current password', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'wrongpass@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Wrong',
-        lastName: 'Pass',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/change-password')
-        .set(headers)
-        .send({
-          currentPassword: 'WrongPassword!',
-          newPassword: 'NewPassword123!',
-        })
-        .expect(400)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        }); // Returns 400 with "Current password is incorrect"
-    });
-  });
-
-  describe('Forget/Reset Password', () => {
-    it('should send forget password email successfully', async () => {
-      await authHelper.registerAndLogin({
-        email: 'forget@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Forget',
-        lastName: 'Pass',
-      });
-
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/forgot-password')
-        .send({ email: 'forget@example.com' })
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.message).toBeDefined();
-    });
-
-    it('should fail forget password with validation error', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/forgot-password')
-        .send({ email: 'invalid-email' })
-        .expect(400)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should fail check reset token with invalid token', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/check-reset-token/invalid-token')
-        .expect(404)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        }); // Token not found
-    });
-
-    it('should fail reset password with invalid token', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/reset-password')
-        .send({ token: 'invalid-token', newPassword: 'NewPassword123!' })
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        }); // Invalid/expired token
-    });
-  });
-
-  describe('Session Management', () => {
-    it('should list sessions successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'sessions@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Session',
-        lastName: 'User',
-      });
-
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/list-sessions')
-        .set('Cookie', cookies)
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
-    });
-
-    it('should fail list sessions when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/list-sessions')
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should revoke single session successfully', async () => {
-      const { cookies, userId } = await authHelper.registerAndLogin({
-        email: 'revoke@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Revoke',
-        lastName: 'User',
-      });
-
-      // Get sessions to find token
-      const sessionsRes = await request(app.getHttpServer())
-        .get('/api/v1/auth/list-sessions')
-        .set('Cookie', cookies)
-        .expect(200);
-
-      const headers = await buildCsrfHeaders(cookies);
-      expect(sessionsRes.body.success).toBe(true);
-      const sessionToken = sessionsRes.body.data[0]?.token;
-      if (sessionToken) {
-        await request(app.getHttpServer())
-          .post('/api/v1/auth/revoke-session')
-          .set(headers)
-          .send({ token: sessionToken })
-          .expect(200)
-          .expect((res) => {
-            expect(res.body.success).toBe(true);
-          });
-      }
-    });
-
-    it('should fail revoke session with invalid token', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'revoke2@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Revoke',
-        lastName: 'User',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/revoke-session')
-        .set(headers)
-        .send({ sessionId: 'invalid-token' })
-        .expect(404)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should revoke other sessions successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'revokeother@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Revoke',
-        lastName: 'Other',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/revoke-other-sessions')
-        .set(headers)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.success).toBe(true);
-        });
-    });
-
-    it('should fail revoke other sessions when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/revoke-other-sessions')
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-  });
-
-  describe('Social Authentication', () => {
-    it('should return redirect URL for social sign-in', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/sign-in/social')
-        .send({ provider: 'google' })
-        .expect(201);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.url).toBeDefined();
-      expect(res.body.data.token).toBeUndefined();
-      expect(res.body.data.url).toContain('google');
-    });
-
-    it('should fail social sign-in with invalid provider', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/sign-in/social')
-        .send({ provider: 'invalid-provider' })
-        .expect(400)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    // SKIP: BetterAuth API client requires running server for network calls, fails with 401 in supertest
-    it('should return redirect URL for social link', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'linkaccount@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Link',
-        lastName: 'Account',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/link-social')
-        .set(headers)
-        .send({ provider: 'google' })
-        .expect(201);
-
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toBeDefined();
-      expect(res.body.data.url).toBeDefined();
-    });
-
-    // SKIP: Implementation bug - better-auth returns 500 instead of 401
-    it('should fail social link when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/link-social')
-        .send({ provider: 'google' })
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    // SKIP: Implementation bug - better-auth returns unhandled error
-    it('should list linked accounts successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'listaccounts@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'List',
-        lastName: 'Accounts',
-      });
-
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/list-accounts')
-        .set('Cookie', cookies)
-        .expect(200);
-
-      expect(res.body.success).toBe(true);
-      // Should return empty array or array of accounts
-      expect(res.body.data).toBeDefined();
-    });
-
-    // SKIP: Implementation bug - better-auth returns 500 instead of 401
-    it('should fail list accounts when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/list-accounts')
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should fail unlink account with validation error', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'unlink@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Unlink',
-        lastName: 'Account',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/unlink-account')
-        .set(headers)
-        .send({}) // Missing providerId
-        .expect(400)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-
-    it('should fail unlink account when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/unlink-account')
-        .send({ providerId: 'google' })
-        .expect(401)
-        .expect((res) => {
-          expect(res.body.success).toBe(false);
-        });
-    });
-  });
-
-  describe('Email Verification', () => {
-    it('should send verification email successfully', async () => {
-      await authHelper.registerAndLogin({
-        email: 'sendverify@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Send',
-        lastName: 'Verify',
-      });
-
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-email')
-        .send({ email: 'sendverify@example.com' })
-        .expect(200);
-
-      expect(res.body.message).toBeDefined();
-    });
-
-    it('should fail send verification with validation error', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-email')
-        .send({ email: 'invalid-email' })
-        .expect(400);
-    });
-
-    it('should redirect to error page with invalid token', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/verify-email')
-        .query({ token: 'invalid-token' })
-        .expect(302); // Redirects to client error page
-
-      expect(res.headers.location).toContain('/auth/error');
-    });
-  });
-
-  describe('Change Email', () => {
-    it('should fail change email when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/change-email')
-        .send({ newEmail: 'new@example.com' })
-        .expect(401);
-    });
-
-    it('should initiate change email successfully', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'changeemail@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Change',
-        lastName: 'Email',
-      });
-
-      const headers = await buildCsrfHeaders(cookies);
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/change-email')
-        .set(headers)
-        .send({ newEmail: 'newemail@example.com' })
-        .expect(200);
-
-      expect(res.body.message).toBeDefined();
-    });
-  });
-
-  describe('User Reactivation (Admin)', () => {
-    it('should fail reactivate user when unauthorized', async () => {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/reactivate-user')
-        .send({ email: 'deleted@example.com' })
-        .expect(401);
-    });
-
-    it('should fail reactivate user when not admin', async () => {
-      const { cookies } = await authHelper.registerAndLogin({
-        email: 'notadmin@example.com',
-        password: 'Password123!',
-        confirmPassword: 'Password123!',
-        firstName: 'Not',
-        lastName: 'Admin',
-      });
-
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/reactivate-user')
-        .set('Cookie', cookies)
-        .send({ email: 'deleted@example.com' })
-        .expect(403);
-    });
+  it('rejects duplicate email registration', async () => {
+    const payload = {
+      email: 'duplicate@test.com',
+      password: 'Password123!',
+      firstName: 'Duplicate',
+      lastName: 'User',
+    };
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/sign-up/email')
+      .send(payload)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/sign-up/email')
+      .send(payload)
+      .expect(422);
   });
 });

@@ -7,7 +7,7 @@ describe('AppController (e2e)', () => {
 
   beforeAll(async () => {
     app = (await createApp({ logger: false })) as NestFastifyApplication;
-    configureApp(app);
+    await configureApp(app);
 
     await app.init();
     await app.getHttpAdapter().getInstance().ready();

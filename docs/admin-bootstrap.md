@@ -1,68 +1,45 @@
-# Admin and RBAC Bootstrap
+# Admin Bootstrap
 
-This project separates permission bootstrapping from user creation.
+Roles and inherited permissions are static application code. There is no authorization
+seed or bootstrap command.
 
-## RBAC Bootstrap
-
-Run the RBAC bootstrap after migrations in any environment:
-
-```bash
-npm run bootstrap:rbac
-```
-
-It is safe and idempotent. It ensures:
-
-- System roles from `DEFAULT_ROLES`.
-- Canonical permissions from `PERMISSION_CATALOG`.
-- Built-in role-permission assignments for the admin and user roles.
-
-It does not create users, demo accounts, sessions, or passwords.
-
-`npx prisma db seed` points to the same RBAC bootstrap for Prisma workflows.
-
-## Admin CLI
-
-Create or ensure an administrator through the explicit one-off CLI:
+Create the first administrator through the explicit one-off CLI. The password
+is entered and confirmed through hidden terminal prompts:
 
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password
+  --first-name Admin \
+  --last-name User \
+  --locale ar-SY
 ```
 
-The CLI accepts these inputs as flags or environment variables:
+The CLI then asks for:
 
-| Flag           | Environment variable | Required |
-| -------------- | -------------------- | -------- |
-| `--email`      | `ADMIN_EMAIL`        | Yes      |
-| `--password`   | `ADMIN_PASSWORD`     | Yes      |
-| `--first-name` | `ADMIN_FIRST_NAME`   | No       |
-| `--last-name`  | `ADMIN_LAST_NAME`    | No       |
-| `--locale`     | `ADMIN_LOCALE`       | No       |
-| `--image`      | `ADMIN_IMAGE`        | No       |
+```text
+Admin password:
+Confirm password:
+```
 
-The password has no default and must be at least 12 characters long. First name
-defaults to `Admin`; last name defaults to `User`.
+The password must contain 12–128 characters. It is never accepted as a command
+line flag, which prevents it from being stored in shell history or exposed in
+the process list. For non-interactive environments, inject `ADMIN_PASSWORD`
+from the deployment platform's secret store. Do not save it in `.env`.
 
-If the user already exists, the CLI updates the profile fields and ensures the
-admin role. It does not reset the existing password.
+The CLI creates the credential account through Better Auth's server API, marks
+the email as verified, assigns the static `admin` role, and removes the session
+created during sign-up. It refuses to promote an existing account; use an
+authenticated Better Auth admin route for later role changes.
 
-## Production Usage
-
-In production, run migrations first, then RBAC bootstrap, then create the first
-admin user as a one-off operation:
+In production, run migrations first and then execute the CLI from a trusted
+source checkout or one-off job with `DATABASE_URL`, `BETTER_AUTH_URL`, and
+`BETTER_AUTH_SECRET` available:
 
 ```bash
-APP_ENV=production npm run bootstrap:rbac
 APP_ENV=production npm run admin:create -- \
   --email admin@example.com \
-  --password replace-with-a-long-random-password
+  --allow-production
 ```
 
-Provide `DATABASE_URL`, `BETTER_AUTH_URL`, and `BETTER_AUTH_SECRET` through the
-deployment environment. Do not commit production `.env` files.
-
-Run `bootstrap:rbac` and `admin:create` from a source checkout or deployment
-workspace with dev tooling installed. The production Docker image is optimized
-for running the API and migrations, not for executing TypeScript bootstrap
-scripts.
+Production execution requires `--allow-production` in addition to the required
+database and Better Auth environment configuration.

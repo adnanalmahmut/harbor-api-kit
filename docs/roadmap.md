@@ -7,7 +7,7 @@ This project intentionally separates implemented features from planned work.
 - Cookie-based authentication with better-auth.
 - OAuth redirect initiation for Google and GitHub.
 - CSRF protection for cookie-bearing mutating requests.
-- RBAC with roles, permissions, grants, and effective permission caching.
+- Static role-based authorization with permission overrides and effective-permission caching.
 - File storage adapters for local and S3-compatible storage.
 - Async email delivery with BullMQ and Resend.
 - OpenAPI/Scalar documentation.

@@ -128,7 +128,7 @@ infrastructure ┘                       ▲
 
 - Cross-module imports MUST go through the consumed module's root `index.ts` barrel (see §6). This is now **enforced by ESLint** via `crossModuleDeepRestricted` patterns in [eslint.config.mjs](eslint.config.mjs) — deep imports into `#src/modules/<feature>/<layer>/...` from outside that feature will fail CI.
 - **NestJS module classes** (`<feature>.module.ts`) are NOT re-exported from barrels to avoid ESM circular initialization. Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
-- **One documented exception**: [src/core/infrastructure/redis/redis.keys.ts](src/core/infrastructure/redis/redis.keys.ts) imports cache-key constants directly from `auth/application/auth.cache.js` and `rbac/application/rbac.cache-keys.js` because barrel imports would create a circular dependency (core → module barrel → module.ts → core). This file is exempt from the cross-module ESLint rule.
+- **One documented exception**: [src/core/infrastructure/redis/redis.keys.ts](src/core/infrastructure/redis/redis.keys.ts) imports cache-key constants directly from `auth/application/auth.cache.js` and `authorization/application/authorization.cache-keys.js` because barrel imports would create a circular dependency (core → module barrel → module.ts → core). This file is exempt from the cross-module ESLint rule.
 - Avoid circular module dependencies. When unavoidable (e.g., `users` ↔ `auth`), use `forwardRef()` and document the cycle.
 
 ---
@@ -149,14 +149,12 @@ All cross-module imports now use barrel imports. ESLint enforcement is active. N
 
 | Consumer | Provider | What is consumed | Style |
 |----------|----------|------------------|-------|
-| Auth | Users | `UserRepositoryPort`, `UserResponseDto` | Barrel (`users/index.js`) |
-| Auth | RBAC | `EffectivePermissionsService`, `RoleRepositoryPort`, `RbacGuard`, `Roles` | Barrel (`rbac/index.js`) |
+| Auth | Authorization | `EffectivePermissionsService`, static policy catalog | Barrel (`authorization/index.js`) |
 | Auth | Notify | `EmailProviderPort` | Barrel (`notify/index.js`) |
-| Users | Auth | `AuthProviderPort`, `AUTH_TOKENS`, `AuthGuard` | Barrel (`auth/index.js`) |
-| Users | RBAC | `EffectivePermissionsService`, `RoleRepositoryPort`, `GrantsRepositoryPort`, `RBAC_TOKENS`, `RbacGuard`, `Roles`, `Permissions`, `RoleResponseDto` | Barrel (`rbac/index.js`) |
-| Files | RBAC | `RbacGuard`, `Permissions` | Barrel (`rbac/index.js`) |
-| RBAC | Auth | `AuthGuard` | Barrel (`auth/index.js`) |
-| Core | Auth, RBAC | `AuthCacheKeys`, `rbacCacheKeys` | Justified deep import (documented exception, §4.2) |
+| Users | Auth | `AuthGuard` | Barrel (`auth/index.js`) |
+| Users | Authorization | `EffectivePermissionsService`, `AuthorizationRepositoryPort`, `AUTHORIZATION_TOKENS`, `PermissionsGuard`, `Permissions` | Barrel (`authorization/index.js`) |
+| Files | Authorization | `PermissionsGuard`, `Permissions` | Barrel (`authorization/index.js`) |
+| Core | Auth, Authorization | `AuthCacheKeys`, `authorizationCacheKeys` | Justified deep import (documented exception, §4.2) |
 | All `.module.ts` | Other modules | `XModule` class | Direct file import (`<feature>.module.js`) |
 
 ---
@@ -250,11 +248,11 @@ These thresholds are heuristics, not hard limits. The intent is: keep files smal
 ### 8.2 What MUST stay feature-owned
 
 - Domain entities and value objects of a feature.
-- Feature-specific exception subclasses (`UsersException`, `AuthException`, `RbacException`).
+- Feature-specific exception subclasses (`UsersException`, `AuthException`, `AuthorizationException`).
 - Feature-specific port interfaces.
 - Feature-specific cache key constants and TTLs.
 - Feature-specific response mappers.
-- Feature-specific guards and decorators (e.g., `RbacGuard` belongs to `rbac`, not to `core`).
+- Feature-specific guards and decorators (e.g., `PermissionsGuard` belongs to `authorization`, not to `core`).
 
 ### 8.3 When to extract to `core/`
 

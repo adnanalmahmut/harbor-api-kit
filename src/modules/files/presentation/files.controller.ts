@@ -10,8 +10,8 @@ import {
   StreamFileUseCase,
   UploadFileUseCase,
 } from '../application/index.js';
-import { Permissions } from '#src/modules/rbac/index.js';
-import { RbacGuard } from '#src/modules/rbac/index.js';
+import { Permissions } from '#src/modules/authorization/index.js';
+import { PermissionsGuard } from '#src/modules/authorization/index.js';
 import type { MultipartFile } from '@fastify/multipart';
 import {
   Body,
@@ -70,7 +70,8 @@ export class FilesController {
     private readonly config: ConfigType<typeof appConfig>,
   ) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, PermissionsGuard)
+  @Permissions(['files:create'])
   @Post('upload')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadFileDto })
@@ -115,7 +116,8 @@ export class FilesController {
     return FileResponseMapper.map(file, this.config.publicUrl);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, PermissionsGuard)
+  @Permissions(['files:create'])
   @Post('upload/multiple')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadFilesDto })
@@ -161,7 +163,7 @@ export class FilesController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard, RbacGuard)
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Permissions(['files:read'])
   @ApiOperation({ summary: 'Get file metadata' })
   @ResponseMessage('files.messages.meta_retrieved')
@@ -184,7 +186,7 @@ export class FilesController {
   }
 
   @Get(':id/download')
-  @UseGuards(AuthGuard, RbacGuard)
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Permissions(['files:read'])
   @ApiOperation({ summary: 'Get download URL (Redirect)' })
   @ApiResponses(FILES_RESPONSES.download)
@@ -207,7 +209,7 @@ export class FilesController {
   }
 
   @Get(':id/stream')
-  @UseGuards(AuthGuard, RbacGuard)
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Permissions(['files:read'])
   @ApiOperation({ summary: 'Stream file content (local storage)' })
   async stream(
@@ -239,7 +241,7 @@ export class FilesController {
   }
 
   @Patch(':id/visibility')
-  @UseGuards(AuthGuard, RbacGuard)
+  @UseGuards(AuthGuard, PermissionsGuard)
   @Permissions(['files:update'])
   @ApiOperation({ summary: 'Set file visibility' })
   @ResponseMessage('files.messages.visibility_updated')

@@ -1,32 +1,22 @@
-import type { GrantsRepositoryPort } from '#src/modules/rbac/index.js';
-import { buildGrantsRepoMock } from './__test-support__/repository-mocks.js';
+import type { AuthorizationRepositoryPort } from '#src/modules/authorization/index.js';
+import { buildAuthorizationRepoMock } from './__test-support__/repository-mocks.js';
 import { GetUserPermissionsUseCase } from './get-user-permissions.use-case.js';
 import type { jest } from '@jest/globals';
 
 describe('GetUserPermissionsUseCase', () => {
   let useCase: GetUserPermissionsUseCase;
-  let mockRepo: jest.Mocked<GrantsRepositoryPort>;
+  let repository: jest.Mocked<AuthorizationRepositoryPort>;
 
   beforeEach(() => {
-    mockRepo = buildGrantsRepoMock();
-    useCase = new GetUserPermissionsUseCase(mockRepo);
+    repository = buildAuthorizationRepoMock();
+    useCase = new GetUserPermissionsUseCase(repository);
   });
 
-  it('returns the allow/deny override lists for the user', async () => {
-    const overrides: any = { allow: [{ key: 'posts:read' }], deny: [] };
-    mockRepo.listUserOverrides.mockResolvedValue(overrides);
+  it('returns the user permission overrides', async () => {
+    const overrides = { allow: [], deny: [] };
+    repository.listUserOverrides.mockResolvedValue(overrides);
 
-    const result = await useCase.execute('u1');
-
-    expect(result).toBe(overrides);
-    expect(mockRepo.listUserOverrides).toHaveBeenCalledWith('u1');
-  });
-
-  it('returns empty lists when the user has no overrides', async () => {
-    mockRepo.listUserOverrides.mockResolvedValue({ allow: [], deny: [] });
-
-    const result = await useCase.execute('u1');
-
-    expect(result).toEqual({ allow: [], deny: [] });
+    await expect(useCase.execute('u1')).resolves.toBe(overrides);
+    expect(repository.listUserOverrides).toHaveBeenCalledWith('u1');
   });
 });

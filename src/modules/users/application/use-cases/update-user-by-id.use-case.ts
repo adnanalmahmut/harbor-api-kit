@@ -6,8 +6,8 @@ import { z } from 'zod';
 // We can define a schema locally or reuse one.
 // Let's define one that allows updating basic profile info + email (maybe).
 export const AdminUpdateUserSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
+  firstName: z.string().trim().min(1).max(100).optional(),
+  lastName: z.string().trim().min(1).max(100).optional(),
   email: z.string().email().optional(),
   // Add other fields as needed
 });

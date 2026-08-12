@@ -3,10 +3,15 @@ import { AuthCacheKeys, AuthException } from '../../application/index.js';
 import { AUTH_TOKENS } from '../../auth.tokens.js';
 import type {
   AuthConfigPort,
-  AuthProviderPort,
   CookieDirective,
   SessionTrackerPort,
 } from '../../domain/index.js';
+import type { BetterAuthInstance } from '../../infrastructure/better-auth/auth.js';
+import {
+  hydrateSession,
+  hydrateUser,
+} from '../../infrastructure/better-auth/better-auth.hydrators.js';
+import { readCookiesFromHeaders } from '../../infrastructure/better-auth/better-auth.helpers.js';
 import {
   type CanActivate,
   type ExecutionContext,
@@ -15,15 +20,16 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { applyCookies } from './auth.http.js';
+import { fromNodeHeaders } from 'better-auth/node';
+import { applyCookies } from './auth.cookies.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
 
   constructor(
-    @Inject(AUTH_TOKENS.AUTH_PROVIDER)
-    private readonly authProvider: AuthProviderPort,
+    @Inject(AUTH_TOKENS.BETTER_AUTH)
+    private readonly auth: BetterAuthInstance,
     @Inject(CORE_TOKENS.REQUEST_CONTEXT_STORE)
     private readonly contextStore: RequestContextStorePort,
     @Inject(AUTH_TOKENS.AUTH_CONFIG)
@@ -58,11 +64,16 @@ export class AuthGuard implements CanActivate {
     const sessionResult = await this.contextStore.getOrLoad(
       cacheKey,
       async () => {
-        const result = await this.authProvider.getSession({
-          context: this.contextStore.get()!,
+        const { headers, response } = await this.auth.api.getSession({
+          headers: fromNodeHeaders(req.headers),
+          returnHeaders: true,
         });
-        refreshedCookies = result.cookies;
-        return result.data;
+        refreshedCookies = readCookiesFromHeaders(headers);
+        if (!response) return null;
+        return {
+          user: hydrateUser(response.user),
+          session: hydrateSession(response.session),
+        };
       },
       this.config.sessionLookupCacheTtlSec,
       scope,

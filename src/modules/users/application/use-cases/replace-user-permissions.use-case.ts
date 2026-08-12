@@ -1,21 +1,20 @@
-import { EffectivePermissionsService } from '#src/modules/rbac/index.js';
-import type { GrantsRepositoryPort } from '#src/modules/rbac/index.js';
+import {
+  EffectivePermissionsService,
+  type AuthorizationRepositoryPort,
+  type PermissionOverrideInput,
+} from '#src/modules/authorization/index.js';
 
 export class ReplaceUserPermissionsUseCase {
   constructor(
-    private readonly grantsRepo: GrantsRepositoryPort,
+    private readonly authorizationRepo: AuthorizationRepositoryPort,
     private readonly effectivePermissions: EffectivePermissionsService,
   ) {}
 
   async execute(
     userId: string,
-    overrides: {
-      permissionId: string;
-      effect: 'ALLOW' | 'DENY';
-      note?: string;
-    }[],
+    overrides: PermissionOverrideInput[],
   ): Promise<void> {
-    await this.grantsRepo.replaceUserPermissions(userId, overrides);
+    await this.authorizationRepo.replaceUserPermissions(userId, overrides);
     await this.effectivePermissions.refreshForUser(userId);
   }
 }

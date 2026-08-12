@@ -24,15 +24,14 @@ describe('Rate Limit (contract)', () => {
     await clearRedisCache(redis);
 
     await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
+      .post('/api/v1/auth/sign-up/email')
       .send({
         email: 'rate@test.com',
         password: 'Password123!',
-        confirmPassword: 'Password123!',
         firstName: 'Rate',
         lastName: 'Limit',
       })
-      .expect(201);
+      .expect(200);
   });
   // english msg
   it('s supposed to return 429 after exceeding the specified /auth/login limit', async () => {
@@ -40,19 +39,14 @@ describe('Rate Limit (contract)', () => {
 
     for (let i = 0; i < 5; i++) {
       await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post('/api/v1/auth/sign-in/email')
         .send(payload)
         .expect(401);
     }
 
     await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
+      .post('/api/v1/auth/sign-in/email')
       .send(payload)
-      .expect(429)
-      .expect((res) => {
-        expect(res.body.success).toBe(false);
-        expect(typeof res.body.message).toBe('string');
-        expect(res.body.message).not.toContain('core.errors');
-      });
+      .expect(429);
   });
 });
