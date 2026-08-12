@@ -9,9 +9,12 @@ import { betterAuth } from 'better-auth';
 
 export const prisma = new PrismaService(parseDatabaseConfig());
 
+// CLI processes never deliver mail: the admin bootstrap marks the address as
+// verified itself, and the Prisma-backed CLI has no queue or template loader.
 const cliEmailHooks = {
   sendResetPasswordEmail: async () => undefined,
   sendVerificationEmail: async () => undefined,
+  sendChangeEmailConfirmation: async () => undefined,
 };
 
 const cliLogger = {

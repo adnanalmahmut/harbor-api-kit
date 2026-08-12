@@ -1,34 +1,21 @@
 import { appConfig, authConfig, httpConfig } from '#src/config/index.js';
-import {
-  getRequestContextStatic,
-  type PrismaService,
-} from '#src/core/index.js';
+import type { PrismaService } from '#src/core/index.js';
 import {
   ADMIN_ROLES,
   AUTHORIZATION_STATEMENTS,
   DEFAULT_ROLE,
   ROLE_GRANTS,
 } from '#src/modules/authorization/index.js';
+import type { AuthEmailSenderPort } from '../../domain/index.js';
+import { readLocaleSource } from './better-auth.helpers.js';
 import type { ConfigType } from '@nestjs/config';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { admin, openAPI, organization } from 'better-auth/plugins';
 
-export type BetterAuthEmailHooks = {
-  sendResetPasswordEmail(
-    data: { user: any; url: string; token: string },
-    context: Parameters<
-      import('./hooks/auth-email.hooks.js').AuthEmailHooks['sendResetPasswordEmail']
-    >[1],
-  ): Promise<void>;
-  sendVerificationEmail(
-    data: { user: any; token: string },
-    context: Parameters<
-      import('./hooks/auth-email.hooks.js').AuthEmailHooks['sendVerificationEmail']
-    >[1],
-  ): Promise<void>;
-};
+/** Better Auth only needs the sending side of the auth module's email port. */
+export type BetterAuthEmailHooks = AuthEmailSenderPort;
 
 export type BetterAuthLogger = {
   error(value: unknown, message?: string): void;
@@ -105,35 +92,34 @@ export function createAuthFeatures(
       customRules: {
         '/sign-in/email': { window: 60, max: 5 },
         '/sign-up/email': { window: 60, max: 5 },
-        '/forget-password': { window: 60, max: 3 },
+        '/request-password-reset': { window: 60, max: 3 },
       },
     },
 
+    // Every email callback forwards Better Auth's own `url` verbatim and passes
+    // the request through for language resolution. Sending never throws, so a
+    // failed email cannot fail the auth operation that triggered it.
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
-      async sendResetPassword(data: { user: any; url: string; token: string }) {
-        const ctx = getRequestContextStatic();
-        if (ctx) {
-          await emailHooks.sendResetPasswordEmail(data, ctx);
-        } else {
-          logger.error('Missing RequestContext in sendResetPassword hook');
-        }
-      },
+      sendResetPassword: async ({ user, url }, request) =>
+        emailHooks.sendResetPasswordEmail({
+          user,
+          url,
+          localeSource: readLocaleSource(request),
+        }),
     },
 
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
       expiresIn: 86400, // 24 hours
-      sendVerificationEmail: async (params) => {
-        const ctx = getRequestContextStatic();
-        if (ctx) {
-          await emailHooks.sendVerificationEmail(params, ctx);
-        } else {
-          logger.error('Missing RequestContext in sendVerificationEmail hook');
-        }
-      },
+      sendVerificationEmail: async ({ user, url }, request) =>
+        emailHooks.sendVerificationEmail({
+          user,
+          url,
+          localeSource: readLocaleSource(request),
+        }),
     },
 
     advanced: {
@@ -160,6 +146,13 @@ export function createAuthFeatures(
       modelName: 'User',
       changeEmail: {
         enabled: true,
+        sendChangeEmailConfirmation: async ({ user, newEmail, url }, request) =>
+          emailHooks.sendChangeEmailConfirmation({
+            user,
+            newEmail,
+            url,
+            localeSource: readLocaleSource(request),
+          }),
       },
       deleteUser: {
         enabled: true,
