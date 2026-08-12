@@ -48,7 +48,7 @@ src/modules/<feature>/
 ```
 
 Reference implementations:
-- [src/modules/users/](src/modules/users/) — full module, one-per-file use-case style.
+- [src/modules/authorization/](src/modules/authorization/) — full module, one-per-file use-case style.
 - [src/modules/auth/](src/modules/auth/) — full module, grouped use-case slices.
 - [src/modules/files/](src/modules/files/) — full module with multi-driver infrastructure subfolders.
 
@@ -63,7 +63,7 @@ Reference implementations:
 - **MUST** contain only pure TypeScript.
 - **MUST NOT** import `@nestjs/*`, `@prisma/client`, `ioredis`, `nestjs-i18n`, `class-validator`, `class-transformer`, or anything from `application/`, `infrastructure/`, `presentation/`.
 - **MAY** define port interfaces (`*.port.ts`) that infrastructure later implements.
-- **Allowed file**: [src/modules/users/domain/entities/user.entity.ts](src/modules/users/domain/entities/user.entity.ts).
+- **Allowed file**: [src/modules/authorization/domain/value-objects/permission-key.vo.ts](src/modules/authorization/domain/value-objects/permission-key.vo.ts).
 - **Forbidden file**: a domain entity decorated with `@Entity()` from a Prisma/ORM library.
 
 ### 3.2 Application — `application/`
@@ -73,7 +73,7 @@ Reference implementations:
 - **MUST** depend only on `domain/` (entities, ports) and other application code.
 - **MUST NOT** import Prisma, NestJS, Redis, i18n libs, or anything from `infrastructure/` / `presentation/`.
 - **MUST** receive infrastructure dependencies via constructor-injected port interfaces (typed as `domain/ports/*.port.ts`).
-- **Allowed file**: [src/modules/users/application/use-cases/create-user.use-case.ts](src/modules/users/application/use-cases/create-user.use-case.ts).
+- **Allowed file**: [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts](src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts).
 - **Forbidden file**: a use case importing `PrismaService` directly.
 
 ### 3.3 Infrastructure — `infrastructure/`
@@ -83,7 +83,7 @@ Reference implementations:
 - **MUST** implement port interfaces declared in `domain/ports/`.
 - **MAY** import Prisma, Redis, and external SDKs.
 - **MUST NOT** import anything from `presentation/`.
-- **Allowed file**: [src/modules/users/infrastructure/persistence/prisma-user.repository.ts](src/modules/users/infrastructure/persistence/prisma-user.repository.ts).
+- **Allowed file**: [src/modules/authorization/infrastructure/persistence/prisma-authorization.repository.ts](src/modules/authorization/infrastructure/persistence/prisma-authorization.repository.ts).
 - **Forbidden file**: a Prisma repository that imports a controller or DTO.
 
 ### 3.4 Presentation — `presentation/`
@@ -93,12 +93,12 @@ Reference implementations:
 - **MUST** use Zod via `createStrictZodDto` for all request bodies/params/queries. `class-validator` is forbidden globally.
 - **MUST NOT** import Prisma, Redis, or non-config/non-logger infrastructure paths.
 - **MAY** depend on `application/` (use cases) and `domain/` (types only).
-- **Allowed file**: [src/modules/users/presentation/http/users.controller.ts](src/modules/users/presentation/http/users.controller.ts).
+- **Allowed file**: [src/modules/authorization/presentation/http/user-permissions.controller.ts](src/modules/authorization/presentation/http/user-permissions.controller.ts).
 - **Forbidden file**: a controller that calls `prisma.user.findMany()` directly.
 
 ### 3.5 Module wiring — `<feature>.module.ts`, `<feature>.tokens.ts`
 
-- **MUST** declare DI tokens as `Symbol`-keyed `as const` objects in `<feature>.tokens.ts` (e.g., [src/modules/users/users.tokens.ts](src/modules/users/users.tokens.ts)).
+- **MUST** declare DI tokens as `Symbol`-keyed `as const` objects in `<feature>.tokens.ts` (e.g., [src/modules/authorization/authorization.tokens.ts](src/modules/authorization/authorization.tokens.ts)).
 - **MUST** wire ports → adapters via `useClass` or `useFactory + inject` in the NestJS module.
 - **MUST** explicitly list cross-module-consumable providers in `exports: [...]`.
 
@@ -129,7 +129,7 @@ infrastructure ┘                       ▲
 - Cross-module imports MUST go through the consumed module's root `index.ts` barrel (see §6). This is now **enforced by ESLint** via `crossModuleDeepRestricted` patterns in [eslint.config.mjs](eslint.config.mjs) — deep imports into `#src/modules/<feature>/<layer>/...` from outside that feature will fail CI.
 - **NestJS module classes** (`<feature>.module.ts`) are NOT re-exported from barrels to avoid ESM circular initialization. Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
 - **One documented exception**: [src/core/infrastructure/redis/redis.keys.ts](src/core/infrastructure/redis/redis.keys.ts) imports cache-key constants directly from `auth/application/auth.cache.js` and `authorization/application/authorization.cache-keys.js` because barrel imports would create a circular dependency (core → module barrel → module.ts → core). This file is exempt from the cross-module ESLint rule.
-- Avoid circular module dependencies. When unavoidable (e.g., `users` ↔ `auth`), use `forwardRef()` and document the cycle.
+- Avoid circular module dependencies. When unavoidable (`auth` ↔ `authorization`: auth guards its Better Auth admin routes with `EffectivePermissionsService`, while authorization's own controller needs `AuthGuard`), use `forwardRef()` on **both** sides and document the cycle.
 
 ---
 
@@ -151,8 +151,7 @@ All cross-module imports now use barrel imports. ESLint enforcement is active. N
 |----------|----------|------------------|-------|
 | Auth | Authorization | `EffectivePermissionsService`, static policy catalog | Barrel (`authorization/index.js`) |
 | Auth | Notify | `EmailProviderPort` | Barrel (`notify/index.js`) |
-| Users | Auth | `AuthGuard` | Barrel (`auth/index.js`) |
-| Users | Authorization | `EffectivePermissionsService`, `AuthorizationRepositoryPort`, `AUTHORIZATION_TOKENS`, `PermissionsGuard`, `Permissions` | Barrel (`authorization/index.js`) |
+| Authorization | Auth | `AuthGuard` | Barrel (`auth/index.js`) |
 | Files | Authorization | `PermissionsGuard`, `Permissions` | Barrel (`authorization/index.js`) |
 | Core | Auth, Authorization | `AuthCacheKeys`, `authorizationCacheKeys` | Justified deep import (documented exception, §4.2) |
 | All `.module.ts` | Other modules | `XModule` class | Direct file import (`<feature>.module.js`) |
@@ -167,13 +166,13 @@ All cross-module imports now use barrel imports. ESLint enforcement is active. N
 
 ```ts
 // ✅ Correct — public API via barrel
-import { USERS_TOKENS, type UserRepositoryPort } from '#src/modules/users/index.js';
+import { AUTHORIZATION_TOKENS, type AuthorizationRepositoryPort } from '#src/modules/authorization/index.js';
 
 // ✅ Correct — NestJS module class via direct file (exception)
-import { UsersModule } from '#src/modules/users/users.module.js';
+import { AuthorizationModule } from '#src/modules/authorization/authorization.module.js';
 
 // ❌ Forbidden — deep import past the barrel (ESLint will reject)
-import { CreateUserUseCase } from '#src/modules/users/application/use-cases/create-user.use-case.js';
+import { GetUserPermissionsUseCase } from '#src/modules/authorization/application/use-cases/get-user-permissions.use-case.js';
 ```
 
 Rules for the barrel itself:
@@ -187,11 +186,11 @@ Rules for the barrel itself:
 Inside a feature, code MUST use **relative imports**:
 
 ```ts
-// ✅ Inside src/modules/users/...
-import { User } from '../entities/user.entity.js';
+// ✅ Inside src/modules/authorization/...
+import { PermissionKeyVO } from '../value-objects/permission-key.vo.js';
 
-// ❌ Inside src/modules/users/... — do not self-reference via #src
-import { User } from '#src/modules/users/domain/entities/user.entity.js';
+// ❌ Inside src/modules/authorization/... — do not self-reference via #src
+import { PermissionKeyVO } from '#src/modules/authorization/domain/value-objects/permission-key.vo.js';
 ```
 
 The `#src/` alias is reserved for `core/` references and (via the barrel) cross-module references.
@@ -200,7 +199,7 @@ The `#src/` alias is reserved for `core/` references and (via the barrel) cross-
 
 ## 7. File-count optimization policy
 
-The codebase deliberately tolerates two file styles: **one-per-file** (used in `users`) and **grouped slices** (used in `auth`). Both are valid. The rule is *cohesion + size*, not file count.
+The codebase deliberately tolerates two file styles: **one-per-file** (used in `authorization`) and **grouped slices** (used in `auth`). Both are valid. The rule is *cohesion + size*, not file count.
 
 ### 7.1 MAY merge
 
@@ -248,7 +247,7 @@ These thresholds are heuristics, not hard limits. The intent is: keep files smal
 ### 8.2 What MUST stay feature-owned
 
 - Domain entities and value objects of a feature.
-- Feature-specific exception subclasses (`UsersException`, `AuthException`, `AuthorizationException`).
+- Feature-specific exception subclasses (`AuthException`, `AuthorizationException`, `FilesException`).
 - Feature-specific port interfaces.
 - Feature-specific cache key constants and TTLs.
 - Feature-specific response mappers.

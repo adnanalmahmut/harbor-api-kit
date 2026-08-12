@@ -11,7 +11,7 @@ Before starting, read [ARCHITECTURE.md](../ARCHITECTURE.md) and [AGENTS.md](../A
 Answer in order:
 
 1. **Does this work introduce a new bounded concept** (a new business noun like "Invoice", "Order", "Audit")? → **New module.**
-2. **Does it add behavior to an existing concept** (a new endpoint on `users`, a new use case on `auth`)? → **Extend existing module.**
+2. **Does it add behavior to an existing concept** (a new endpoint on `authorization`, a new use case on `auth`)? → **Extend existing module.**
 3. **Does it cross multiple existing modules without owning a new concept** (e.g., a cross-feature reporting view)? → Most likely a **new module** that *consumes* the others via their barrels. Do not bolt it onto an existing module.
 
 If after these three questions the answer is still ambiguous, ask before scaffolding.
@@ -55,7 +55,7 @@ Domain code is pure TypeScript. No NestJS, no Prisma, no Redis, no i18n libs, no
 
 - **Entities** — `domain/entities/{name}.entity.ts`, exporting a class. Constructors are explicit; mutation is method-based.
 - **Value objects** — `domain/value-objects/{name}.vo.ts`. Use a static `create(value)` factory that throws on invalid input.
-- **Ports** — `domain/ports/{name}.port.ts`, exporting an interface. Repositories, external providers, and any I/O the application layer needs are declared here. Example: [src/modules/users/domain/ports/user.repository.port.ts](../src/modules/users/domain/ports/user.repository.port.ts).
+- **Ports** — `domain/ports/{name}.port.ts`, exporting an interface. Repositories, external providers, and any I/O the application layer needs are declared here. Example: [src/modules/authorization/domain/ports/authorization.repository.port.ts](../src/modules/authorization/domain/ports/authorization.repository.port.ts).
 - **Domain exceptions** — `domain/exceptions/`. Use sparingly; most errors live at the application layer.
 
 Cohesion rule: a small set of related ports MAY live in one file (`<feature>.ports.ts`). See [file-organization.md](file-organization.md).
@@ -92,7 +92,7 @@ export class CreateThingUseCase {
 }
 ```
 
-Reference: [src/modules/users/application/use-cases/create-user.use-case.ts](../src/modules/users/application/use-cases/create-user.use-case.ts).
+Reference: [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts](../src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts).
 
 ### Application exceptions
 
@@ -113,7 +113,7 @@ export class ThingsException extends AppException {
 }
 ```
 
-Reference: [src/modules/users/application/exceptions/users.exception.ts](../src/modules/users/application/exceptions/users.exception.ts).
+Reference: [src/modules/authorization/application/exceptions/authorization.exception.ts](../src/modules/authorization/application/exceptions/authorization.exception.ts).
 
 ### Mappers
 
@@ -174,7 +174,7 @@ DTOs may be one-per-file (preferred) or grouped per controller (`<feature>.dto.t
 
 ### Controllers
 
-Reference: [src/modules/users/presentation/http/users.controller.ts](../src/modules/users/presentation/http/users.controller.ts).
+Reference: [src/modules/authorization/presentation/http/user-permissions.controller.ts](../src/modules/authorization/presentation/http/user-permissions.controller.ts).
 
 `@ResponseMessage('<module>.messages.<key>')` on a method sets the success envelope's `message`. `@ApiResponses(...)` documents Swagger examples.
 
@@ -220,7 +220,7 @@ export const THINGS_TOKENS = {
 } as const;
 ```
 
-Reference: [src/modules/users/users.module.ts](../src/modules/users/users.module.ts) and [src/modules/users/users.tokens.ts](../src/modules/users/users.tokens.ts).
+Reference: [src/modules/authorization/authorization.module.ts](../src/modules/authorization/authorization.module.ts) and [src/modules/authorization/authorization.tokens.ts](../src/modules/authorization/authorization.tokens.ts).
 
 Register the new module in [src/app.module.ts](../src/app.module.ts) so NestJS picks it up.
 
@@ -279,7 +279,7 @@ Required:
 
 Optional but encouraged:
 
-- **E2E specs** — `test/<feature>.e2e-spec.ts` for flows that span multiple modules (e.g., auth → authorization → users).
+- **E2E specs** — `test/<feature>.e2e-spec.ts` for flows that span multiple modules (e.g., auth → authorization → files).
 
 Test environment is fixed: `.env.test`, Postgres on `localhost:5435`, Redis on `localhost:6380`. Never mock the database in contract or e2e tests. Full details in [testing.md](testing.md).
 
@@ -306,7 +306,7 @@ Before opening the PR, run through the checklist in [workflow-checklist.md](work
 
 ## Decision aids
 
-- Repository pattern? See [src/modules/users/infrastructure/persistence/prisma-user.repository.ts](../src/modules/users/infrastructure/persistence/prisma-user.repository.ts).
+- Repository pattern? See [src/modules/authorization/infrastructure/persistence/prisma-authorization.repository.ts](../src/modules/authorization/infrastructure/persistence/prisma-authorization.repository.ts).
 - External provider adapter? See [src/modules/auth/infrastructure/](../src/modules/auth/infrastructure/) (`better-auth/`).
 - Multi-driver infrastructure (e.g., S3 / Local)? See [src/modules/files/infrastructure/](../src/modules/files/infrastructure/).
 - Async cross-module work via a job queue? See [src/modules/notify/infrastructure/](../src/modules/notify/infrastructure/) (`bullmq/`, `resend/`).

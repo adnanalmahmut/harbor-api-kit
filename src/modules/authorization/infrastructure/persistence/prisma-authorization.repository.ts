@@ -91,7 +91,11 @@ export class PrismaAuthorizationRepository implements AuthorizationRepositoryPor
       await this.prisma.userPermission.delete({
         where: { userId_permissionKey: { userId, permissionKey } },
       });
-    } catch {
+    } catch (error) {
+      // P2025: the override does not exist — a client error, not a database failure.
+      if ((error as { code?: string })?.code === 'P2025') {
+        throw AuthorizationException.permissionOverrideNotFound(permissionKey);
+      }
       throw AuthorizationException.databaseError({
         userId,
         permissionKey,
