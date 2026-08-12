@@ -308,5 +308,5 @@ Before opening the PR, run through the checklist in [workflow-checklist.md](work
 
 - Repository pattern? See [src/modules/users/infrastructure/persistence/prisma-user.repository.ts](../src/modules/users/infrastructure/persistence/prisma-user.repository.ts).
 - External provider adapter? See [src/modules/auth/infrastructure/](../src/modules/auth/infrastructure/) (`better-auth/`).
-- Multi-driver infrastructure (e.g., S3 / GCS / Local)? See [src/modules/files/infrastructure/](../src/modules/files/infrastructure/).
+- Multi-driver infrastructure (e.g., S3 / Local)? See [src/modules/files/infrastructure/](../src/modules/files/infrastructure/).
 - Async cross-module work via a job queue? See [src/modules/notify/infrastructure/](../src/modules/notify/infrastructure/) (`bullmq/`, `resend/`).

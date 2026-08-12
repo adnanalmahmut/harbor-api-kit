@@ -182,7 +182,6 @@ model RolePermission {
  
 enum StorageDriver {
   S3_COMPAT
-  GCS
   LOCAL
 }
 

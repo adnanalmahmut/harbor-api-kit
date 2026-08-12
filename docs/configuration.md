@@ -17,7 +17,7 @@ not read `process.env` directly outside the config infrastructure.
 - Auth: better-auth URL, secret, session cookie names, session lifetime.
 - CSRF: double-submit cookie/header settings.
 - CORS and redirects: allowed origins for browsers and callback URLs.
-- Storage: local, S3-compatible, or GCS file storage.
+- Storage: local or S3-compatible file storage.
 - Email: Resend sender and API key.
 - i18n: locale negotiation and defaults.
 

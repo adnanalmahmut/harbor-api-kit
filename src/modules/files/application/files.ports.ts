@@ -1,5 +1,5 @@
-import type { FileEntity, StorageDriver } from '../domain/index.js';
 import type { Readable } from 'node:stream';
+import type { FileEntity, StorageDriver } from '../domain/index.js';
 
 /* -------------------------------------------------------------------------- */
 /*                                   Common                                   */
@@ -123,7 +123,7 @@ export interface IStorageDriver {
   getReadStream(key: string, range?: ReadStreamOptions): Promise<Readable>;
 
   /**
-   * Get short-lived signed URL for direct client access (preferred for S3/GCS)
+   * Get short-lived signed URL for direct client access (preferred for S3)
    */
   getSignedUrl(key: string, options: SignedUrlOptions): Promise<string>;
 

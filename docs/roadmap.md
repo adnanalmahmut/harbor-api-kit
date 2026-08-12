@@ -8,7 +8,7 @@ This project intentionally separates implemented features from planned work.
 - OAuth redirect initiation for Google and GitHub.
 - CSRF protection for cookie-bearing mutating requests.
 - RBAC with roles, permissions, grants, and effective permission caching.
-- File storage adapters for local, S3-compatible, and GCS storage.
+- File storage adapters for local and S3-compatible storage.
 - Async email delivery with BullMQ and Resend.
 - OpenAPI/Scalar documentation.
 

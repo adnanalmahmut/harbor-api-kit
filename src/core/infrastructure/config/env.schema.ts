@@ -129,9 +129,7 @@ export const envSchema = z
     TENANT_HEADER_NAME: z.string().min(1).default('X-Tenant'),
 
     // Storage
-    STORAGE_DRIVER: z
-      .enum(['s3', 'r2', 'spaces', 'gcs', 'local'])
-      .default('local'),
+    STORAGE_DRIVER: z.enum(['s3', 'r2', 'spaces', 'local']).default('local'),
 
     // S3 / R2 / Spaces
     S3_ENDPOINT: z.string().url().optional(),
@@ -139,11 +137,6 @@ export const envSchema = z
     S3_ACCESS_KEY_ID: z.string().optional(),
     S3_SECRET_ACCESS_KEY: z.string().optional(),
     S3_BUCKET: z.string().optional(),
-
-    // GCS
-    GCS_PROJECT_ID: z.string().optional(),
-    GCS_KEY_FILE: z.string().optional(),
-    GCS_BUCKET: z.string().optional(),
 
     // Local
     LOCAL_STORAGE_PATH: z.string().default('./uploads'),
@@ -191,24 +184,6 @@ export const envSchema = z
           path: ['S3_ENDPOINT'],
           message:
             'S3_ENDPOINT is required when STORAGE_DRIVER is r2 or spaces',
-        });
-      }
-    }
-
-    // 2. Google Cloud Storage
-    if (data.STORAGE_DRIVER === 'gcs') {
-      if (!data.GCS_PROJECT_ID) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['GCS_PROJECT_ID'],
-          message: 'GCS_PROJECT_ID is required when STORAGE_DRIVER is gcs',
-        });
-      }
-      if (!data.GCS_BUCKET) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['GCS_BUCKET'],
-          message: 'GCS_BUCKET is required when STORAGE_DRIVER is gcs',
         });
       }
     }
