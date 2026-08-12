@@ -1,7 +1,7 @@
-import { StorageDriver } from '../domain/index.js';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import { StorageDriver } from '../domain/index.js';
 import { FilesException } from './files.exception.js';
 import type {
   FileValidatorPort,
@@ -106,8 +106,6 @@ function normalizePublicUrl(url: string, publicToken: string): string {
 
 function mapDriverEnum(driver: string): StorageDriver {
   switch (driver) {
-    case 'gcs':
-      return StorageDriver.GCS;
     case 'local':
       return StorageDriver.LOCAL;
     default:
@@ -256,7 +254,7 @@ export class UploadFileUseCase {
 }
 
 // ---------------------------------------------------------------------------
-// Stream file content (for local driver — S3/GCS use presigned URLs instead)
+// Stream file content (for local driver — S3 use presigned URLs instead)
 // ---------------------------------------------------------------------------
 
 export interface StreamFileResult {

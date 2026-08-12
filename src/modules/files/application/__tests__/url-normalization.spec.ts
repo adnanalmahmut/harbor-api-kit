@@ -4,7 +4,7 @@
  * Background:
  *   LocalDriver.getSignedUrl returns a relative marker `/local/{storageKey}`.
  *   The use-case layer rewrites this to the correct API endpoint before
- *   returning to the client. S3/GCS drivers return absolute presigned URLs
+ *   returning to the client. S3 drivers return absolute presigned URLs
  *   that pass through untouched.
  */
 
@@ -44,14 +44,6 @@ describe('URL normalization helpers', () => {
       ).toBe(false);
     });
 
-    it('rejects absolute GCS presigned URL', () => {
-      expect(
-        isLocalDriverUrl(
-          'https://storage.googleapis.com/bucket/files/2026/4/x.jpg?X-Goog-Signature=abc',
-        ),
-      ).toBe(false);
-    });
-
     it('rejects plain relative path without /local/ prefix', () => {
       expect(isLocalDriverUrl('/api/v1/files/some-id/download')).toBe(false);
     });
@@ -76,13 +68,6 @@ describe('URL normalization helpers', () => {
         'https://bucket.s3.amazonaws.com/files/2026/4/x.jpg?X-Amz-Signature=abc123';
       const result = normalizeDownloadUrl(s3Url, FILE_ID);
       expect(result).toBe(s3Url);
-    });
-
-    it('passes GCS presigned URL through unchanged', () => {
-      const gcsUrl =
-        'https://storage.googleapis.com/bucket/files/2026/4/x.jpg?X-Goog-Signature=abc123';
-      const result = normalizeDownloadUrl(gcsUrl, FILE_ID);
-      expect(result).toBe(gcsUrl);
     });
   });
 

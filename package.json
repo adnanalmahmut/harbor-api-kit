@@ -63,7 +63,6 @@
     "@fastify/cookie": "11.0.2",
     "@fastify/multipart": "9.4.0",
     "@fastify/static": "^9.1.0",
-    "@google-cloud/storage": "7.19.0",
     "@nestjs/bullmq": "11.0.4",
     "@nestjs/common": "11.1.18",
     "@nestjs/config": "4.0.4",

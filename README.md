@@ -30,7 +30,7 @@ I built Harbor API Kit to demonstrate how I structure production-oriented backen
 | i18n          | nestjs-i18n (ar-SY, en-US)                            |
 | Logging       | Pino (structured, request-scoped context)             |
 | Email         | Resend (via BullMQ async queue)                       |
-| File Storage  | S3-compatible, Google Cloud Storage, Local filesystem |
+| File Storage  | S3-compatible, Local filesystem                       |
 | API Docs      | Swagger (OpenAPI) + Scalar UI                         |
 | Testing       | Jest + Supertest (unit, contract, e2e)                |
 | CI            | GitHub Actions                                        |
@@ -40,7 +40,7 @@ I built Harbor API Kit to demonstrate how I structure production-oriented backen
 - **Authentication** - Cookie-based sessions via better-auth, OAuth (Google, GitHub), email/password with optional verification emails, session management (list/revoke/logout-all), geolocation tracking (IP, city, country)
 - **RBAC** - Role-based access control with permission inheritance. Roles, permissions, user-level grants (ALLOW/DENY), effective permissions computation with Redis caching (L1 request-scoped + L2 Redis)
 - **Users** - Full CRUD, profile management, role/permission assignment, soft deletes
-- **File Storage** - Multi-driver upload (S3/R2/Spaces, GCS, Local), magic bytes validation, presigned download URLs, public/private visibility toggle, public token-based access
+- **File Storage** - Multi-driver upload (S3/R2/Spaces, Local), magic bytes validation, presigned download URLs, public/private visibility toggle, public token-based access
 - **Notifications** - Async email delivery via BullMQ + Resend, retry with exponential backoff, HTML email templates
 - **Security** - CSRF double-submit cookies, rate limiting (global + per-route, IP/user/session strategies), application-level security headers, input validation (Zod strict mode), origin/referer allowlists
 - **i18n** - Full internationalization (Arabic ar-SY default, English en-US), locale negotiation via header/query, translated error messages and email templates
@@ -165,7 +165,7 @@ src/
     auth/            # Authentication (better-auth, OAuth, sessions)
     users/           # User CRUD, profile, role/permission assignment
     rbac/            # Roles, permissions, grants, guards
-    files/           # File upload/download (S3, GCS, Local)
+    files/           # File upload/download (S3, Local)
     notify/          # Email notifications (BullMQ + Resend)
     health/          # Health checks
     shared/          # Reserved for cross-feature provider wiring; currently cache binding
