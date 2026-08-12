@@ -1,13 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { z } from 'zod';
-import { composeUserName } from '../src/modules/users/index.js';
 
 const adminInputSchema = z.object({
   email: z.email().transform((value) => value.trim().toLowerCase()),
   password: z.string().min(12).max(128),
-  firstName: z.string().trim().min(1).max(100),
-  lastName: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
   locale: z.enum(['ar-SY', 'en-US']),
   image: z.url().optional(),
 });
@@ -39,8 +37,7 @@ Usage:
 
 Options:
   --email <email>          Required unless ADMIN_EMAIL is set
-  --first-name <name>      Defaults to Admin
-  --last-name <name>       Defaults to User
+  --name <name>            Defaults to Admin User
   --locale <locale>        ar-SY or en-US; defaults to I18N_DEFAULT_LOCALE
   --image <url>            Optional profile image URL
   --allow-production       Required when APP_ENV=production
@@ -116,9 +113,7 @@ async function readInput(): Promise<AdminInput> {
   return adminInputSchema.parse({
     email: argValue('email') ?? process.env.ADMIN_EMAIL,
     password,
-    firstName:
-      argValue('first-name') ?? process.env.ADMIN_FIRST_NAME ?? 'Admin',
-    lastName: argValue('last-name') ?? process.env.ADMIN_LAST_NAME ?? 'User',
+    name: argValue('name') ?? process.env.ADMIN_NAME ?? 'Admin User',
     locale:
       argValue('locale') ??
       process.env.ADMIN_LOCALE ??
@@ -162,14 +157,11 @@ async function main(): Promise<void> {
       );
     }
 
-    const name = composeUserName(input.firstName, input.lastName);
     const created = await auth.api.signUpEmail({
       body: {
         email: input.email,
         password: input.password,
-        name,
-        firstName: input.firstName,
-        lastName: input.lastName,
+        name: input.name,
         locale: input.locale,
         ...(input.image ? { image: input.image } : {}),
       },

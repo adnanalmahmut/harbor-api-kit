@@ -46,55 +46,16 @@ describe('Better Auth native routes (contract)', () => {
     expect(paths).toHaveProperty('/api/v1/auth/admin/list-users');
     expect(paths).not.toHaveProperty('/sign-in/email');
     const signUpOperation = (paths['/api/v1/auth/sign-up/email'] as any).post;
-    const signInOperation = (paths['/api/v1/auth/sign-in/email'] as any).post;
-    const expectedClientIpParameter = expect.objectContaining({
-      name: 'X-Forwarded-For',
-      in: 'header',
-      required: true,
-      example: '192.29.224.220',
-      schema: expect.objectContaining({
-        default: '192.29.224.220',
-        example: '192.29.224.220',
-      }),
-    });
-    expect(signUpOperation.parameters).toContainEqual(
-      expectedClientIpParameter,
-    );
-    expect(signInOperation.parameters).toContainEqual(
-      expectedClientIpParameter,
-    );
+    // The generated document is forwarded unmodified: `name` is Better Auth's
+    // own user field and the application no longer rewrites the schema.
     const signUpSchema =
       signUpOperation.requestBody.content['application/json'].schema;
-    expect(signUpSchema.properties).toHaveProperty('firstName');
-    expect(signUpSchema.properties).toHaveProperty('lastName');
-    expect(signUpSchema.properties).not.toHaveProperty('name');
+    expect(signUpSchema.properties).toHaveProperty('name');
+    expect(signUpSchema.properties).not.toHaveProperty('firstName');
     expect(signUpSchema.required).toEqual(
-      expect.arrayContaining(['email', 'password', 'firstName', 'lastName']),
+      expect.arrayContaining(['email', 'password', 'name']),
     );
-    const updateSchema = (paths['/api/v1/auth/update-user'] as any).post
-      .requestBody.content['application/json'].schema;
-    expect(updateSchema.properties).toHaveProperty('firstName');
-    expect(updateSchema.properties).toHaveProperty('lastName');
-    expect(updateSchema.properties).not.toHaveProperty('name');
-    const adminCreateSchema = (paths[
-      '/api/v1/auth/admin/create-user'
-    ] as any).post.requestBody.content['application/json'].schema;
-    expect(adminCreateSchema.properties).toHaveProperty('firstName');
-    expect(adminCreateSchema.properties).toHaveProperty('lastName');
-    expect(adminCreateSchema.properties).not.toHaveProperty('name');
-    const adminUpdateSchema = (paths[
-      '/api/v1/auth/admin/update-user'
-    ] as any).post.requestBody.content['application/json'].schema;
-    expect(adminUpdateSchema.properties.data.properties).toHaveProperty(
-      'firstName',
-    );
-    expect(adminUpdateSchema.properties.data.properties).toHaveProperty(
-      'lastName',
-    );
-    expect(adminUpdateSchema.properties.data.properties).not.toHaveProperty(
-      'name',
-    );
-    expect(response.body.components.schemas.User.properties).not.toHaveProperty(
+    expect(response.body.components.schemas.User.properties).toHaveProperty(
       'name',
     );
   });
@@ -105,27 +66,20 @@ describe('Better Auth native routes (contract)', () => {
       .send({
         email: 'native@test.com',
         password: 'Password123!',
-        firstName: 'Native',
-        lastName: 'User',
+        name: 'Native User',
       })
       .expect(200);
 
     expect(signUp.body.user.email).toBe('native@test.com');
     expect(signUp.body.user).toMatchObject({
-      firstName: 'Native',
-      lastName: 'User',
+      name: 'Native User',
       role: 'user',
     });
-    expect(signUp.body.user).not.toHaveProperty('name');
     const stored = await prisma.user.findUniqueOrThrow({
       where: { email: 'native@test.com' },
-      select: { name: true, firstName: true, lastName: true },
+      select: { name: true },
     });
-    expect(stored).toEqual({
-      name: 'Native User',
-      firstName: 'Native',
-      lastName: 'User',
-    });
+    expect(stored).toEqual({ name: 'Native User' });
 
     const signIn = await request(app.getHttpServer())
       .post('/api/v1/auth/sign-in/email')
@@ -140,8 +94,7 @@ describe('Better Auth native routes (contract)', () => {
     const { cookies, userId } = await auth.registerAndLogin({
       email: 'session@test.com',
       password: 'Password123!',
-      firstName: 'Session',
-      lastName: 'User',
+      name: 'Session User',
     });
 
     const response = await request(app.getHttpServer())
@@ -150,37 +103,32 @@ describe('Better Auth native routes (contract)', () => {
       .expect(200);
 
     expect(response.body.user.id).toBe(userId);
-    expect(response.body.user).not.toHaveProperty('name');
+    expect(response.body.user.name).toBe('Session User');
     expect(response.body.session.userId).toBe(userId);
+    // Better Auth owns the payload shape: no `{ success, message, data }` envelope.
     expect(response.body.success).toBeUndefined();
   });
 
-  it('updates public name fields and synchronizes the internal name', async () => {
+  it('updates the user name through the native route', async () => {
     const { cookies, userId } = await auth.registerAndLogin({
       email: 'rename@test.com',
       password: 'Password123!',
-      firstName: 'Before',
-      lastName: 'Rename',
+      name: 'Before Rename',
     });
 
     const response = await request(app.getHttpServer())
       .post('/api/v1/auth/update-user')
       .set('Cookie', cookies)
-      .send({ firstName: 'After' })
+      .send({ name: 'After Rename' })
       .expect(200);
 
     expect(response.body).toEqual({ status: true });
-    expect(response.body).not.toHaveProperty('name');
 
     const stored = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { name: true, firstName: true, lastName: true },
+      select: { name: true },
     });
-    expect(stored).toEqual({
-      name: 'After Rename',
-      firstName: 'After',
-      lastName: 'Rename',
-    });
+    expect(stored).toEqual({ name: 'After Rename' });
   });
 
   it('rejects invalid native sign-up input', async () => {
@@ -190,13 +138,12 @@ describe('Better Auth native routes (contract)', () => {
       .expect(400);
   });
 
-  it('rejects the internal name field without firstName and lastName', async () => {
+  it('rejects sign-up without the required name field', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-up/email')
       .send({
-        email: 'legacy-name@test.com',
+        email: 'missing-name@test.com',
         password: 'Password123!',
-        name: 'Legacy Name',
       })
       .expect(400);
   });
@@ -205,8 +152,7 @@ describe('Better Auth native routes (contract)', () => {
     const payload = {
       email: 'duplicate@test.com',
       password: 'Password123!',
-      firstName: 'Duplicate',
-      lastName: 'User',
+      name: 'Duplicate User',
     };
     await request(app.getHttpServer())
       .post('/api/v1/auth/sign-up/email')

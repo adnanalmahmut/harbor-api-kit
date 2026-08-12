@@ -62,10 +62,9 @@ document. The published path prefix comes from `BETTER_AUTH_URL`, so Scalar
 shows the same URLs handled at runtime rather than unprefixed Better Auth route
 fragments.
 
-User identity payloads expose `firstName` and `lastName`. Email sign-up and
-admin user creation require both fields. Better Auth's required `name` value is
-derived and synchronized inside the application and is intentionally absent
-from public request schemas and JSON responses.
+User identity payloads use Better Auth's single `name` field, and `/auth/*`
+responses are forwarded verbatim — they carry no `{ success, message, data }`
+envelope. See [auth-authorization.md](auth-authorization.md).
 
 Cookie-bearing mutating requests require CSRF protection:
 

@@ -35,8 +35,7 @@ Create an admin user only when you need one through the explicit one-off CLI:
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --first-name Admin \
-  --last-name User \
+  --name 'Admin User' \
   --locale ar-SY
 ```
 

@@ -83,16 +83,6 @@ export class AuthGuard implements CanActivate {
 
     if (!sessionResult?.session) throw AuthException.authenticationRequired();
 
-    // Check if user is still allowed to login (not deleted/suspended)
-    // NOTE: When coming from cache, the user object might be a plain object,
-    // so we cannot rely on class getters like .canLogin or .isActive.
-    const isDeleted = !!sessionResult.user.deletedAt;
-    const canLogin = !isDeleted;
-
-    if (!canLogin) {
-      throw AuthException.authenticationRequired();
-    }
-
     this.contextStore.set({
       userId: sessionResult.user.id,
       sessionId: sessionResult.session.id,

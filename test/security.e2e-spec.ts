@@ -31,8 +31,7 @@ describe('Better Auth origin security (E2E)', () => {
     const { cookies } = await auth.registerAndLogin({
       email: 'origin@test.com',
       password: 'Password123!',
-      firstName: 'Origin',
-      lastName: 'User',
+      name: 'Origin User',
     });
 
     await request(app.getHttpServer())

@@ -9,8 +9,7 @@ is entered and confirmed through hidden terminal prompts:
 ```bash
 npm run admin:create -- \
   --email admin@example.com \
-  --first-name Admin \
-  --last-name User \
+  --name 'Admin User' \
   --locale ar-SY
 ```
 
