@@ -154,7 +154,13 @@ const contextRestricted = {
 
 export default [
   {
-    ignores: ['eslint.config.mjs', 'dist/**', 'generated/**', 'test/**'],
+    ignores: [
+      'eslint.config.mjs',
+      'dist/**',
+      'generated/**',
+      'src/generated/**',
+      'test/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
