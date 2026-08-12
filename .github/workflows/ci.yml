@@ -45,6 +45,8 @@ jobs:
       FRONTEND_PUBLIC_URL: http://localhost:3000
       BETTER_AUTH_SECRET: test_secret_must_be_long_enough_for_security_checks
       BETTER_AUTH_URL: http://localhost:5001/api/v1/auth
+      GOOGLE_CLIENT_ID: test_google_client_id
+      GOOGLE_CLIENT_SECRET: test_google_client_secret
       REDIS_PREFIX: test-ci
       RESEND_API_KEY: re_test_ci_placeholder
       RESEND_FROM_EMAIL: test@example.com
