@@ -34,8 +34,7 @@ describe('Permission override enforcement (E2E)', () => {
     const { cookies, userId } = await auth.registerAndLogin({
       email: 'files-deny@test.com',
       password: 'Password123!',
-      firstName: 'Files',
-      lastName: 'Deny',
+      name: 'Files Deny',
     });
     const missingId = '00000000-0000-0000-0000-000000000000';
 

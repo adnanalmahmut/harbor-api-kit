@@ -28,8 +28,7 @@ describe('Rate Limit (contract)', () => {
       .send({
         email: 'rate@test.com',
         password: 'Password123!',
-        firstName: 'Rate',
-        lastName: 'Limit',
+        name: 'Rate Limit',
       })
       .expect(200);
   });

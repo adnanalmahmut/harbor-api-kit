@@ -9,11 +9,6 @@ import {
   DEFAULT_ROLE,
   ROLE_GRANTS,
 } from '#src/modules/authorization/index.js';
-import {
-  composeUserName,
-  normalizeUserNamePart,
-  splitUserName,
-} from '#src/modules/users/index.js';
 import type { ConfigType } from '@nestjs/config';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -69,73 +64,6 @@ export function createAuthFeatures(
   const domainAllowlist = httpConfiguration.cookies.domainAllowlist;
   const COOKIE_DOMAIN = isProd ? domainAllowlist[0] : undefined;
 
-  const prismaWithSoftDelete = prisma.$extends({
-    query: {
-      user: {
-        async findUnique({ args, query }) {
-          args.where = { ...args.where, deletedAt: null };
-          return query(args);
-        },
-        async findFirst({ args, query }) {
-          args.where = { ...args.where, deletedAt: null };
-          return query(args);
-        },
-        async findMany({ args, query }) {
-          args.where = { ...args.where, deletedAt: null };
-          return query(args);
-        },
-        async delete({ args, query }) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const _query = query;
-          return prisma.user.update({
-            ...args,
-            data: { deletedAt: new Date() },
-          });
-        },
-        async deleteMany({ args, query }) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const _query = query;
-          return prisma.user.updateMany({
-            ...args,
-            data: { deletedAt: new Date() },
-          });
-        },
-      },
-
-      account: {
-        async findUnique({ args, query }) {
-          args.where = { ...args.where, deletedAt: null };
-          return query(args);
-        },
-        async findFirst({ args, query }) {
-          args.where = { ...args.where, deletedAt: null };
-          return query(args);
-        },
-        async findMany({ args, query }) {
-          args.where = { ...args.where, deletedAt: null };
-          return query(args);
-        },
-        async delete({ args, query }) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const _query = query;
-          return prisma.account.update({
-            ...args,
-            data: { deletedAt: new Date() },
-          });
-        },
-        async deleteMany({ args, query }) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const _query = query;
-          return prisma.account.updateMany({
-            ...args,
-            data: { deletedAt: new Date() },
-          });
-        },
-      },
-      // Session: default behavior (Hard Delete) is desired.
-    },
-  });
-
   const cookieOptions = {
     path: '/',
     httpOnly: true,
@@ -151,10 +79,7 @@ export function createAuthFeatures(
     baseURL: authUrl.origin,
     basePath,
     secret: betterAuthSecret,
-    // Cast to any because adapter types might not fully align with extended client types perfectly
-    database: prismaAdapter(prismaWithSoftDelete as any, {
-      provider: 'postgresql',
-    }),
+    database: prismaAdapter(prisma, { provider: 'postgresql' }),
 
     plugins: [
       admin({
@@ -234,8 +159,6 @@ export function createAuthFeatures(
         enabled: true,
       },
       additionalFields: {
-        firstName: { type: 'string', required: true },
-        lastName: { type: 'string', required: true },
         locale: { type: 'string', required: false },
       },
     },
@@ -268,48 +191,6 @@ export function createAuthFeatures(
     },
 
     databaseHooks: {
-      user: {
-        create: {
-          before: (user) => {
-            const fallback = splitUserName(user.name);
-            const firstName = normalizeUserNamePart(
-              typeof user.firstName === 'string'
-                ? user.firstName
-                : fallback.firstName,
-            );
-            const lastName = normalizeUserNamePart(
-              typeof user.lastName === 'string'
-                ? user.lastName
-                : fallback.lastName,
-            );
-
-            return Promise.resolve({
-              data: {
-                ...user,
-                firstName,
-                lastName,
-                name: composeUserName(firstName, lastName),
-              },
-            });
-          },
-        },
-        update: {
-          after: async (user) => {
-            const firstName =
-              typeof user.firstName === 'string' ? user.firstName : '';
-            const lastName =
-              typeof user.lastName === 'string' ? user.lastName : '';
-            const name = composeUserName(firstName, lastName);
-            if (name && user.name !== name) {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { name },
-              });
-            }
-          },
-        },
-      },
-
       session: {
         create: {
           after: async (session) => {

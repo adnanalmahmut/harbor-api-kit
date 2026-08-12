@@ -10,15 +10,12 @@ datasource db {
 model User {
   id            String    @id
   name          String
-  firstName     String?
-  lastName      String?
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String    @default("")
   locale        String    @default("ar-SY")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
   role          String?   @default("user")
   banned        Boolean?  @default(false)
   banReason     String?
@@ -39,9 +36,8 @@ model Session {
   id        String    @id
   expiresAt DateTime
   token     String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   ipAddress            String?
   userAgent            String?
@@ -74,7 +70,6 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  deletedAt             DateTime?
 
   @@unique([providerId, accountId])
   @@index([userId])

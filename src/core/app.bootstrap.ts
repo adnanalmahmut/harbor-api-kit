@@ -12,7 +12,6 @@ import { RedisService } from '#src/core/infrastructure/index.js';
 import {
   AUTH_TOKENS,
   type BetterAuthInstance,
-  normalizeBetterAuthOpenApiDocument,
 } from '#src/modules/auth/index.js';
 import {
   CsrfGuard,
@@ -142,13 +141,7 @@ export async function configureApp(app: NestFastifyApplication) {
 
   if (!appConfiguration.isProduction && http.docs.enabled) {
     const betterAuth = app.get<BetterAuthInstance>(AUTH_TOKENS.BETTER_AUTH);
-    await setupApiDocs(
-      app,
-      appConfiguration,
-      http,
-      betterAuth,
-      normalizeBetterAuthOpenApiDocument,
-    );
+    await setupApiDocs(app, appConfiguration, http, betterAuth);
   }
   return appConfiguration;
 }

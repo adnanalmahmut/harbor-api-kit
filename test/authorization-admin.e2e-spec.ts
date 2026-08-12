@@ -35,8 +35,7 @@ describe('Better Auth admin plugin (E2E)', () => {
     const target = await auth.registerAndLogin({
       email: 'target@test.com',
       password: 'Password123!',
-      firstName: 'Target',
-      lastName: 'User',
+      name: 'Target User',
     });
 
     await request(app.getHttpServer())
@@ -52,7 +51,7 @@ describe('Better Auth admin plugin (E2E)', () => {
     expect(updated.role).toBe('admin');
   });
 
-  it('creates and renames users with public name fields only', async () => {
+  it('creates and renames users through the admin plugin', async () => {
     const admin = await auth.setupAdmin();
 
     const created = await request(app.getHttpServer())
@@ -61,40 +60,29 @@ describe('Better Auth admin plugin (E2E)', () => {
       .send({
         email: 'admin-created@test.com',
         password: 'Password123!',
-        firstName: 'Admin',
-        lastName: 'Created',
+        name: 'Admin Created',
       })
       .expect(200);
 
     expect(created.body.user).toMatchObject({
       email: 'admin-created@test.com',
-      firstName: 'Admin',
-      lastName: 'Created',
+      name: 'Admin Created',
     });
-    expect(created.body.user).not.toHaveProperty('name');
 
     const userId = created.body.user.id as string;
     const updated = await request(app.getHttpServer())
       .post('/api/v1/auth/admin/update-user')
       .set('Cookie', admin.cookies)
-      .send({ userId, data: { firstName: 'Renamed' } })
+      .send({ userId, data: { name: 'Renamed Created' } })
       .expect(200);
 
-    expect(updated.body).toMatchObject({
-      firstName: 'Renamed',
-      lastName: 'Created',
-    });
-    expect(updated.body).not.toHaveProperty('name');
+    expect(updated.body).toMatchObject({ name: 'Renamed Created' });
 
     const stored = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { name: true, firstName: true, lastName: true },
+      select: { name: true },
     });
-    expect(stored).toEqual({
-      name: 'Renamed Created',
-      firstName: 'Renamed',
-      lastName: 'Created',
-    });
+    expect(stored).toEqual({ name: 'Renamed Created' });
   });
 
   it('applies a DENY override before the admin plugin runs', async () => {
@@ -102,8 +90,7 @@ describe('Better Auth admin plugin (E2E)', () => {
     const target = await auth.registerAndLogin({
       email: 'blocked-target@test.com',
       password: 'Password123!',
-      firstName: 'Blocked',
-      lastName: 'Target',
+      name: 'Blocked Target',
     });
     await authorization.assignUserPermissionOverride(
       admin.userId,
@@ -129,8 +116,7 @@ describe('Better Auth admin plugin (E2E)', () => {
     const target = await auth.registerAndLogin({
       email: 'update-target@test.com',
       password: 'Password123!',
-      firstName: 'Update',
-      lastName: 'Target',
+      name: 'Update Target',
     });
     await authorization.assignUserPermissionOverride(
       admin.userId,

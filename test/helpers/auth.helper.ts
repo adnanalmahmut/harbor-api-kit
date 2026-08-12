@@ -5,8 +5,7 @@ import request from 'supertest';
 export type NativeSignUpInput = {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   confirmPassword?: string;
 };
 
@@ -25,8 +24,7 @@ export class AuthHelper {
       .send({
         email: input.email,
         password: input.password,
-        firstName: input.firstName,
-        lastName: input.lastName,
+        name: input.name,
       })
       .expect(200);
 
@@ -61,8 +59,7 @@ export class AuthHelper {
     const result = await this.registerAndLogin({
       email: 'superadmin@test.com',
       password: 'Password123!',
-      firstName: 'Super',
-      lastName: 'Admin',
+      name: 'Super Admin',
     });
     const prisma = this.app.get(PrismaService);
     await prisma.user.update({

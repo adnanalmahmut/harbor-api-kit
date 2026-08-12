@@ -31,8 +31,7 @@ describe('Better Auth native flow (E2E)', () => {
     const { cookies, userId } = await auth.registerAndLogin({
       email: 'flow@test.com',
       password: 'Password123!',
-      firstName: 'Flow',
-      lastName: 'User',
+      name: 'Flow User',
     });
     expect(await prisma.session.count({ where: { userId } })).toBeGreaterThan(
       0,
