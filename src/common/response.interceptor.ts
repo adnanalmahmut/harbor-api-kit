@@ -1,6 +1,5 @@
 import { translateIfKey } from '#src/infrastructure/i18n/i18n.utils.js';
 import {
-  Inject,
   Injectable,
   SetMetadata,
   type CallHandler,
@@ -10,7 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Observable, mergeMap } from 'rxjs';
-import { RequestContextStorePort } from './request-context.js';
+import { getRequestContext, setRequestContext } from './request-context.js';
 
 export type ApiSuccess<T = unknown> = {
   success: true;
@@ -29,36 +28,14 @@ export const ResponseMessage = (message: string) =>
 export const SkipEnvelope = () => SetMetadata(SKIP_ENVELOPE_KEY, true);
 
 /**
- * Copies the identity resolved by the auth guard and the i18n resolver into the
- * request context, so the logger, the envelope and the exception filter all
- * report the same user and locale.
+ * Wraps handler results in `{ success, message, data }`.
+ *
+ * It also copies the identity resolved by the auth guard and the locale
+ * resolved by nestjs-i18n into the request context, which used to be a second
+ * global interceptor. The two had to run in this order anyway — the envelope
+ * reads the locale the other one writes — so a second registration only made
+ * that dependency easier to break.
  */
-@Injectable()
-export class RequestIdentityInterceptor implements NestInterceptor {
-  constructor(
-    @Inject(RequestContextStorePort)
-    private readonly contextStore: RequestContextStorePort,
-  ) {}
-
-  intercept(context: ExecutionContext, next: CallHandler) {
-    const req = context.switchToHttp().getRequest();
-
-    const userId = req.user?.id ?? req.userId;
-    const sessionId = req.session?.id ?? req.sessionId;
-
-    const i18n = I18nContext.current();
-    const locale = i18n?.lang;
-
-    this.contextStore.set({
-      locale,
-      userId: userId ? String(userId) : undefined,
-      sessionId: sessionId ? String(sessionId) : undefined,
-    });
-
-    return next.handle();
-  }
-}
-
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<
   T,
@@ -67,14 +44,14 @@ export class ResponseInterceptor<T> implements NestInterceptor<
   constructor(
     private readonly reflector: Reflector,
     private readonly i18n: I18nService<Record<string, any>>,
-    @Inject(RequestContextStorePort)
-    private readonly contextStore: RequestContextStorePort,
   ) {}
 
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
   ): Observable<T | ApiSuccess<T>> {
+    this.captureIdentity(context);
+
     const skip = this.reflector.getAllAndOverride<boolean>(SKIP_ENVELOPE_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -86,8 +63,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<
       [context.getHandler(), context.getClass()],
     );
 
-    const store = this.contextStore.get();
-    const locale = store?.locale;
+    const locale = getRequestContext()?.locale;
 
     return next.handle().pipe(
       mergeMap(async (data: any) => {
@@ -113,6 +89,20 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     );
   }
 
+  private captureIdentity(context: ExecutionContext): void {
+    const req = context.switchToHttp().getRequest();
+
+    const userId = req.user?.id ?? req.userId;
+    const sessionId = req.session?.id ?? req.sessionId;
+
+    setRequestContext({
+      locale: I18nContext.current()?.lang,
+      userId: userId ? String(userId) : undefined,
+      sessionId: sessionId ? String(sessionId) : undefined,
+    });
+  }
+
+  /** `deletedAt` is an implementation detail of soft deletes, never a response field. */
   private pruneFields(data: any): any {
     if (data === null || data === undefined) return data;
 

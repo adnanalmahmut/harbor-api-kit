@@ -21,7 +21,7 @@ import {
   ValidationError,
   type ValidationIssue,
 } from './app-exception.js';
-import { RequestContextStorePort } from './request-context.js';
+import { getRequestContext } from './request-context.js';
 import { isI18nKeyLike, stripQuery } from './utils.js';
 
 export type ApiErrorBody = {
@@ -103,8 +103,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     private readonly i18n: I18nService,
     @Inject(httpConfig.KEY)
     private readonly config: ConfigType<typeof httpConfig>,
-    @Inject(RequestContextStorePort)
-    private readonly contextStore: RequestContextStorePort,
   ) {}
 
   async catch(exception: unknown, host: ArgumentsHost) {
@@ -112,7 +110,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const res = http.getResponse<FastifyReply>();
     const req = http.getRequest<FastifyRequest>();
 
-    const context = this.contextStore.get();
+    const context = getRequestContext();
     const locale = context?.locale ?? I18nContext.current()?.lang;
 
     let status = ERROR_DEFINITIONS[AppErrorCode.INTERNAL_ERROR].status;

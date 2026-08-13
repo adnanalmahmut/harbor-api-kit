@@ -1,4 +1,4 @@
-import { getRequestContextStatic } from '#src/common/request-context.js';
+import { getRequestContext } from '#src/common/request-context.js';
 import { stripQuery } from '#src/common/utils.js';
 import { loggerConfig } from '#src/config/index.js';
 import { Global, Module } from '@nestjs/common';
@@ -8,8 +8,8 @@ import type { LevelWithSilent } from 'pino';
 import type { Options } from 'pino-http';
 
 /**
- * The mixin reads the request context statically because pino is constructed
- * outside the DI container — this is the one place that back door is used.
+ * The mixin stamps every log line with the correlation fields from the current
+ * request context.
  */
 export function createPinoOptions(
   level: LevelWithSilent,
@@ -18,7 +18,7 @@ export function createPinoOptions(
   return {
     level,
     mixin: () => {
-      const ctx = getRequestContextStatic();
+      const ctx = getRequestContext();
       if (!ctx) return {};
       return {
         requestId: ctx.requestId,

@@ -8,7 +8,6 @@ import { AuthModule } from '#src/modules/auth/auth.module.js';
 import { AuthorizationModule } from '#src/modules/authorization/authorization.module.js';
 import { FilesModule } from '#src/modules/files/files.module.js';
 import { HealthModule } from '#src/modules/health/health.module.js';
-import { CommonModule } from '#src/common/common.module.js';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -17,7 +16,6 @@ import { Module } from '@nestjs/common';
     PersistenceModule,
     LoggerModule,
     I18nModule,
-    CommonModule,
     AuthModule,
     HealthModule,
     AuthorizationModule,

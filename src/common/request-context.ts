@@ -1,7 +1,4 @@
 import type { httpConfig, tenantConfig } from '#src/config/index.js';
-import { AppCacheService } from '#src/infrastructure/cache/app-cache.service.js';
-import type { CachePort } from '#src/infrastructure/cache/cache.port.js';
-import { Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -36,98 +33,54 @@ export type RequestContext = {
 
   tenantId?: string;
 
+  /** Per-request memo, the first tier behind `getOrLoad`. */
   cache?: Map<string, unknown>;
 
   headers?: Record<string, string | string[] | undefined>;
   query?: Record<string, string | string[] | undefined>;
   cookies?: Record<string, string>;
 
-  redis?: CachePort;
   user?: AuthenticatedUser;
   session?: AuthenticatedSession;
 };
 
-export type CacheScope = 'request' | 'redis' | 'both';
+const storage = new AsyncLocalStorage<RequestContext>();
 
 /**
- * Low-level storage, based on `AsyncLocalStorage`.
+ * The per-request store, held in `AsyncLocalStorage` and reached through plain
+ * functions rather than an injected port.
+ *
+ * There was a port here, plus an adapter, plus a @Global module to bind them —
+ * five layers over a single ALS instance that is never swapped, and which the
+ * pino mixin had to bypass anyway because it is constructed outside the
+ * container. Guards, interceptors and the exception filter now import these
+ * three functions directly.
  */
-export const requestContextStorage = new AsyncLocalStorage<RequestContext>();
-
-/**
- * Static getter, for the places DI cannot reach (e.g. the pino mixin).
- * Everywhere else, inject `RequestContextStorePort`.
- */
-export function getRequestContextStatic(): RequestContext | undefined {
-  return requestContextStorage.getStore();
+export function getRequestContext(): RequestContext | undefined {
+  return storage.getStore();
 }
 
-/**
- * Mutates the current request store (if present). Does not create a store.
- */
-export function setRequestContextStatic(patch: Partial<RequestContext>) {
-  const store = requestContextStorage.getStore();
+/** Mutates the current store if one is open. Never creates one. */
+export function setRequestContext(patch: Partial<RequestContext>): void {
+  const store = storage.getStore();
   if (store) Object.assign(store, patch);
 }
 
-/**
- * Abstract class rather than an interface so it doubles as the DI token.
- */
-export abstract class RequestContextStorePort {
-  abstract get(): RequestContext | undefined;
-  abstract set(patch: Partial<RequestContext>): void;
-  abstract run<T>(context: RequestContext, fn: () => T): T;
-  abstract getOrLoad<T>(
-    key: string,
-    loader: () => Promise<T>,
-    ttlSeconds?: number,
-    scope?: CacheScope,
-  ): Promise<T>;
-}
-
-@Injectable()
-export class RequestContextStoreAdapter implements RequestContextStorePort {
-  constructor(private readonly appCache: AppCacheService) {}
-
-  get(): RequestContext | undefined {
-    return getRequestContextStatic();
-  }
-
-  set(patch: Partial<RequestContext>): void {
-    setRequestContextStatic(patch);
-  }
-
-  run<T>(context: RequestContext, fn: () => T): T {
-    return requestContextStorage.run(context, fn);
-  }
-
-  async getOrLoad<T>(
-    key: string,
-    loader: () => Promise<T>,
-    ttlSeconds?: number,
-    scope?: CacheScope,
-  ): Promise<T> {
-    const ctx = this.get();
-    return this.appCache.getOrLoad(
-      ctx as RequestContext,
-      key,
-      loader,
-      ttlSeconds,
-      scope,
-    );
-  }
+export function runWithRequestContext<T>(
+  context: RequestContext,
+  fn: () => T,
+): T {
+  return storage.run(context, fn);
 }
 
 /**
- * Opens the per-request store. Registered as a Fastify `onRequest` hook, which
- * is the earliest point every later stage (guards, interceptors, the exception
- * filter, the logger) can rely on.
+ * Opens the store. Registered as a Fastify `onRequest` hook, the earliest point
+ * every later stage — guards, interceptors, the exception filter, the logger —
+ * can rely on it being there.
  */
 export function createRequestContextHook(
   http: ConfigType<typeof httpConfig>,
   tenant: ConfigType<typeof tenantConfig>,
-  contextStore: RequestContextStorePort,
-  redisService?: CachePort,
 ) {
   return function onRequest(
     req: FastifyRequest,
@@ -139,10 +92,9 @@ export function createRequestContextHook(
 
     reply.header(headerName, requestId);
 
-    const tenantHeaderName = tenant.headerName;
-    const tenantId = normalizeHeader(req.headers[tenantHeaderName]);
+    const tenantId = normalizeHeader(req.headers[tenant.headerName]);
 
-    contextStore.run(
+    runWithRequestContext(
       {
         requestId,
         tenantId,
@@ -153,7 +105,6 @@ export function createRequestContextHook(
         path: stripQuery(req.url),
         startTimeMs: Date.now(),
         cache: new Map(),
-        redis: redisService,
       },
       () => done(),
     );
