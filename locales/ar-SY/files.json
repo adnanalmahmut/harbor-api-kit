@@ -4,7 +4,6 @@
     "delete_success": "تم حذف الملف بنجاح",
     "restore_success": "تم استعادة الملف بنجاح",
     "visibility_updated": "تم تحديث خصوصية الملف",
-    "download_link_generated": "تم إنشاء رابط التحميل",
     "meta_retrieved": "تم استرجاع بيانات الملف بنجاح",
     "download_url_retrieved": "تم إنشاء رابط التحميل بنجاح"
   },
@@ -13,7 +12,6 @@
     "invalid_type": "نوع الملف غير صالح: {mimeType}",
     "file_too_large": "حجم الملف كبير جداً (الحد الأقصى: {limit} بايت)",
     "storage_error": "فشلت عملية التخزين",
-    "access_denied": "تم رفض الوصول لهذا الملف",
-    "upload_failed": "فشل رفع الملف"
+    "access_denied": "تم رفض الوصول لهذا الملف"
   }
 }
