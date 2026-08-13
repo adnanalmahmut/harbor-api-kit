@@ -1,12 +1,34 @@
-import type {
-  RateLimiterConsumeParams,
-  RateLimiterConsumeResult,
-  RateLimiterPort,
-} from '#src/infrastructure/rate-limit/rate-limiter.port.js';
 import { Injectable } from '@nestjs/common';
 import crypto from 'node:crypto';
 import { RedisService } from '../cache/redis.service.js';
 
+export interface RateLimiterConsumeParams {
+  bucketKey: string;
+  points: number;
+  durationMs: number;
+}
+
+export interface RateLimiterConsumeResult {
+  count: number;
+  remaining: number;
+  resetAtMs: number;
+  blocked: boolean;
+}
+
+/**
+ * Abstract class rather than an interface so it doubles as the DI token.
+ */
+export abstract class RateLimiterPort {
+  abstract consume(
+    params: RateLimiterConsumeParams,
+  ): Promise<RateLimiterConsumeResult>;
+}
+
+/**
+ * A sliding window kept as a Redis sorted set: one member per request scored by
+ * timestamp, trimmed to the window on every consume. More accurate than a fixed
+ * counter at the window boundary, which is where burst abuse lands.
+ */
 @Injectable()
 export class RedisRateLimiterAdapter implements RateLimiterPort {
   constructor(private readonly redis: RedisService) {}

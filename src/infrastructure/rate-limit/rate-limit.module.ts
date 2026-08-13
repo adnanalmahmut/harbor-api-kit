@@ -2,8 +2,8 @@ import { CacheModule } from '#src/infrastructure/cache/cache.module.js';
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RateLimitInterceptor } from './rate-limit.interceptor.js';
-import { RateLimiterPort } from './rate-limiter.port.js';
-import { RedisRateLimiterAdapter } from './redis-rate-limiter.adapter.js';
+import { RateLimiterPort } from './rate-limit.port.js';
+import { RedisRateLimiterAdapter } from './rate-limit.port.js';
 import { SessionRateLimitInterceptor } from './session-rate-limit.interceptor.js';
 import { UserRateLimitInterceptor } from './user-rate-limit.interceptor.js';
 

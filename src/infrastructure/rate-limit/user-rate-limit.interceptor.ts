@@ -1,6 +1,6 @@
 import { httpConfig } from '#src/config/index.js';
 import { SecurityException } from '#src/common/app-exception.js';
-import { RateLimiterPort } from '#src/infrastructure/rate-limit/rate-limiter.port.js';
+import { RateLimiterPort } from './rate-limit.port.js';
 import {
   Inject,
   Injectable,
@@ -15,7 +15,7 @@ import type { Observable } from 'rxjs';
 import {
   USER_RATE_LIMIT_META_KEY,
   type RateLimitRule,
-} from './rate-limit.types.js';
+} from './rate-limit.decorator.js';
 
 /**
  * User-based rate limiting interceptor.

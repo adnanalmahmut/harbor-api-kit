@@ -1,5 +1,5 @@
 import { ResponseMessage } from '#src/common/response.interceptor.js';
-import { RateLimit } from '#src/infrastructure/rate-limit/rate-limit.decorators.js';
+import { RateLimit } from '#src/infrastructure/rate-limit/rate-limit.decorator.js';
 import { Controller, Get } from '@nestjs/common';
 import { HealthService } from './health.service.js';
 
