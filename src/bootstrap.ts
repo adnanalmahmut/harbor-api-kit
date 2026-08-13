@@ -7,18 +7,18 @@ import {
   parseHttpConfig,
   tenantConfig,
 } from '#src/config/index.js';
-import { RequestContextStorePort } from '#src/common/context/request-context.store.js';
+import { RequestContextStorePort } from '#src/common/request-context.js';
 import { RedisService } from '#src/infrastructure/cache/redis.service.js';
 import type { BetterAuthInstance } from '#src/modules/auth/better-auth/better-auth.js';
 import { BETTER_AUTH } from '#src/modules/auth/better-auth/better-auth.token.js';
-import { createRequestContextHook } from '#src/common/context/request-context.hook.js';
-import { setupApiDocs } from '#src/common/docs/app.docs.js';
-import { GlobalExceptionFilter } from '#src/common/filters/global-exception.filter.js';
-import { RequestIdentityInterceptor } from '#src/common/interceptors/request-identity.interceptor.js';
-import { ResponseInterceptor } from '#src/common/interceptors/response.interceptor.js';
-import { CsrfGuard } from '#src/common/csrf/csrf.guard.js';
-import { setupCors } from '#src/common/setup/app.cors.js';
-import { GlobalValidationPipe } from '#src/common/validation/global-validation-pipe.js';
+import { createRequestContextHook } from '#src/common/request-context.js';
+import { setupApiDocs } from '#src/common/swagger.js';
+import { GlobalExceptionFilter } from '#src/common/global-exception.filter.js';
+import { RequestIdentityInterceptor } from '#src/common/response.interceptor.js';
+import { ResponseInterceptor } from '#src/common/response.interceptor.js';
+import { CsrfGuard } from '#src/common/csrf.guard.js';
+import { setupCors } from '#src/common/cors.js';
+import { GlobalValidationPipe } from '#src/common/validation.pipe.js';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import {

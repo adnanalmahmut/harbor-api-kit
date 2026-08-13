@@ -1,5 +1,5 @@
-import { ApiResponses } from '#src/common/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';
+import { ApiResponses } from '#src/common/api-errors.decorator.js';
+import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { AuthGuard } from '#src/modules/auth/auth.guard.js';
 import { AuthorizationException } from './authorization.exception.js';
 import { AuthorizationService } from './authorization.service.js';

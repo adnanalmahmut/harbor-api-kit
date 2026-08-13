@@ -1,4 +1,4 @@
-import { RequestContextStorePort } from '#src/common/context/request-context.store.js';
+import { RequestContextStorePort } from '#src/common/request-context.js';
 import { AuthCacheKeys } from './auth.cache.js';
 import type { CookieDirective } from './auth.dtos.js';
 import { AuthException } from './auth.exception.js';

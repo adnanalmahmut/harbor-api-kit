@@ -1,5 +1,5 @@
-import { AppException } from '#src/common/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/common/exceptions/error-definitions.js';
+import { AppException } from '#src/common/app-exception.js';
+import { AppErrorCode } from '#src/common/app-exception.js';
 
 /**
  * Errors raised by the application's own auth code — currently only `AuthGuard`.

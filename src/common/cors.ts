@@ -1,5 +1,5 @@
 import type { httpConfig, i18nConfig } from '#src/config/index.js';
-import { AppException } from '#src/common/exceptions/app-exception.js';
+import { AppException } from './app-exception.js';
 import type { ConfigType } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 

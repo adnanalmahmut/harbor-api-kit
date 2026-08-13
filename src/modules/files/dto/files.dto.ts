@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/common/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/common/validation.pipe.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { z } from 'zod';
 

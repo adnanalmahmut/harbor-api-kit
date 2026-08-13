@@ -3,8 +3,8 @@ import {
   createApiError,
   createApiResponseConfig,
   createApiSuccess,
-} from '#src/common/decorators/api-errors.decorator.js';
-import { AppErrorCode } from '#src/common/exceptions/error-definitions.js';
+} from '#src/common/api-errors.decorator.js';
+import { AppErrorCode } from '#src/common/app-exception.js';
 import { HttpStatus } from '@nestjs/common';
 import { DownloadUrlDto, FileResponseDto } from './files.dto.js';
 

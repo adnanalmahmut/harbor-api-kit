@@ -1,0 +1,109 @@
+import { Injectable, type ArgumentMetadata } from '@nestjs/common';
+import {
+  createZodDto,
+  ZodValidationException,
+  ZodValidationPipe,
+} from 'nestjs-zod';
+import type { ZodError } from 'zod';
+import { z } from 'zod';
+import { normalizeFieldPath } from '#src/infrastructure/i18n/i18n.utils.js';
+import { ERROR_DEFINITIONS, ValidationError } from './app-exception.js';
+
+type AnySchema = z.ZodType<any, any, any>;
+
+function isZodObject(schema: AnySchema): schema is z.ZodObject<any, any> {
+  return schema instanceof (z as any).ZodObject;
+}
+
+/**
+ * `createZodDto` with unknown keys rejected. Plain `.strict()` at the schema
+ * site is lost the moment a schema is wrapped in `.refine()`, which is why this
+ * applies it to the object before the DTO is built.
+ */
+export function createStrictZodDto<TSchema extends AnySchema>(schema: TSchema) {
+  const strictSchema = isZodObject(schema)
+    ? ((schema as any).strict() as unknown as TSchema)
+    : schema;
+
+  return createZodDto(strictSchema as any);
+}
+
+function isZodError(x: unknown): x is ZodError<unknown> {
+  return (
+    typeof x === 'object' &&
+    x !== null &&
+    'issues' in x &&
+    Array.isArray((x as any).issues)
+  );
+}
+
+/**
+ * Translates Zod's issues into the app's `{ path, message }` shape, where every
+ * message is an i18n key the exception filter resolves against the request
+ * locale.
+ */
+@Injectable()
+export class GlobalValidationPipe extends ZodValidationPipe {
+  async transform(value: unknown, metadata: ArgumentMetadata) {
+    try {
+      return await super.transform(value, metadata);
+    } catch (err: unknown) {
+      if (err instanceof ZodValidationException) {
+        const z = err.getZodError();
+
+        if (isZodError(z)) {
+          const formattedIssues = z.issues.flatMap((issue) => {
+            if (issue.code === 'unrecognized_keys' && 'keys' in issue) {
+              const keys = (issue as any).keys as string[];
+              return keys.map((k) => ({
+                path: k,
+                message: 'validation.mixed.unrecognized_key',
+              }));
+            }
+
+            let messageKey = `validation.${issue.code}`;
+
+            const issueData = issue as any;
+
+            if (issueData.code === 'invalid_string') {
+              if (typeof issueData.validation === 'string') {
+                messageKey = `validation.string.${issueData.validation}`;
+              }
+            } else if (issue.code === 'too_small' || issue.code === 'too_big') {
+              messageKey = `validation.${issueData.type}.${issue.code}`;
+            }
+
+            // If the message is already an i18n key (contains a dot), use it
+            const finalMessage = issue.message.includes('.')
+              ? issue.message
+              : messageKey;
+
+            return [
+              {
+                path: normalizeFieldPath(issue.path),
+                message: finalMessage,
+              },
+            ];
+          });
+
+          throw new ValidationError(
+            ERROR_DEFINITIONS.VALIDATION_ERROR.messageKey,
+            formattedIssues,
+          );
+        }
+
+        throw new ValidationError(
+          ERROR_DEFINITIONS.VALIDATION_ERROR.messageKey,
+          [
+            {
+              path: '',
+              message: ERROR_DEFINITIONS.VALIDATION_ERROR.messageKey,
+            },
+          ],
+        );
+      }
+
+      throw err;
+    }
+  }
+}
