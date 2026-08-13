@@ -6,37 +6,62 @@ import {
   DEFAULT_ROLE,
   ROLE_GRANTS,
 } from '#src/modules/authorization/permissions.catalog.js';
-import type { AuthEmailSenderPort } from '../auth.ports.js';
-import { readLocaleSource } from './better-auth.helpers.js';
+import type {
+  AuthEmailLocaleSource,
+  AuthEmailSenderPort,
+} from './auth.ports.js';
 import type { ConfigType } from '@nestjs/config';
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { admin, openAPI, organization } from 'better-auth/plugins';
 
-/** Better Auth only needs the sending side of the auth module's email port. */
-export type BetterAuthEmailHooks = AuthEmailSenderPort;
+/**
+ * The Better Auth instance is a plain object built by a factory, not a class,
+ * so it needs an explicit injection token — the one place in the application
+ * where a symbol token is unavoidable. Everything else injects by class.
+ */
+export const BETTER_AUTH = Symbol('BETTER_AUTH');
 
-export type BetterAuthLogger = {
+/**
+ * Snapshots the language-relevant parts of the request Better Auth hands to its
+ * email callbacks, so the sender receives them as an explicit argument instead
+ * of reaching for ambient request state.
+ */
+function readLocaleSource(request?: Request): AuthEmailLocaleSource {
+  if (!request) return {};
+
+  const headers = Object.fromEntries(request.headers.entries());
+  let query: Record<string, string> = {};
+  try {
+    query = Object.fromEntries(new URL(request.url).searchParams.entries());
+  } catch {
+    // Relative or malformed URLs carry no query hints; headers still apply.
+  }
+
+  return { headers, query };
+}
+
+type BetterAuthLogger = {
   error(value: unknown, message?: string): void;
   warn(value: unknown, message?: string): void;
   info(value: unknown, message?: string): void;
   debug(value: unknown, message?: string): void;
 };
 
-export const authAccessControl = createAccessControl(AUTHORIZATION_STATEMENTS);
+const authAccessControl = createAccessControl(AUTHORIZATION_STATEMENTS);
 
-export const betterAuthRoles = {
+const betterAuthRoles = {
   user: authAccessControl.newRole(ROLE_GRANTS.user),
   admin: authAccessControl.newRole(ROLE_GRANTS.admin),
 };
 
-export function createAuthFeatures(
+export function createBetterAuth(
   prisma: PrismaService,
   authConfiguration: ConfigType<typeof authConfig>,
   appConfiguration: ConfigType<typeof appConfig>,
   httpConfiguration: ConfigType<typeof httpConfig>,
-  emailHooks: BetterAuthEmailHooks,
+  emailHooks: AuthEmailSenderPort,
   logger: BetterAuthLogger,
 ) {
   const {
@@ -62,7 +87,7 @@ export function createAuthFeatures(
   const authUrl = new URL(betterAuthUrl);
   const basePath = authUrl.pathname.replace(/\/$/, '') || '/api/auth';
 
-  return {
+  const options = {
     baseURL: authUrl.origin,
     basePath,
     secret: betterAuthSecret,
@@ -220,13 +245,8 @@ export function createAuthFeatures(
       },
     },
   } satisfies BetterAuthOptions;
-}
 
-export function createBetterAuth(
-  ...dependencies: Parameters<typeof createAuthFeatures>
-) {
-  const authFeatures = createAuthFeatures(...dependencies);
-  return betterAuth(authFeatures);
+  return betterAuth(options);
 }
 
 export type BetterAuthInstance = ReturnType<typeof createBetterAuth>;

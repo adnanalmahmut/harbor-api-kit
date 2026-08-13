@@ -7,8 +7,11 @@ import {
   parseHttpConfig,
   tenantConfig,
 } from '#src/config/index.js';
-import type { BetterAuthInstance } from '#src/modules/auth/better-auth/better-auth.js';
-import { BETTER_AUTH } from '#src/modules/auth/better-auth/better-auth.token.js';
+import {
+  BETTER_AUTH,
+  type BetterAuthInstance,
+} from '#src/modules/auth/better-auth.js';
+
 import { createRequestContextHook } from '#src/common/request-context.js';
 import { setupApiDocs } from '#src/common/swagger.js';
 import { GlobalExceptionFilter } from '#src/common/global-exception.filter.js';

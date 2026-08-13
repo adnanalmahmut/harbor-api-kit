@@ -174,7 +174,7 @@ export default [
   {
     files: [
       'src/modules/auth/auth.module.ts',
-      'src/modules/auth/better-auth/better-auth.ts',
+      'src/modules/auth/better-auth.ts',
     ],
     rules: {
       'no-restricted-imports': [
