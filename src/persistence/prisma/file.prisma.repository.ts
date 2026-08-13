@@ -1,4 +1,4 @@
-import { FileEntity } from '#src/modules/files/entities/file.entity.js';
+import { FileEntity } from '#src/modules/files/file.entity.js';
 import { FilesException } from '#src/modules/files/files.exception.js';
 import {
   type CreateFileProps,

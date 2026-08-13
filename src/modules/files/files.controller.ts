@@ -3,8 +3,8 @@ import { ApiResponses } from '#src/common/api-errors.decorator.js';
 import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { AuthGuard } from '#src/modules/auth/auth.guard.js';
 import { FilesException } from './files.exception.js';
-import { FileResponseMapper } from './files.mapper.js';
-import { FilesService } from './files.service.js';
+import { toFileResponse } from './files.mapper.js';
+import { FilesService, type FilesActor } from './files.service.js';
 import { Permissions } from '#src/modules/authorization/decorators/permissions.decorator.js';
 import { PermissionsGuard } from '#src/modules/authorization/guards/permissions.guard.js';
 import type { MultipartFile } from '@fastify/multipart';
@@ -30,14 +30,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
-import { FILES_RESPONSES } from './dto/api-responses.examples.js';
 import {
   DownloadUrlDto,
   FileResponseDto,
+  FILES_RESPONSES,
   SetVisibilityDto,
   UploadFileDto,
   UploadFilesDto,
-} from './dto/files.dto.js';
+} from './files.dto.js';
 
 interface FastifyMultipartRequest extends FastifyRequest {
   isMultipart: () => boolean;
@@ -48,6 +48,21 @@ interface RequestWithUser extends FastifyRequest {
   user?: {
     id: string;
     roles?: string[];
+  };
+}
+
+/**
+ * `AuthGuard` has already populated `req.user` on every route below, but the
+ * type is optional, so the check stays — once, here, instead of copied into
+ * each handler.
+ */
+function resolveActor(req: RequestWithUser): FilesActor {
+  const userId = req.user?.id;
+  if (!userId) throw FilesException.accessDenied();
+
+  return {
+    actorUserId: userId,
+    actorIsAdmin: req.user?.roles?.includes('admin') ?? false,
   };
 }
 
@@ -104,7 +119,7 @@ export class FilesController {
       isPublic,
     });
 
-    return FileResponseMapper.map(file, this.config.publicUrl);
+    return toFileResponse(file, this.config.publicUrl);
   }
 
   @UseGuards(AuthGuard, PermissionsGuard)
@@ -150,7 +165,7 @@ export class FilesController {
     }
 
     const publicUrl = this.config.publicUrl;
-    return files.map((file) => FileResponseMapper.map(file, publicUrl));
+    return files.map((file) => toFileResponse(file, publicUrl));
   }
 
   @Get(':id')
@@ -163,17 +178,10 @@ export class FilesController {
     @Param('id') id: string,
     @Req() req: RequestWithUser,
   ): Promise<FileResponseDto> {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw FilesException.accessDenied();
-    }
-    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+    const actor = resolveActor(req);
 
-    const file = await this.filesService.getMeta(id, {
-      actorUserId: userId,
-      actorIsAdmin: isAdmin,
-    });
-    return FileResponseMapper.map(file, this.config.publicUrl);
+    const file = await this.filesService.getMeta(id, actor);
+    return toFileResponse(file, this.config.publicUrl);
   }
 
   @Get(':id/download')
@@ -186,16 +194,9 @@ export class FilesController {
     @Param('id') id: string,
     @Req() req: RequestWithUser,
   ): Promise<DownloadUrlDto> {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw FilesException.accessDenied();
-    }
-    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+    const actor = resolveActor(req);
 
-    const result = await this.filesService.getDownloadUrl(id, {
-      actorUserId: userId,
-      actorIsAdmin: isAdmin,
-    });
+    const result = await this.filesService.getDownloadUrl(id, actor);
     return { url: result.url, expiresIn: result.expiresIn };
   }
 
@@ -208,16 +209,9 @@ export class FilesController {
     @Req() req: RequestWithUser,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw FilesException.accessDenied();
-    }
-    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+    const actor = resolveActor(req);
 
-    const result = await this.filesService.stream(id, {
-      actorUserId: userId,
-      actorIsAdmin: isAdmin,
-    });
+    const result = await this.filesService.stream(id, actor);
 
     reply.header('Content-Type', result.mimeType || 'application/octet-stream');
     reply.header(
@@ -242,16 +236,13 @@ export class FilesController {
     @Body() body: SetVisibilityDto,
     @Req() req: RequestWithUser,
   ): Promise<FileResponseDto> {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw FilesException.accessDenied();
-    }
-    const isAdmin = req.user?.roles?.includes('admin') ?? false;
+    const actor = resolveActor(req);
 
-    const file = await this.filesService.setVisibility(id, body.isPublic, {
-      actorUserId: userId,
-      actorIsAdmin: isAdmin,
-    });
-    return FileResponseMapper.map(file, this.config.publicUrl);
+    const file = await this.filesService.setVisibility(
+      id,
+      body.isPublic,
+      actor,
+    );
+    return toFileResponse(file, this.config.publicUrl);
   }
 }
