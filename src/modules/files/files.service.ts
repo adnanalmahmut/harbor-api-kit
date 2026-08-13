@@ -4,11 +4,10 @@ import { Readable } from 'node:stream';
 import { storageConfig } from '#src/config/index.js';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import type { FileEntity } from './entities/file.entity.js';
-import { StorageDriver } from './entities/storage-driver.enum.js';
+import { StorageDriver, type FileEntity } from './file.entity.js';
 import { FilesException } from './files.exception.js';
+import { normalizeDownloadUrl, normalizePublicUrl } from './files.mapper.js';
 import { FileRepository } from './files.repository.js';
-import { normalizeDownloadUrl, normalizePublicUrl } from './files.urls.js';
 import {
   FileValidatorPort,
   StorageDriverPort,

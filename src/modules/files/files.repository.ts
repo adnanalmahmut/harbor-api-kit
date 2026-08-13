@@ -1,5 +1,4 @@
-import type { FileEntity } from './entities/file.entity.js';
-import type { StorageDriver } from './entities/storage-driver.enum.js';
+import type { FileEntity, StorageDriver } from './file.entity.js';
 
 export interface CreateFileProps {
   fileName: string;

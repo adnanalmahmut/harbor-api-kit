@@ -1,4 +1,13 @@
-import type { StorageDriver } from './storage-driver.enum.js';
+/**
+ * Where the bytes actually live. Mirrors the `StorageDriver` enum in the Prisma
+ * schema — a value stored here must be one the database accepts.
+ */
+export enum StorageDriver {
+  LOCAL = 'LOCAL',
+  S3 = 'S3',
+  S3_COMPAT = 'S3_COMPAT',
+  R2 = 'R2',
+}
 
 export class FileEntity {
   constructor(
