@@ -157,6 +157,8 @@ enum GrantEffect {
 enum StorageDriver {
   S3_COMPAT
   LOCAL
+  S3
+  R2
 }
 
 model File {
