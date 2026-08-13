@@ -2,10 +2,10 @@ import { GrantEffect } from '#src/generated/prisma/enums.js';
 import { AuthorizationException } from '#src/modules/authorization/authorization.exception.js';
 import {
   AuthorizationRepository,
+  UserPermissionOverride,
   type PermissionOverrideInput,
 } from '#src/modules/authorization/authorization.repository.js';
 import { PermissionKeyVO } from '#src/modules/authorization/permission-key.vo.js';
-import { UserPermissionOverride } from '#src/modules/authorization/user-permission-override.js';
 import { Injectable } from '@nestjs/common';
 import { isRecordNotFound } from './prisma-error.mapper.js';
 import { PrismaTransactionManager } from './prisma-transaction.manager.js';

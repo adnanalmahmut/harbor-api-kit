@@ -1,21 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { z } from 'zod';
 import {
   AuthorizationRepository,
   type PermissionOverrideInput,
 } from './authorization.repository.js';
 import { EffectivePermissionsService } from './effective-permissions.service.js';
-import { isPermissionKey } from './permissions.catalog.js';
-
-export const SetUserPermissionOverrideSchema = z.object({
-  permissionKey: z.string().refine(isPermissionKey),
-  effect: z.enum(['ALLOW', 'DENY']),
-  note: z.string().max(500).optional(),
-});
 
 export type SetUserPermissionOverrideCommand = {
   userId: string;
-} & z.infer<typeof SetUserPermissionOverrideSchema>;
+  permissionKey: string;
+  effect: 'ALLOW' | 'DENY';
+  note?: string;
+};
 
 export type RemoveUserPermissionOverrideCommand = {
   userId: string;

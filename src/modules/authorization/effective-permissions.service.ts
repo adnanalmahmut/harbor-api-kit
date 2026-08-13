@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { authorizationCacheKeys } from './authorization.cache-keys.js';
 import { AuthorizationRepository } from './authorization.repository.js';
-import { PermissionCalculator } from './permission-calculator.js';
 import { PermissionKeyVO } from './permission-key.vo.js';
 import {
   parseStoredRoles,
@@ -17,6 +16,22 @@ export type EffectivePermissions = {
   deny: Set<string>;
   has: (key: string) => boolean;
 };
+
+/**
+ * Role grants plus overrides, resolved. DENY always wins: it is applied last
+ * and removes the key regardless of which role granted it.
+ */
+export function resolvePermissions(
+  rolePermissions: string[],
+  allowOverrides: string[],
+  denyOverrides: string[],
+): string[] {
+  const allowed = new Set(rolePermissions);
+  allowOverrides.forEach((permission) => allowed.add(permission));
+  denyOverrides.forEach((permission) => allowed.delete(permission));
+
+  return Array.from(allowed).sort();
+}
 
 export function checkPermission(
   key: string,
@@ -114,7 +129,7 @@ export class EffectivePermissionsService {
 
     const allow = overrides.allow.map((item) => item.key.toString());
     const deny = overrides.deny.map((item) => item.key.toString());
-    const effective = PermissionCalculator.calculate(
+    const effective = resolvePermissions(
       permissionsForRoles(roles),
       allow,
       deny,

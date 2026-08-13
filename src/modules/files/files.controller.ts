@@ -5,8 +5,10 @@ import { AuthGuard } from '#src/modules/auth/auth.guard.js';
 import { FilesException } from './files.exception.js';
 import { toFileResponse } from './files.mapper.js';
 import { FilesService, type FilesActor } from './files.service.js';
-import { Permissions } from '#src/modules/authorization/decorators/permissions.decorator.js';
-import { PermissionsGuard } from '#src/modules/authorization/guards/permissions.guard.js';
+import {
+  Permissions,
+  PermissionsGuard,
+} from '#src/modules/authorization/permissions.guard.js';
 import type { MultipartFile } from '@fastify/multipart';
 import {
   Body,

@@ -3,10 +3,12 @@ import { jest } from '@jest/globals';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
 import { authorizationCacheKeys } from './authorization.cache-keys.js';
-import { AuthorizationRepository } from './authorization.repository.js';
+import {
+  AuthorizationRepository,
+  UserPermissionOverride,
+} from './authorization.repository.js';
 import { EffectivePermissionsService } from './effective-permissions.service.js';
 import { PermissionKeyVO } from './permission-key.vo.js';
-import { UserPermissionOverride } from './user-permission-override.js';
 
 describe('EffectivePermissionsService', () => {
   let service: EffectivePermissionsService;

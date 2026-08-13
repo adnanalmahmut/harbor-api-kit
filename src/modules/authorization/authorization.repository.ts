@@ -1,4 +1,13 @@
-import type { UserPermissionOverride } from './user-permission-override.js';
+import type { PermissionKeyVO } from './permission-key.vo.js';
+
+/** One stored ALLOW/DENY row. Produced and consumed only by the port below. */
+export class UserPermissionOverride {
+  constructor(
+    readonly key: PermissionKeyVO,
+    readonly effect: 'ALLOW' | 'DENY',
+    readonly note?: string,
+  ) {}
+}
 
 export type PermissionOverrideInput = {
   permissionKey: string;
