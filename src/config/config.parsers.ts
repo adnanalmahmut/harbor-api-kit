@@ -1,8 +1,4 @@
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '#src/common/locales.js';
 import { z } from 'zod';
-
-export const supportedLocaleSchema = z.enum(SUPPORTED_LOCALES);
-export const defaultLocale = DEFAULT_LOCALE;
 
 export const isOrigin = (value: string): boolean => {
   try {

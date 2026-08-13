@@ -1,4 +1,5 @@
-import { resolveSupportedLocale, SUPPORTED_LOCALES } from './locales.js';
+import { SUPPORTED_LOCALES } from '#src/config/index.js';
+import { resolveSupportedLocale } from './i18n.utils.js';
 
 describe('resolveSupportedLocale', () => {
   it.each(SUPPORTED_LOCALES)(
