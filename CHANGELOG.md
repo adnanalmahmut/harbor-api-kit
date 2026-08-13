@@ -6,6 +6,49 @@ This project follows a lightweight changelog style inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Changed — session storage
+
+- **Redis is now Better Auth's `secondaryStorage`, replacing the application's
+  own session cache.** Reading a session on a guarded request is a Redis `GET`
+  instead of a Postgres query, and Better Auth owns the whole lifecycle: it
+  writes the session under its token, maintains its own
+  `active-sessions-<userId>` index, and purges both on revocation.
+  - **Removed:** the `getOrLoad` session cache inside `AuthGuard`;
+    `SessionTrackerPort` and `RedisSessionTrackerAdapter`, which reimplemented
+    the per-user session index Better Auth already maintains; `auth.cache-keys.ts`;
+    and the `invalidateUserSessions` call in the Better Auth route registrar.
+  - **Removed:** `AuthConfigPort` and `AuthConfigAdapter` — an abstract port with
+    a single implementation whose whole job was reading two values that
+    `authConfig` already exposes. `AuthGuard` injects `authConfig` directly. With
+    the other two adapters gone, `auth.adapters.ts` became
+    `auth-email.adapter.ts`.
+  - `session.storeSessionInDatabase: true` is kept, which makes Redis a **cache
+    rather than the record**: `findSession` falls back to Postgres when a key is
+    absent, so an eviction or a Redis restart does not sign anyone out.
+    `preserveSessionInDatabase` is deliberately not set — it would switch that
+    fallback off.
+  - Better Auth's keys are namespaced `ba:` under the application's Redis prefix.
+
+- **`/admin/set-role` now revokes the target user's sessions.** A session carries
+  a snapshot of the user and Better Auth's rolling refresh copies it forward
+  rather than re-reading the row, so a new role would otherwise never reach an
+  open session. `/admin/update-user` revokes only when the payload carries a
+  `role`; a rename does not sign anyone out. `ban-user` and `remove-user` are
+  untouched — Better Auth ends sessions on those routes itself.
+  **This is a behaviour change:** previously a role change silently refreshed the
+  session; now the user re-authenticates. Per-user permission overrides are
+  unaffected either way — `EffectivePermissionsService` reads from Postgres
+  behind a version key.
+
+- **Fixed:** Better Auth's own rate limiter was storing counters in per-process
+  memory, so its limits were per-instance and reset on every restart. Sharing the
+  secondary storage moves them to Redis, where they are correct across instances.
+
+- Test-harness changes follow from the snapshot semantics, not from a defect:
+  `AuthHelper.setupAdmin` now signs in *after* promoting the user, and the
+  change-email test signs in after marking the address verified. Both previously
+  wrote straight to Postgres and relied on the session re-reading the row.
+
 ### Added
 
 - **AWS S3 and Cloudflare R2 are recorded as distinct storage drivers.** The
