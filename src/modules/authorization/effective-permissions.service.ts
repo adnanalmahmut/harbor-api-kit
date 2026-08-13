@@ -1,5 +1,5 @@
 import { RequestContextStorePort } from '#src/common/request-context.js';
-import { CacheManagerPort } from '#src/infrastructure/cache/cache-manager.port.js';
+import { CachePort } from '#src/infrastructure/cache/cache.port.js';
 import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { authorizationCacheKeys } from './authorization.cache-keys.js';
@@ -55,7 +55,7 @@ type CachedEffectivePermissions = {
 export class EffectivePermissionsService {
   constructor(
     private readonly authorizationRepo: AuthorizationRepository,
-    private readonly cache: CacheManagerPort,
+    private readonly cache: CachePort,
     private readonly logger: PinoLogger,
     private readonly contextStore: RequestContextStorePort,
   ) {
