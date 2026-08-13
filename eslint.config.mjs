@@ -5,29 +5,50 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /**
- * @param {Array<{name: string, message: string}>} paths
+ * Boundary enforcement for the Nest-standard layout.
+ *
+ * The old config encoded a four-layer hexagonal structure with eleven
+ * per-layer `no-restricted-imports` blocks. The current structure needs far
+ * less: controllers, services and repositories are distinguished by file name,
+ * not by directory, so the only boundaries worth machine-enforcing are the
+ * ones a reviewer would actually miss.
  */
-function zipPaths(paths) {
-  return paths;
-}
 
+/** Rule 1 — the database library is confined to `src/persistence/**`. */
 const prismaRestricted = {
   paths: [
     {
       name: '@prisma/client',
       message:
-        'Prisma must be isolated inside infrastructure and repositories only.',
+        'Prisma is confined to src/persistence/**. Depend on the feature repository (<feature>.repository.ts) instead.',
     },
   ],
   patterns: [
     {
       group: ['**/generated/prisma/**', '#src/generated/prisma/**'],
       message:
-        'Prisma generated types must be isolated inside infrastructure and repositories only.',
+        'Prisma generated types are confined to src/persistence/**. A repository port must not expose them — see docs/persistence.md.',
     },
   ],
 };
 
+/**
+ * Rule 2 — the concrete adapters are private to the persistence layer.
+ *
+ * `#src/persistence/transaction.manager.js` stays importable: it is the public
+ * port a service uses to compose writes atomically.
+ */
+const persistenceInternalsRestricted = {
+  patterns: [
+    {
+      group: ['#src/persistence/prisma/**', '#src/persistence/persistence.module.js'],
+      message:
+        'Persistence adapters are private. Inject the abstract repository, or TransactionManager from #src/persistence/transaction.manager.js.',
+    },
+  ],
+};
+
+/** Rule 3 — DTO validation is Zod, everywhere. */
 const classValidatorRestricted = {
   paths: [
     {
@@ -41,113 +62,32 @@ const classValidatorRestricted = {
   ],
 };
 
-const nestJsRestricted = {
+/**
+ * Rule 4 — another module's repository is not a public surface. Cross-module
+ * collaboration goes through the exported service or guard.
+ */
+const foreignRepositoryRestricted = {
   patterns: [
     {
-      group: ['@nestjs/*', '@nestjs/**'],
-      message: 'This layer must be framework-agnostic (no NestJS).',
-    },
-  ],
-};
-
-const infrastructureRestricted = {
-  patterns: [
-    {
-      group: [
-        '#src/infrastructure/**',
-        '#src/modules/**/infrastructure/**',
-        '**/infrastructure/**',
-      ],
-      message: 'Dependence on infrastructure is prohibited in this layer.',
-    },
-  ],
-};
-
-const presentationRestricted = {
-  patterns: [
-    {
-      group: [
-        '#src/modules/**/presentation/**',
-        '#src/modules/**/interfaces/**',
-        '**/presentation/**',
-        '**/interfaces/**',
-      ],
-      message: 'Dependence on presentation/interfaces is prohibited.',
-    },
-  ],
-};
-
-const applicationRestricted = {
-  patterns: [
-    {
-      group: ['#src/modules/**/application/**', '**/application/**'],
+      group: ['#src/modules/*/*.repository.js'],
       message:
-        'Dependence on application layer is prohibited (except for specific flows).',
+        "Do not depend on another module's repository. Inject that module's service, which it exports from its @Module.",
     },
   ],
 };
 
-const domainRestricted = {
-  patterns: [
-    {
-      group: ['#src/modules/**/domain/**', '**/domain/**'],
-      message: 'Dependence on domain is prohibited in this layer.',
-    },
-  ],
-};
-
+/** Direct cache access belongs behind CacheManagerPort. */
 const redisRestricted = {
   paths: [
     {
       name: 'ioredis',
-      message: 'Direct Redis access is prohibited in this layer.',
+      message:
+        'Direct Redis access belongs in src/infrastructure/cache. Inject CacheManagerPort or RedisService.',
     },
     {
       name: 'redis',
-      message: 'Direct Redis access is prohibited in this layer.',
-    },
-  ],
-};
-
-const i18nRestricted = {
-  paths: [
-    {
-      name: 'nestjs-i18n',
-      message: 'i18n providers should not be imported in this layer.',
-    },
-  ],
-};
-
-// Cross-module public API enforcement:
-// Deep imports into another module's layers are forbidden.
-// Consumers MUST use the barrel (#src/modules/<feature>/index.js) or the
-// module class file (#src/modules/<feature>/<feature>.module.js) directly.
-// This variable is merged into every layer config so it survives flat-config overrides.
-const crossModuleDeepRestricted = {
-  patterns: [
-    {
-      group: [
-        '#src/modules/*/domain/*',
-        '#src/modules/*/domain/**',
-        '#src/modules/*/application/*',
-        '#src/modules/*/application/**',
-        '#src/modules/*/infrastructure/*',
-        '#src/modules/*/infrastructure/**',
-        '#src/modules/*/presentation/*',
-        '#src/modules/*/presentation/**',
-      ],
       message:
-        'Cross-module deep imports are forbidden. Import from the module barrel (#src/modules/<feature>/index.js) instead.',
-    },
-  ],
-};
-
-const contextRestricted = {
-  patterns: [
-    {
-      group: ['#src/infrastructure/context/**', '**/infrastructure/context/**'],
-      message:
-        'Request context implementation details are restricted from this layer.',
+        'Direct Redis access belongs in src/infrastructure/cache. Inject CacheManagerPort or RedisService.',
     },
   ],
 };
@@ -178,273 +118,72 @@ export default [
       },
     },
   },
-  // Global rules
+  // Application-wide boundaries.
   {
     files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            ...prismaRestricted.paths,
+            ...classValidatorRestricted.paths,
+            ...redisRestricted.paths,
+          ],
+          patterns: [
+            ...prismaRestricted.patterns,
+            ...persistenceInternalsRestricted.patterns,
+            ...foreignRepositoryRestricted.patterns,
+          ],
+        },
+      ],
+    },
+  },
+  // The persistence layer: Prisma is allowed here and nowhere else. Repository
+  // ports and module exceptions are imported from the features they serve.
+  {
+    files: ['src/persistence/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [...classValidatorRestricted.paths],
-          patterns: [...crossModuleDeepRestricted.patterns],
+          patterns: [],
         },
       ],
     },
   },
-  // Default Prisma Isolation (overridden in specific layers if allowed)
+  // The cache capability owns the Redis client.
   {
-    files: ['src/**/*.ts'],
-    ignores: [
-      'src/infrastructure/**/*.ts',
-      'src/modules/**/infrastructure/**/*.ts',
-      'src/core/db/prisma/**/*.ts',
-    ],
+    files: ['src/infrastructure/cache/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
-          paths: [...prismaRestricted.paths],
+          paths: [...prismaRestricted.paths, ...classValidatorRestricted.paths],
           patterns: [
             ...prismaRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
+            ...persistenceInternalsRestricted.patterns,
           ],
         },
       ],
     },
   },
-  // Domain Layer
-  {
-    files: ['src/modules/**/domain/**/*.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            ...prismaRestricted.paths,
-            ...zipPaths(classValidatorRestricted.paths),
-            ...redisRestricted.paths,
-            ...i18nRestricted.paths,
-          ],
-          patterns: [
-            ...prismaRestricted.patterns,
-            ...nestJsRestricted.patterns,
-            ...infrastructureRestricted.patterns,
-            ...presentationRestricted.patterns,
-            ...applicationRestricted.patterns,
-            ...contextRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Application Layer
-  {
-    files: ['src/modules/**/application/**/*.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            ...prismaRestricted.paths,
-            ...classValidatorRestricted.paths,
-            ...redisRestricted.paths,
-            ...i18nRestricted.paths,
-          ],
-          patterns: [
-            ...prismaRestricted.patterns,
-            ...nestJsRestricted.patterns,
-            ...infrastructureRestricted.patterns,
-            ...presentationRestricted.patterns,
-            ...contextRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Presentation + Interfaces Layer
+  // Better Auth ships its own Prisma adapter: an accepted, documented
+  // exception to rule 1, scoped to the two files that wire it.
   {
     files: [
-      'src/modules/**/presentation/**/*.ts',
-      'src/modules/**/interfaces/**/*.ts',
+      'src/modules/auth/auth.module.ts',
+      'src/modules/auth/better-auth/better-auth.ts',
     ],
     rules: {
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            ...prismaRestricted.paths,
-            ...classValidatorRestricted.paths,
-            ...redisRestricted.paths,
-          ],
+          paths: [...classValidatorRestricted.paths],
           patterns: [
             ...prismaRestricted.patterns,
-            {
-              group: [
-                '#src/infrastructure',
-                '#src/infrastructure/**',
-                '#src/modules/*/infrastructure',
-                '#src/modules/*/infrastructure/**',
-                '#src/core/infrastructure',
-                '#src/core/infrastructure/**',
-                '!#src/core/infrastructure/logger',
-                '!#src/core/infrastructure/logger/**',
-                '!#src/core/infrastructure/rate-limit/rate-limiter.module',
-                '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
-              ],
-              message:
-                'Dependence on core infrastructure is prohibited in Presentation except for logger wiring and the RateLimiterModule class used to wire its port. Import configuration from #src/config/index.js.',
-            },
-            {
-              group: [
-                '#src/core',
-                '#src/core/index',
-                '#src/core/index.js',
-              ],
-              message:
-                'Do not import the top-level core barrel from Presentation. Import from the specific layer barrel (e.g., #src/core/domain/index.js, #src/core/presentation/index.js) instead.',
-            },
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Infrastructure Layer
-  {
-    files: [
-      'src/infrastructure/**/*.ts',
-      'src/modules/**/infrastructure/**/*.ts',
-    ],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [...classValidatorRestricted.paths], // Prisma allowed
-          patterns: [
-            ...presentationRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Core Layer: Domain
-  {
-    files: ['src/core/domain/**/*.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            ...prismaRestricted.paths,
-            ...redisRestricted.paths,
-            ...i18nRestricted.paths,
-          ],
-          patterns: [
-            ...prismaRestricted.patterns,
-            ...nestJsRestricted.patterns,
-            ...infrastructureRestricted.patterns,
-            ...presentationRestricted.patterns,
-            ...applicationRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Core Layer: Application
-  {
-    files: ['src/core/application/**/*.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            ...prismaRestricted.paths,
-            ...redisRestricted.paths,
-            ...i18nRestricted.paths,
-          ],
-          patterns: [
-            ...prismaRestricted.patterns,
-            ...nestJsRestricted.patterns,
-            ...infrastructureRestricted.patterns,
-            ...presentationRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Core Layer: Infrastructure
-  // Exception: redis.keys.ts is exempt from cross-module deep restrictions
-  // because it aggregates cache-key constants (circular barrel dep if via barrel).
-  {
-    files: ['src/core/infrastructure/**/*.ts'],
-    ignores: ['src/core/infrastructure/redis/redis.keys.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [], // Allows prisma/redis here
-          patterns: [
-            ...presentationRestricted.patterns,
-            ...crossModuleDeepRestricted.patterns,
-          ],
-        },
-      ],
-    },
-  },
-  // Core Layer: Infrastructure — redis.keys.ts exception (no cross-module restriction)
-  {
-    files: ['src/core/infrastructure/redis/redis.keys.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [],
-          patterns: [...presentationRestricted.patterns],
-        },
-      ],
-    },
-  },
-  // Core Layer: Presentation
-  {
-    files: ['src/core/presentation/**/*.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [...prismaRestricted.paths, ...redisRestricted.paths],
-          patterns: [
-            ...prismaRestricted.patterns,
-            {
-              group: [
-                '#src/infrastructure',
-                '#src/infrastructure/**',
-                '#src/modules/*/infrastructure',
-                '#src/modules/*/infrastructure/**',
-                '#src/core/infrastructure',
-                '#src/core/infrastructure/**',
-                '!#src/core/infrastructure/logger',
-                '!#src/core/infrastructure/logger/**',
-                '!#src/core/infrastructure/rate-limit/rate-limiter.module',
-                '!#src/core/infrastructure/rate-limit/rate-limiter.module.js',
-              ],
-              message:
-                'Dependence on core infrastructure is prohibited in Presentation except for logger wiring and the RateLimiterModule class used to wire its port. Import configuration from #src/config/index.js.',
-            },
-            {
-              group: [
-                '#src/core',
-                '#src/core/index',
-                '#src/core/index.js',
-              ],
-              message:
-                'Do not import the top-level core barrel from Presentation. Import from the specific layer barrel (e.g., #src/core/domain/index.js, #src/core/presentation/index.js) instead.',
-            },
-            ...crossModuleDeepRestricted.patterns,
+            ...foreignRepositoryRestricted.patterns,
           ],
         },
       ],

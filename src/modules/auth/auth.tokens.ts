@@ -1,5 +1,0 @@
-export const AUTH_TOKENS = {
-  BETTER_AUTH: Symbol('AUTH.BETTER_AUTH'),
-  AUTH_CONFIG: Symbol('AUTH_CONFIG'),
-  SESSION_TRACKER: Symbol('SESSION_TRACKER'),
-} as const;

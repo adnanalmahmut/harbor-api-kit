@@ -1,4 +1,0 @@
-export const FILES_TOKENS = {
-  STORAGE_DRIVER: Symbol('FILES_STORAGE_DRIVER'),
-  FILE_REPOSITORY: Symbol('FILES_FILE_REPOSITORY'),
-} as const;

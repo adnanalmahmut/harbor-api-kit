@@ -1,7 +1,8 @@
 import { AppModule } from '#src/app.module.js';
 import { appConfig } from '#src/config/index.js';
-import { configureApp } from '#src/core/app.bootstrap.js';
-import { PrismaService, RedisService } from '#src/core/index.js';
+import { configureApp } from '#src/bootstrap.js';
+import { RedisService } from '#src/infrastructure/cache/redis.service.js';
+import { PrismaService } from '#src/persistence/prisma/prisma.service.js';
 import type { ConfigType } from '@nestjs/config';
 import {
   FastifyAdapter,

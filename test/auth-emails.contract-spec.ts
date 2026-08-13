@@ -1,5 +1,6 @@
-import { PrismaService, RedisService } from '#src/core/index.js';
-import { AuthEmailPort } from '#src/modules/notify/index.js';
+import { RedisService } from '#src/infrastructure/cache/redis.service.js';
+import { PrismaService } from '#src/persistence/prisma/prisma.service.js';
+import { AuthEmailPort } from '#src/modules/notify/notify.ports.js';
 import { jest } from '@jest/globals';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
