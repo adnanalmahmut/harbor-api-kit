@@ -13,7 +13,6 @@ export interface ApiErrorExample {
 export interface ApiSuccessExample {
   status: number;
   message: string;
-  dataExample?: Record<string, any>;
   type?: Type<any> | [Type<any>];
 }
 
@@ -22,6 +21,11 @@ export interface ApiResponseConfig {
   errors: ApiErrorExample[];
 }
 
+/**
+ * The one factory worth keeping: it derives the HTTP status from the error
+ * code, so a call site names the code and the message and nothing else. The
+ * success half is written as a plain object — there is nothing to derive.
+ */
 export function createApiError(
   code: AppErrorCode,
   message: string,
@@ -31,27 +35,6 @@ export function createApiError(
     code,
     message,
   };
-}
-
-export function createApiSuccess(
-  message: string,
-  status: number = HttpStatus.OK,
-  dataExample?: Record<string, any>,
-  type?: Type<any> | [Type<any>],
-): ApiSuccessExample {
-  return {
-    status,
-    message,
-    dataExample,
-    type,
-  };
-}
-
-export function createApiResponseConfig(
-  success: ApiSuccessExample,
-  errors: ApiErrorExample[],
-): ApiResponseConfig {
-  return { success, errors };
 }
 
 /**
@@ -110,10 +93,6 @@ function buildSuccessDecorators(success: ApiSuccessExample): MethodDecorator[] {
     success: { type: 'boolean', example: true },
     message: { type: 'string', example: success.message },
   };
-
-  if (success.dataExample) {
-    successSchema.data = { type: 'object', example: success.dataExample };
-  }
 
   return [
     ApiResponse({
