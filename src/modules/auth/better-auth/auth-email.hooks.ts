@@ -1,5 +1,5 @@
 import { i18nConfig } from '#src/config/index.js';
-import { resolveLocaleFromSource } from '#src/common/utils.js';
+import { resolveLocaleFromSource } from '#src/infrastructure/i18n/i18n.utils.js';
 import type {
   AuthEmailDelivery,
   AuthEmailLocaleSource,

@@ -3,7 +3,7 @@ import {
   i18nConfig,
   notificationConfig,
 } from '#src/config/index.js';
-import { resolveSupportedLocale } from '#src/common/locales.js';
+import { resolveSupportedLocale } from '#src/infrastructure/i18n/i18n.utils.js';
 import { EmailProviderPort, type SendEmailParams } from '../notify.ports.js';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';

@@ -1,11 +1,19 @@
 import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
-import { defaultLocale, supportedLocaleSchema } from './config.parsers.js';
+
+/**
+ * The locale catalogue. It lives here because it is what the environment is
+ * validated against — `I18N_DEFAULT_LOCALE` must be one of these. The i18n
+ * capability imports it; nothing else needs to know the list.
+ */
+export const SUPPORTED_LOCALES = ['en-US', 'ar-SY'] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
 
 const schema = z.object({
   I18N_HEADER_NAME: z.string().min(1).default('Accept-Language'),
   I18N_QUERY_NAME: z.string().min(1).default('lang'),
-  I18N_DEFAULT_LOCALE: supportedLocaleSchema.default(defaultLocale),
+  I18N_DEFAULT_LOCALE: z.enum(SUPPORTED_LOCALES).default(DEFAULT_LOCALE),
 });
 
 export const parseI18nConfig = (
