@@ -2,19 +2,11 @@ import { CacheModule } from '#src/infrastructure/cache/cache.module.js';
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RateLimitInterceptor } from './rate-limit.interceptor.js';
-import { RateLimiterPort } from './rate-limit.port.js';
-import { RedisRateLimiterAdapter } from './rate-limit.port.js';
-import { SessionRateLimitInterceptor } from './session-rate-limit.interceptor.js';
-import { UserRateLimitInterceptor } from './user-rate-limit.interceptor.js';
+import { RateLimiterPort, RedisRateLimiterAdapter } from './rate-limit.port.js';
 
 /**
  * The whole rate-limiting capability: the port, its Redis-backed adapter, and
- * the three interceptors that consume it.
- *
- * Previously split across two modules in two directories — `RateLimiterModule`
- * bound the port, `RateLimitModule` registered the interceptors and imported
- * the first. Nothing else ever imported `RateLimiterModule`, so the split
- * bought nothing.
+ * the single interceptor that consumes it for all three scopes.
  */
 @Global()
 @Module({
@@ -22,22 +14,8 @@ import { UserRateLimitInterceptor } from './user-rate-limit.interceptor.js';
   providers: [
     RedisRateLimiterAdapter,
     { provide: RateLimiterPort, useExisting: RedisRateLimiterAdapter },
-
-    // Global hybrid rate limiting (userId if available, otherwise IP)
     { provide: APP_INTERCEPTOR, useClass: RateLimitInterceptor },
-    // User-based rate limiting (opt-in per route via decorator)
-    { provide: APP_INTERCEPTOR, useClass: UserRateLimitInterceptor },
-    // Session-based rate limiting (opt-in per route via decorator)
-    { provide: APP_INTERCEPTOR, useClass: SessionRateLimitInterceptor },
-
-    // Exported for direct injection
-    UserRateLimitInterceptor,
-    SessionRateLimitInterceptor,
   ],
-  exports: [
-    RateLimiterPort,
-    UserRateLimitInterceptor,
-    SessionRateLimitInterceptor,
-  ],
+  exports: [RateLimiterPort],
 })
 export class RateLimitModule {}
