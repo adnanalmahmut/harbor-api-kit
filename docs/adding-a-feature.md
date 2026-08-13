@@ -138,7 +138,7 @@ Read [persistence.md ยง3](persistence.md#3-the-rules) before writing this file โ
 
 ```ts
 // src/modules/things/dto/create-thing.dto.ts
-import { createStrictZodDto } from '#src/common/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/common/validation.pipe.js';
 import { z } from 'zod';
 
 export const createThingSchema = z.object({
@@ -195,8 +195,7 @@ Reference: [src/modules/files/files.service.ts](../src/modules/files/files.servi
 
 ```ts
 // src/modules/things/things.exception.ts
-import { AppException } from '#src/common/exceptions/app-exception.js';
-import { AppErrorCode } from '#src/common/exceptions/error-definitions.js';
+import { AppErrorCode, AppException } from '#src/common/app-exception.js';
 
 export class ThingsException extends AppException {
   static notFound(id?: string) {
@@ -221,8 +220,8 @@ Thin: guards, DTO, one service call, return. The global response interceptor add
 
 ```ts
 // src/modules/things/things.controller.ts
-import { ApiResponses } from '#src/common/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';
+import { ApiResponses } from '#src/common/api-errors.decorator.js';
+import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { AuthGuard } from '#src/modules/auth/auth.guard.js';
 import { Permissions } from '#src/modules/authorization/decorators/permissions.decorator.js';
 import { PermissionsGuard } from '#src/modules/authorization/guards/permissions.guard.js';

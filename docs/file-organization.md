@@ -44,6 +44,25 @@ There is **no** `index.ts` inside a feature module, and **no** `<feature>.tokens
 - Do not create a folder that will hold exactly one file forever. Flatten it to the parent until a second file appears.
 - **Forbidden folder names inside a feature**: `domain/`, `application/`, `infrastructure/`, `presentation/`, `interfaces/`, `use-cases/`, `services/`, `__tests__/`.
 
+### `src/common/` and `src/infrastructure/`
+
+The same rules apply outside features, with one addition.
+
+`src/common/` is **entirely flat** — no sub-folders at all. Grouping by kind
+(`filters/`, `interceptors/`, `decorators/`, `types/`, `utils/`) is the
+directory-level version of the layer folders a feature is forbidden from having,
+and it scatters one concern across five directories: the CSRF guard's constants,
+decorator, helpers and the guard itself once lived in four files under
+`csrf/`, and the response envelope's interceptor, two decorators, metadata keys
+and types lived in four more. Name the file for the concern and the role
+(`csrf.guard.ts`, `response.interceptor.ts`) and put everything that concern
+needs inside it.
+
+`src/infrastructure/` keeps one folder per capability, and each of those is
+flat. A capability is complete: its port, its adapter, its decorators, its
+interceptor and its module all sit together. Splitting a capability by kind is
+the same mistake as splitting a feature by layer.
+
 ---
 
 ## 3. Worked examples from the repo

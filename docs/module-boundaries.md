@@ -11,7 +11,7 @@ The layout has no layer folders and no barrels, so there are far fewer rules tha
 | Source | Example | When |
 |--------|---------|------|
 | **Same module, relative** | `import { PermissionKeyVO } from './permission-key.vo.js';` | In-module references. The default. |
-| **`#src/common/…`, `#src/config/…`, `#src/infrastructure/…`** | `import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';` | Cross-cutting code. Name the file. |
+| **`#src/common/…`, `#src/config/…`, `#src/infrastructure/…`** | `import { ResponseMessage } from '#src/common/response.interceptor.js';` | Cross-cutting code. Name the file. |
 | **`#src/modules/<other>/<file>.js`** | `import { AuthGuard } from '#src/modules/auth/auth.guard.js';` | Cross-module references — a direct file import, since there is no barrel. |
 | **External package** | `import { Module } from '@nestjs/common';` | Subject to the restrictions below. |
 
@@ -62,7 +62,7 @@ A repository is the private contract between one feature and its storage. Cross-
 
 ### Rule 4 — Redis clients belong to the cache capability
 
-`ioredis` and `redis` may only be imported inside `src/infrastructure/cache/`. Everything else injects `CacheManagerPort` (the abstract cache slice) or `RedisService` (when it needs raw commands, as the auth session tracker does).
+`ioredis` and `redis` may only be imported inside `src/infrastructure/cache/`. Everything else injects `CachePort` (the abstract cache slice) or `RedisService` (when it needs raw commands, as the auth session tracker does).
 
 ---
 
@@ -104,7 +104,7 @@ The one cycle in the repo: `auth` ↔ `authorization`. Auth guards its Better Au
 | Add a repository method | Add it to `<feature>.repository.ts`, then implement in `src/persistence/prisma/`. |
 | Use another feature's behaviour | Import its module class, inject the service it exports. |
 | Use another feature's guard / decorator / DTO | Direct file import: `#src/modules/<other>/guards/x.guard.js`. |
-| Cache something | Inject `CacheManagerPort`, or `RequestContextStorePort.getOrLoad` for request-scoped memoization. |
+| Cache something | Inject `CachePort`, and call `getOrLoad(cache, key, loader, ttl, scope)` from the same file for request-scoped or two-tier memoization. |
 | Reference runtime configuration | Import the factory from `#src/config/index.js`, inject `<factory>.KEY` with `ConfigType<typeof factory>`. |
 | Add an env var | Declare it in the relevant Zod schema under `src/config/`. Never read `process.env` in a consumer. |
 | Throw an error | Subclass `AppException` in `<feature>.exception.ts`. Never throw a raw `Error` at a boundary. |

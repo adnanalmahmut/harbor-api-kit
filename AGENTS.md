@@ -54,7 +54,7 @@ ESLint enforces these in [eslint.config.mjs](eslint.config.mjs). An agent MUST N
 - **`$transaction` is forbidden outside `src/persistence/prisma/`.** Compose writes with `TransactionManager.run()`.
 - **A repository port MUST NOT name a Prisma type** — no `Prisma.XWhereInput`, no generated model, no `Decimal`/`JsonValue`. See [docs/persistence.md](docs/persistence.md).
 - **Another module's repository is private.** `#src/modules/*/*.repository.js` is off-limits across modules; inject the service that module exports.
-- **`ioredis` / `redis`** may only be imported inside `src/infrastructure/cache/`. Elsewhere inject `CacheManagerPort` or `RedisService`.
+- **`ioredis` / `redis`** may only be imported inside `src/infrastructure/cache/`. Elsewhere inject `CachePort` or `RedisService`.
 - **Globally**: `class-validator` and `class-transformer` are forbidden. Use Zod + `createStrictZodDto`.
 - The one allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth/better-auth.ts`.
 - Inside a module, use **relative imports**. Do not self-reference via `#src/modules/<own-feature>/...`.
@@ -107,7 +107,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 9. Errors & responses — MUST
 
-- Every error crossing a boundary MUST be an `AppException` subclass (see [src/common/exceptions/app-exception.ts](src/common/exceptions/app-exception.ts)). Wrap Prisma/Redis/external-provider failures into the feature's `AppException` subclass **inside the adapter** — a driver error code must never reach a service.
+- Every error crossing a boundary MUST be an `AppException` subclass (see [src/common/app-exception.ts](src/common/app-exception.ts)). Wrap Prisma/Redis/external-provider failures into the feature's `AppException` subclass **inside the adapter** — a driver error code must never reach a service.
 - Every `AppException` subclass MUST use a stable `AppErrorCode` and an i18n `messageKey`. Never expose raw framework or driver errors to the client.
 - All HTTP responses MUST flow through the global response interceptor and use the envelope:
   - Success: `{ success: true, message?, data? }`
