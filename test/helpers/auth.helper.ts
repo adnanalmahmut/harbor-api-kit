@@ -1,4 +1,4 @@
-import { PrismaService } from '#src/core/index.js';
+import { PrismaService } from '#src/persistence/prisma/prisma.service.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 
@@ -35,20 +35,6 @@ export class AuthHelper {
     });
 
     return { cookies: signUp.get('Set-Cookie') || [], userId: user.id };
-  }
-
-  async login(
-    email: string,
-    password: string,
-    forwardedFor = this.nextTestIp(),
-  ): Promise<{ cookies: string[] }> {
-    const response = await request(this.app.getHttpServer())
-      .post('/api/v1/auth/sign-in/email')
-      .set('X-Forwarded-For', forwardedFor)
-      .send({ email, password })
-      .expect(200);
-
-    return { cookies: response.get('Set-Cookie') || [] };
   }
 
   async setupAdmin(): Promise<{

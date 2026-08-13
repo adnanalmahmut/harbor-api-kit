@@ -1,5 +1,6 @@
-import { PrismaService, RedisService } from '#src/core/index.js';
-import type { PermissionKey, RoleName } from '#src/modules/authorization/index.js';
+import { RedisService } from '#src/infrastructure/cache/redis.service.js';
+import { PrismaService } from '#src/persistence/prisma/prisma.service.js';
+import type { PermissionKey } from '#src/modules/authorization/permissions.catalog.js';
 import { clearRedisCache } from './test-redis.helper.js';
 
 export class AuthorizationHelper {
@@ -7,14 +8,6 @@ export class AuthorizationHelper {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) {}
-
-  async assignRoleToUser(userId: string, role: RoleName): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { role },
-    });
-    await clearRedisCache(this.redis);
-  }
 
   async assignUserPermissionOverride(
     userId: string,
