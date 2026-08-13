@@ -1,6 +1,6 @@
 import { httpConfig } from '#src/config/index.js';
 import { SecurityException } from '#src/common/app-exception.js';
-import { RateLimiterPort } from '#src/infrastructure/rate-limit/rate-limiter.port.js';
+import { RateLimiterPort } from './rate-limit.port.js';
 import { stripQuery } from '#src/common/utils.js';
 import {
   Inject,
@@ -17,7 +17,7 @@ import {
   RATE_LIMIT_META_KEY,
   RATE_LIMIT_SKIP_KEY,
   type RateLimitRule,
-} from './rate-limit.types.js';
+} from './rate-limit.decorator.js';
 import { getRealIp } from './rate-limit.util.js';
 
 function getRouteUrl(req: FastifyRequest): string {
