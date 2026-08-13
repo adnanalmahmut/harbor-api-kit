@@ -1,3 +1,10 @@
+/**
+ * What the auth module needs from the notification side. The configuration
+ * ports that used to live here are gone: `AuthConfigPort` wrapped two values
+ * that `authConfig` already exposes, and `SessionTrackerPort` tracked session
+ * keys for bulk invalidation, which Better Auth now does itself in Redis.
+ */
+
 export type AuthEmailUser = {
   email: string;
   name?: string | null;
@@ -32,14 +39,4 @@ export interface AuthEmailSenderPort {
   sendChangeEmailConfirmation(
     delivery: ChangeEmailConfirmationDelivery,
   ): Promise<void>;
-}
-
-export abstract class AuthConfigPort {
-  abstract get sessionTokenCookie(): string;
-  abstract get sessionLookupCacheTtlSec(): number;
-}
-
-export abstract class SessionTrackerPort {
-  abstract trackSession(userId: string, cacheKey: string): Promise<void>;
-  abstract invalidateUserSessions(userId: string): Promise<void>;
 }

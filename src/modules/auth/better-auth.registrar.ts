@@ -1,7 +1,6 @@
 import { authConfig } from '#src/config/index.js';
 import { EffectivePermissionsService } from '#src/modules/authorization/effective-permissions.service.js';
 import type { PermissionKey } from '#src/modules/authorization/permissions.catalog.js';
-import { SessionTrackerPort } from './auth.ports.js';
 import { BETTER_AUTH, type BetterAuthInstance } from './better-auth.js';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -51,7 +50,6 @@ export class BetterAuthRouteRegistrar implements OnModuleInit {
     @Inject(authConfig.KEY)
     private readonly configuration: ConfigType<typeof authConfig>,
     private readonly effectivePermissions: EffectivePermissionsService,
-    private readonly sessionTracker: SessionTrackerPort,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(BetterAuthRouteRegistrar.name);
@@ -110,6 +108,7 @@ export class BetterAuthRouteRegistrar implements OnModuleInit {
         await this.invalidateAuthorizationAfterMutation(
           relativePath,
           request.body,
+          headers,
         );
       }
 
@@ -187,23 +186,64 @@ export class BetterAuthRouteRegistrar implements OnModuleInit {
     return JSON.stringify(body);
   }
 
+  /**
+   * Admin routes that change what a user is allowed to do.
+   *
+   * Two different things have to happen, and only one of them is ours.
+   */
   private async invalidateAuthorizationAfterMutation(
     path: string,
     body: unknown,
+    headers: Headers,
   ): Promise<void> {
-    const invalidatingPaths = new Set([
+    const AUTHORIZATION_CHANGING = new Set([
       '/admin/set-role',
       '/admin/update-user',
       '/admin/ban-user',
       '/admin/unban-user',
       '/admin/remove-user',
     ]);
-    if (!invalidatingPaths.has(path) || !this.isBodyWithUserId(body)) return;
 
-    await Promise.all([
-      this.effectivePermissions.refreshForUser(body.userId),
-      this.sessionTracker.invalidateUserSessions(body.userId),
-    ]);
+    /**
+     * Better Auth stores a *snapshot* of the user inside the session, and its
+     * rolling refresh copies that snapshot forward rather than re-reading the
+     * row. A role written now would therefore never reach an open session. The
+     * two paths that Better Auth already ends sessions for are excluded —
+     * ban-user and remove-user call `deleteSessions` internally — and
+     * unban-user has no sessions left to end.
+     */
+    const changesRole =
+      path === '/admin/set-role' ||
+      (path === '/admin/update-user' &&
+        this.isRecord(body) &&
+        this.isRecord(body.data) &&
+        'role' in body.data);
+
+    if (!AUTHORIZATION_CHANGING.has(path) || !this.isBodyWithUserId(body)) {
+      return;
+    }
+
+    // Ours: the effective-permission cache is keyed on a version we bump.
+    await this.effectivePermissions.refreshForUser(body.userId);
+
+    // `/admin/update-user` also renames and edits profile fields; only a role
+    // in the payload invalidates the snapshot.
+    if (!changesRole) return;
+
+    // Better Auth's: end the sessions carrying the stale snapshot. The caller
+    // is an admin whose request already passed the permission check above, so
+    // its headers authorize this call.
+    try {
+      await this.auth.api.revokeUserSessions({
+        body: { userId: body.userId },
+        headers,
+      });
+    } catch (error) {
+      this.logger.error(
+        { error },
+        'Failed to revoke sessions after a role change',
+      );
+    }
   }
 
   private isBodyWithUserId(body: unknown): body is { userId: string } {

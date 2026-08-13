@@ -127,7 +127,7 @@ auth.module.ts
 auth.guard.ts                 session lookup, cached
 auth.entities.ts (+ .spec.ts) User, Session, and hydration from the provider payload
 auth.cookies.ts               Better Auth Headers ⇄ Fastify set-cookie, both directions
-auth.ports.ts  auth.adapters.ts  auth.cache-keys.ts  auth.exception.ts
+auth.ports.ts  auth-email.adapter.ts  auth.exception.ts
 better-auth.ts                the factory, the BETTER_AUTH token, the options
 better-auth.registrar.ts      mounts /auth/* on raw Fastify
 ```

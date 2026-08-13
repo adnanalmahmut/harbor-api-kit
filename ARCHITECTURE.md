@@ -107,7 +107,7 @@ A port is justified when there is a **real choice of implementation**, not as ce
 | `DbHealthPort`, `CacheHealthPort` | Prisma, Redis |
 | `<Feature>Repository` | Prisma |
 | `TransactionManager` | Prisma |
-| `AuthConfigPort`, `SessionTrackerPort` | auth adapters |
+| `AuthEmailSenderPort` | notify module, via the auth module's adapter |
 
 All are abstract classes, so the port is also the token: `{ provide: StorageDriverPort, useClass: S3Driver }`.
 

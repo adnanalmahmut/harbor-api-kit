@@ -34,6 +34,43 @@ role-only and cannot see per-user `DENY` overrides.
 Clients must therefore treat `/auth/*` as a separate contract from the Nest
 routes: raw Better Auth payloads there, the application envelope everywhere else.
 
+## Session storage
+
+Sessions live in **both** Redis and Postgres, and the split is deliberate.
+
+Redis is wired as Better Auth's [`secondaryStorage`](https://better-auth.com/docs/concepts/database),
+so reading a session on a guarded request is a Redis `GET` rather than a
+Postgres query. Better Auth owns that lifecycle end to end: it writes the
+session under its token, maintains its own `active-sessions-<userId>` index, and
+purges both on revocation. The application adds nothing — no cache in the guard,
+no session-key tracking, no invalidation logic.
+
+`session.storeSessionInDatabase: true` keeps the Postgres row as well, which is
+what makes Redis a **cache rather than the record**: `findSession` falls back to
+Postgres when the key is absent, so an eviction or a Redis restart does not sign
+anyone out. Setting `preserveSessionInDatabase` would switch that fallback off
+and make Redis authoritative; it is deliberately not set.
+
+Two consequences worth knowing:
+
+- **A session carries a snapshot of the user.** Better Auth's rolling refresh
+  copies that snapshot forward instead of re-reading the row, so a change
+  written straight into the `user` table never reaches a session opened before
+  the write. `/admin/set-role` — and `/admin/update-user` when the payload
+  carries a `role` — therefore revokes the affected user's sessions, so the next
+  request re-authenticates against the new role. `ban-user` and `remove-user`
+  need no help: Better Auth ends sessions on those routes itself.
+- **Permissions are not affected by any of this.** `EffectivePermissionsService`
+  reads from Postgres behind a version key the application bumps, so a
+  permission override takes effect on the next request regardless of session
+  age. Only `req.user.roles` is a snapshot.
+
+Better Auth's own rate limiter shares the same storage, which moves its counters
+off per-process memory and makes them correct across instances.
+
+Its keys are namespaced `ba:` under the application's Redis prefix, so its
+footprint stays separable from the application's own keys.
+
 ## User name
 
 The user has one name field: Better Auth's core `name`. The application does not

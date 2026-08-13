@@ -57,7 +57,7 @@ These look "shared" because more than one feature touches them, but they fail si
 | `UserPermissionsResponseDto` | `authorization` module | Response shapes are owned by the feature whose concept they represent. |
 | `EmailProviderPort`, `AuthEmailPort` and the Resend adapter | `notify` module | Notifications are a feature even when async. |
 | `permissions.catalog.ts`, `permission-key.vo.ts` | `authorization` module | Pure authorization knowledge. Being framework-free does not make it shared. |
-| Cache key prefixes for auth / authorization | `auth.cache-keys.ts`, `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
+| Cache key prefixes for authorization | `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
 | Feature-specific exception subclasses | `<feature>/<feature>.exception.ts` | They extend `AppException` (shared) but encode feature semantics. |
 | Response mappers | The owning feature, e.g. `files.mapper.ts` | They translate that feature's entity to its response shape. |
 | A feature's repository port | `<feature>/<feature>.repository.ts` | It describes what *one* feature needs from storage. Never shared, and never public across modules. |

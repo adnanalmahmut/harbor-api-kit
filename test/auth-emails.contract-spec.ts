@@ -88,16 +88,19 @@ describe('Authentication emails (contract)', () => {
   });
 
   it('sends the change-email confirmation to the new address', async () => {
-    const { cookies, userId } = await auth.registerAndLogin({
+    const { userId } = await auth.registerAndLogin({
       email: 'current@test.com',
       password: 'Password123!',
       name: 'Current Address',
     });
-    // Better Auth only asks for confirmation when the current address is verified.
+    // Better Auth only asks for confirmation when the current address is
+    // verified. Sign in again afterwards: the session carries a snapshot of the
+    // user, so a session opened before this write still reports it unverified.
     await prisma.user.update({
       where: { id: userId },
       data: { emailVerified: true },
     });
+    const cookies = await auth.signIn('current@test.com', 'Password123!');
     sendAuthEmail.mockClear();
 
     await request(app.getHttpServer())

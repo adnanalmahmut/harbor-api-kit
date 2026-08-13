@@ -37,23 +37,58 @@ export class AuthHelper {
     return { cookies: signUp.get('Set-Cookie') || [], userId: user.id };
   }
 
+  /**
+   * A fresh session, and therefore a fresh snapshot of the user.
+   *
+   * Needed whenever a test writes user state straight into the database after
+   * signing in: Better Auth reads the session from Redis and never re-reads the
+   * row, so the write is invisible to the session that predates it.
+   */
+  async signIn(email: string, password: string): Promise<string[]> {
+    const response = await request(this.app.getHttpServer())
+      .post('/api/v1/auth/sign-in/email')
+      .set('X-Forwarded-For', this.nextTestIp())
+      .send({ email, password })
+      .expect(200);
+
+    return response.get('Set-Cookie') || [];
+  }
+
+  /**
+   * Signs in *after* the promotion, deliberately.
+   *
+   * A session carries a snapshot of the user, and Better Auth reads that
+   * snapshot from Redis rather than re-reading the row on every request. A role
+   * written straight into the database — as this helper does, and as no
+   * production path does — therefore never reaches a session opened before the
+   * write. Promoting through `/admin/set-role` does reach it, because that
+   * route revokes the affected sessions.
+   */
   async setupAdmin(): Promise<{
     userId: string;
     cookies: string[];
     roleId: string;
   }> {
+    const email = 'superadmin@test.com';
+    const password = 'Password123!';
+
     const result = await this.registerAndLogin({
-      email: 'superadmin@test.com',
-      password: 'Password123!',
+      email,
+      password,
       name: 'Super Admin',
     });
+
     const prisma = this.app.get(PrismaService);
     await prisma.user.update({
       where: { id: result.userId },
       data: { role: 'admin' },
     });
 
-    return { ...result, roleId: 'admin' };
+    return {
+      userId: result.userId,
+      cookies: await this.signIn(email, password),
+      roleId: 'admin',
+    };
   }
 
   private nextTestIp(): string {

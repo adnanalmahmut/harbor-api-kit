@@ -1,4 +1,5 @@
 import { appConfig, authConfig, httpConfig } from '#src/config/index.js';
+import type { CachePort } from '#src/infrastructure/cache/cache.port.js';
 import type { PrismaService } from '#src/persistence/prisma/prisma.service.js';
 import {
   ADMIN_ROLES,
@@ -22,6 +23,16 @@ import { admin, openAPI, organization } from 'better-auth/plugins';
  * where a symbol token is unavoidable. Everything else injects by class.
  */
 export const BETTER_AUTH = Symbol('BETTER_AUTH');
+
+/**
+ * Better Auth names its own keys — a bare session token, or
+ * `active-sessions-<userId>`, or a rate-limit counter — so they arrive with no
+ * namespace of their own. Give them one, so its Redis footprint is separable
+ * from the application's for inspection, purging and test cleanup.
+ */
+const BETTER_AUTH_KEY_PREFIX = 'ba';
+
+const betterAuthKey = (key: string) => `${BETTER_AUTH_KEY_PREFIX}:${key}`;
 
 /**
  * Snapshots the language-relevant parts of the request Better Auth hands to its
@@ -63,6 +74,12 @@ export function createBetterAuth(
   httpConfiguration: ConfigType<typeof httpConfig>,
   emailHooks: AuthEmailSenderPort,
   logger: BetterAuthLogger,
+  /**
+   * Redis, as Better Auth's session and rate-limit store. Optional so the CLI
+   * shim can build an instance without a Redis connection: it only creates
+   * users, which always live in the database.
+   */
+  cache?: CachePort,
 ) {
   const {
     sessionTokenCookie,
@@ -92,6 +109,31 @@ export function createBetterAuth(
     basePath,
     secret: betterAuthSecret,
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
+
+    /**
+     * Redis is the fast path for reading an active session, replacing a
+     * per-request Postgres lookup. Better Auth owns the whole lifecycle here —
+     * it writes the session under its token, maintains its own
+     * `active-sessions-<userId>` index, and purges both on revocation.
+     *
+     * Paired with `session.storeSessionInDatabase` below, Redis is a *cache*,
+     * not the source of truth: `findSession` falls back to Postgres when the
+     * key is absent, so an eviction or a Redis restart does not sign anyone
+     * out. That fallback is what `preserveSessionInDatabase` would switch off,
+     * and it is deliberately not set.
+     *
+     * Configuring this also moves Better Auth's own rate limiter off in-process
+     * memory and onto Redis, so its counters are shared across instances.
+     */
+    secondaryStorage: cache && {
+      get: (key: string) => cache.get(betterAuthKey(key)),
+      set: (key: string, value: string, ttl?: number) =>
+        cache.set(betterAuthKey(key), value, ttl),
+      // `del` answers with the number of keys removed; the port expects void.
+      delete: async (key: string) => {
+        await cache.del(betterAuthKey(key));
+      },
+    },
 
     // `/auth/*` is served by Better Auth's own handler, outside the Nest guard
     // chain, so Better Auth's origin check is the CSRF protection for these
@@ -189,6 +231,8 @@ export function createBetterAuth(
 
     session: {
       modelName: 'Session',
+      // Keep writing sessions to Postgres even though secondary storage is
+      // configured. This is what makes Redis a cache rather than the record.
       storeSessionInDatabase: true,
       expiresIn: sessionConfig.persistentExpiresInSec,
       updateAge: sessionConfig.rollingUpdateAgeSec,
