@@ -6,7 +6,7 @@ There are three shared destinations, and they are not interchangeable:
 
 | Destination | Holds |
 |---|---|
-| `src/common/` | cross-cutting code with **no Nest module of its own** — decorators, filters, interceptors, validation, security, exceptions, context, types, utils |
+| `src/common/` | cross-cutting code with **no Nest module of its own** — one flat file per concern, the role in the file name |
 | `src/infrastructure/` | one folder per external-system **capability**, complete with its port, adapter, module and consumers — cache, rate-limit, i18n, logger, queue |
 | `src/persistence/` | the database. Nothing else ever goes here; see [persistence.md](persistence.md) |
 
@@ -31,18 +31,18 @@ If any signal is false, the code stays where it is. Move it later, not now — p
 | Code | Path | Why |
 |------|------|-----|
 | `PrismaService`, repository adapters, `TransactionManager` | `src/persistence/` | The database. Confined by design — [persistence.md](persistence.md). |
-| `RedisService`, `CacheManagerPort`, `AppCacheService`, cache TTLs | `src/infrastructure/cache/` | Framework infra; cache + session store. One capability, one folder. |
+| `RedisService`, `CachePort`, `CacheTTL`, `getOrLoad` | `src/infrastructure/cache/` | Framework infra; cache + session store. One capability, one folder. |
 | Namespaced configuration factories + schemas | `src/config/` | Cross-cutting bootstrap concern; the only runtime folder that reads `process.env`. |
 | Pino logger wiring | `src/infrastructure/logger/` | Cross-cutting; correlation IDs across modules. |
 | BullMQ wiring | `src/infrastructure/queue/` | Framework infra; enqueue from anywhere. |
 | i18n module setup | `src/infrastructure/i18n/` | Cross-cutting; controllers and the exception filter both translate. |
-| Request context store | `src/common/context/` | Cross-cutting; provided globally by `CommonModule`. |
-| Global response interceptor (envelope) | `src/common/interceptors/` | Cross-cutting; every endpoint. |
-| Global exception filter | `src/common/filters/` | Cross-cutting; every exception. |
-| Validation pipe + `createStrictZodDto` | `src/common/validation/` | Cross-cutting; every controller. |
-| CSRF, CORS, OpenAPI setup | `src/common/csrf/`, `src/common/setup/`, `src/common/docs/` | Cross-cutting; the HTTP pipeline. |
-| Rate limiting (port, adapter, module, interceptors, decorators) | `src/infrastructure/rate-limit/` | An external-system capability, not a `common/` concern. |
-| `AppException`, `AppErrorCode`, `ERROR_DEFINITIONS` | `src/common/exceptions/` | Cross-cutting; the base every feature exception extends. |
+| Request context store | `src/common/request-context.ts` | Cross-cutting; plain functions over `AsyncLocalStorage`, no module. |
+| Global response interceptor (envelope) | `src/common/response.interceptor.ts` | Cross-cutting; every endpoint. |
+| Global exception filter | `src/common/global-exception.filter.ts` | Cross-cutting; every exception. |
+| Validation pipe + `createStrictZodDto` | `src/common/validation.pipe.ts` | Cross-cutting; every controller. |
+| CSRF, CORS, OpenAPI setup | `src/common/csrf.guard.ts`, `cors.ts`, `swagger.ts` | Cross-cutting; the HTTP pipeline. |
+| Rate limiting (port, adapter, module, interceptor, decorators) | `src/infrastructure/rate-limit/` | An external-system capability, not a `common/` concern. |
+| `AppException`, `AppErrorCode`, `ERROR_DEFINITIONS` | `src/common/app-exception.ts` | Cross-cutting; the base every feature exception extends. |
 
 ---
 
@@ -95,7 +95,7 @@ When the three signals are satisfied:
 1. Open a PR whose **sole purpose** is the extraction. Do not bundle it with feature work.
 2. Pick the destination from the table at the top: `common/` for code with no Nest module, `infrastructure/` for a module wrapping an external system.
 3. Move the code and update consumers to import the file directly. There are no barrels to update.
-4. If the code needs to be injectable, register it — in `CommonModule` for a global, or in its own `infrastructure/<name>/<name>.module.ts`.
+4. If the code needs to be injectable, it belongs in `infrastructure/<name>/` with its own `<name>.module.ts`. `src/common/` has no module: code there is either a plain function or a class the bootstrap constructs itself.
 5. Update [ARCHITECTURE.md §7.1](../ARCHITECTURE.md#71-what-lives-in-srccommon) and, if relevant, this document.
 6. Verify lint, build, and tests pass.
 
@@ -105,4 +105,4 @@ When the three signals are satisfied:
 
 If a piece of `src/common/` turns out to be used by only one feature and encodes that feature's semantics, move it back into the feature. Same procedure in reverse, with documentation updates.
 
-The restructure did exactly this in two places worth knowing about: `LoggerPort` was deleted (its only consumer now injects `PinoLogger` directly), and the `shared` module was folded into `CommonModule` because "shared" named a location rather than a concern.
+The restructure did exactly this in three places worth knowing about: `LoggerPort` was deleted (its only consumer now injects `PinoLogger` directly); the `shared` module was folded into `CommonModule` because "shared" named a location rather than a concern; and `CommonModule` itself was later deleted along with `RequestContextStorePort`, once it was clear the port guarded an `AsyncLocalStorage` that nothing would ever swap.

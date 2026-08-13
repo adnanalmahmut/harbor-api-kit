@@ -23,7 +23,7 @@ Top-level concerns:
 | Directory | Owns |
 |---|---|
 | `src/modules/<feature>/` | feature verticals — the unit of architectural ownership |
-| `src/common/` | cross-cutting code with no Nest module: decorators, filters, interceptors, validation, csrf, exceptions, context, types, utils |
+| `src/common/` | cross-cutting code with no Nest module — one flat file per concern, the role in the name |
 | `src/config/` | namespaced `registerAs` configuration factories + Zod env schemas |
 | `src/infrastructure/` | one folder per external-system capability, each complete: cache, rate-limit, i18n, logger, queue |
 | `src/persistence/` | the database — `PrismaService`, repository adapters, `TransactionManager` |
@@ -95,7 +95,7 @@ A port is justified when there is a **real choice of implementation**, not as ce
 | `StorageDriverPort` | local disk, S3-compatible |
 | `EmailProviderPort` | BullMQ queue → Resend worker |
 | `AuthEmailPort` | notify module |
-| `CacheManagerPort` | Redis |
+| `CachePort` | Redis |
 | `DbHealthPort`, `CacheHealthPort` | Prisma, Redis |
 | `<Feature>Repository` | Prisma |
 | `TransactionManager` | Prisma |
@@ -126,7 +126,7 @@ Enforced by ESLint:
 
 1. **Prisma is confined to `src/persistence/**`.** `@prisma/client` and `#src/generated/prisma/**` are restricted everywhere else, and `#src/persistence/prisma/**` is importable only from inside `src/persistence/**`.
 2. **`class-validator` / `class-transformer` are forbidden** in all of `src/`.
-3. **Direct Redis clients** (`ioredis`, `redis`) belong to `src/infrastructure/cache/` — everything else injects `CacheManagerPort` or `RedisService`.
+3. **Direct Redis clients** (`ioredis`, `redis`) belong to `src/infrastructure/cache/` — everything else injects `CachePort` or `RedisService`.
 4. **Another module's repository is not public.** `#src/modules/*/*.repository.js` is off-limits across module boundaries; collaborate through the exported service.
 
 One documented exception exists, scoped by an ESLint allowlist to two files: Better Auth's `prismaAdapter` needs the client itself. See §5 and [docs/persistence.md](docs/persistence.md#4-the-one-accepted-exception-better-auth).
@@ -177,9 +177,21 @@ These are heuristics. A 410-line file with one tightly-coupled concern is fine; 
 
 ### 7.1 What lives in `src/common/`
 
-Cross-cutting code with no feature meaning and no Nest module of its own: the response envelope interceptor, global exception filter, validation pipe, `createStrictZodDto`, `@ApiResponses` / `@ResponseMessage` / `@SkipEnvelope`, CSRF primitives, CORS and OpenAPI setup, the request-context store, `AppException` + `AppErrorCode` + `ERROR_DEFINITIONS`, shared constants, types and utils. `CommonModule` provides one global: `RequestContextStorePort`.
+Cross-cutting code with no feature meaning and no Nest module of its own. It is **flat** — the role is in the file name, exactly as in a feature folder, and there are no sub-folders:
 
-`src/infrastructure/` holds one folder per external-system capability, each complete: `cache/` (the Redis client, `CacheManagerPort`, `AppCacheService`, TTL constants, the per-request middleware), `rate-limit/` (the port, its Redis adapter, the module and the three interceptors), `i18n/`, `logger/`, `queue/`. `src/config/` is the only runtime folder that reads `process.env`.
+| File | Holds |
+|---|---|
+| `app-exception.ts` | `AppErrorCode`, `ERROR_DEFINITIONS`, `AppException` and its subclasses, `ValidationIssue` |
+| `request-context.ts` | the `RequestContext` type, the `AsyncLocalStorage` store, the Fastify hook that opens it |
+| `response.interceptor.ts` | the `{ success, message, data }` envelope, `@ResponseMessage`, `@SkipEnvelope` |
+| `global-exception.filter.ts` | the catch-all filter, the error response shapes |
+| `validation.pipe.ts` | the Zod pipe and `createStrictZodDto` |
+| `csrf.guard.ts` | the guard, `@CsrfExempt`, token and origin helpers |
+| `cors.ts`, `swagger.ts`, `api-errors.decorator.ts`, `utils.ts` | |
+
+`src/common/` has **no Nest module**. The request context is reached through three exported functions — `getRequestContext`, `setRequestContext`, `runWithRequestContext` — not through an injected port.
+
+`src/infrastructure/` holds one folder per external-system capability, each complete and each flat: `cache/` (the Redis client, `CachePort`, `CacheTTL`, the `getOrLoad` read-through), `rate-limit/` (the port with its Redis adapter, the decorators, one interceptor covering all three scopes, the module), `i18n/`, `logger/`, `queue/`. `src/config/` is the only runtime folder that reads `process.env`, and it owns the supported-locale catalogue that its schemas validate against.
 
 The organising rule is **one capability, one folder**. Splitting a capability by kind — the port here, the adapter there, the interceptors somewhere else — is the same mistake as splitting a feature by layer.
 

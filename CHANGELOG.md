@@ -6,6 +6,45 @@ This project follows a lightweight changelog style inspired by Keep a Changelog.
 
 ## Unreleased
 
+- **Internal structure only — no HTTP contract changed:** flattened
+  `src/common/` and consolidated `src/infrastructure/`. 53 files across 17
+  sub-folders became 23 files across 5, and the two capabilities with the most
+  scattered wiring were simplified rather than merely moved.
+  - `src/common/` is now flat: 33 files across 12 sub-folders became 11 files
+    with the role in the name — `app-exception.ts`, `request-context.ts`,
+    `response.interceptor.ts`, `global-exception.filter.ts`,
+    `validation.pipe.ts`, `csrf.guard.ts`, `cors.ts`, `swagger.ts`,
+    `api-errors.decorator.ts`, `utils.ts`.
+  - **`RequestContextStorePort` and `RequestContextStoreAdapter` are gone**,
+    and with them `CommonModule`. The request context is reached through
+    `getRequestContext()` / `setRequestContext()` / `runWithRequestContext()`.
+    Code injecting the port should call these instead.
+  - **`AppCacheService` is gone.** Its two-tier read-through is
+    `getOrLoad(cache, key, loader, ttlSeconds, scope)` in `cache.port.ts`; the
+    caller passes the `CachePort` it injects. The `context.redis` back channel
+    that fed it was removed, along with two parameters on
+    `createRequestContextHook`.
+  - **`CacheManagerPort` is renamed `CachePort`**, `RedisModule` to
+    `CacheModule` (`cache.module.ts`), `LoggerSetupModule` to `LoggerModule`
+    (`logger.module.ts`), `I18nSetupModule` to `I18nModule`
+    (`i18n.module.ts`).
+  - **The three rate-limit interceptors became one.** Header names, bucket keys
+    and evaluation order are unchanged; `@RateLimit`, `@UserRateLimit`,
+    `@SessionRateLimit` and `@RateLimitSkip` all still work.
+    `UserRateLimitInterceptor` and `SessionRateLimitInterceptor` are no longer
+    exported — they no longer exist.
+  - `RequestIdentityInterceptor` folded into `ResponseInterceptor`; bootstrap
+    registers one global interceptor where it registered two.
+  - The supported-locale catalogue moved from `src/common/constants/locales.ts`
+    to `src/config/i18n.config.ts`, next to the schema that validates against
+    it. Its helpers moved to `src/infrastructure/i18n/i18n.utils.ts`.
+  - `@ApiResponses` dropped a legacy overload that took a bare error array; all
+    call sites already passed `ApiResponseConfig`. `createStrictZodDto` dropped
+    a subclass that re-declared two inherited statics.
+  - All 15 contract/e2e suites and 74 unit tests pass; the only test file whose
+    body changed is `effective-permissions.service.spec.ts`, which used to fake
+    the deleted port.
+
 - **Breaking (internal structure only — no HTTP contract changed):** restructured
   the codebase from the four-layer hexagonal layout to the standard NestJS
   resource layout. Every feature module is now flat — `<feature>.controller.ts`,

@@ -137,23 +137,17 @@ src/
   bootstrap.ts         # createApp / configureApp — reused by the test factory
   app.module.ts
   config/              # registerAs factories + per-namespace Zod schemas
-  common/              # cross-cutting code, no Nest module of its own
-    cache/             # AppCacheService
-    common.module.ts   # @Global() — AppCacheService, RequestContextStorePort
-    constants/         # cache TTLs, locales, metadata keys
-    context/           # request context store, type, Fastify hook
-    decorators/        # @ResponseMessage, @SkipEnvelope, @ApiResponses
-    docs/              # Swagger/Scalar setup
-    exceptions/        # AppException, AppErrorCode, ERROR_DEFINITIONS
-    filters/           # GlobalExceptionFilter
-    interceptors/      # RequestIdentity, Response, AuthRedirect
-    ports/             # CacheManagerPort, RateLimiterPort
-    security/          # CSRF guard, rate limiting
-    setup/             # CORS
-    types/  utils/  validation/
+  common/                      # cross-cutting code, flat, no Nest module
+    app-exception.ts           # AppException, AppErrorCode, ERROR_DEFINITIONS
+    request-context.ts         # RequestContext + AsyncLocalStorage + Fastify hook
+    response.interceptor.ts    # envelope + @ResponseMessage + @SkipEnvelope
+    global-exception.filter.ts # GlobalExceptionFilter
+    validation.pipe.ts         # Zod pipe + createStrictZodDto
+    csrf.guard.ts              # CSRF guard + @CsrfExempt + helpers
+    cors.ts  swagger.ts  api-errors.decorator.ts  utils.ts
   infrastructure/      # one folder per external-system capability, each complete
-    cache/             # Redis client + CacheManagerPort + AppCacheService + TTLs
-    rate-limit/        # port + Redis adapter + module + 3 interceptors + decorators
+    cache/             # Redis client + CachePort + CacheTTL + getOrLoad
+    rate-limit/        # port + Redis adapter + decorators + one interceptor
     i18n/              # nestjs-i18n setup + locale resolver + translate helpers
     logger/            # Pino setup
     queue/             # BullMQ setup
