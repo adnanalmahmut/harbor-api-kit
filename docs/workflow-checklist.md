@@ -38,7 +38,7 @@ Follow [adding-a-feature.md](adding-a-feature.md) start-to-finish. Tick each ite
 
 ## 3. Introducing shared logic
 
-Before extracting anything to `core/`, walk through [shared-core-extraction.md](shared-core-extraction.md):
+Before extracting anything to `common/` or `infrastructure/`, walk through [shared-core-extraction.md](shared-core-extraction.md):
 
 - [ ] Signal 1 — Confirmed used by ≥ 2 features (actually used, not "could be").
 - [ ] Signal 2 — Confirmed no feature-specific domain meaning.

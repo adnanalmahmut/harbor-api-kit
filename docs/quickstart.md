@@ -28,7 +28,7 @@ When `ENABLE_DOCS=true`, Scalar/OpenAPI docs are available at
 `http://localhost:5000/documentation`.
 
 Roles and their inherited permissions are defined statically in
-`src/modules/authorization/domain/permissions.catalog.ts`; no authorization seed step is needed.
+`src/modules/authorization/permissions.catalog.ts`; no authorization seed step is needed.
 
 Create an admin user only when you need one through the explicit one-off CLI:
 

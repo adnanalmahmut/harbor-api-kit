@@ -28,33 +28,36 @@ Node.js 22 (ESM) · TypeScript 5.9 · NestJS 11 (Fastify 5) · Prisma 7 + Postgr
 
 ## 2. Module structure — MUST
 
-- Every feature module MUST follow the canonical four-layer layout: `domain/`, `application/`, `infrastructure/`, `presentation/`.
-- Every feature module MUST have `<feature>.module.ts`, `<feature>.tokens.ts` (when it owns DI tokens), and a root `index.ts`.
-- Documented exceptions (`notify`, `health`, `shared`) are listed in [ARCHITECTURE.md §10](ARCHITECTURE.md#10-documented-exceptions-partial-modules). Do not invent new exceptions without updating that section.
+- Every feature module is **flat**: role in the file name, no layer folders. `domain/`, `application/`, `infrastructure/`, `presentation/`, `use-cases/` and `interfaces/` are **forbidden** folder names inside a feature.
+- Every feature module MUST have `<feature>.module.ts`. It MUST NOT have `index.ts` or `<feature>.tokens.ts`.
+- Behaviour goes in `<feature>.service.ts` as methods — **not** one class per use case.
+- A feature that stores anything MUST declare `<feature>.repository.ts` as an `abstract class`, and implement it under `src/persistence/prisma/`.
+- Deliberate variations (`notify` has no controller, `auth` has none either, `health` owns no repository) are listed in [ARCHITECTURE.md §9](ARCHITECTURE.md#9-deliberate-variations). Do not invent new ones without updating that section.
 - For step-by-step scaffolding see [docs/adding-a-feature.md](docs/adding-a-feature.md).
 
 ---
 
-## 3. Public API boundary — MUST (ESLint-enforced)
+## 3. Dependency injection — MUST
 
-- Every module MUST expose its public API through its root `index.ts`.
-- Cross-module imports MUST target `#src/modules/<feature>/index.js`. Importing past the barrel — e.g., `#src/modules/authorization/application/use-cases/get-user-permissions.use-case.js` — is **forbidden and ESLint-enforced** (CI will fail).
-- **NestJS module classes** are the one exception: they are NOT in the barrel (to avoid ESM circular initialization). Consuming `.module.ts` files import the module class directly from `#src/modules/<feature>/<feature>.module.js`.
-- When a needed symbol is not yet exported by a target module's barrel, the correct fix is to **add the export to that module's `index.ts`** — never to deep-import.
-- Inside a module, use **relative imports** for in-feature references. Do not self-reference via `#src/modules/<own-feature>/...`.
-- The single documented deep-import exception is [src/core/infrastructure/redis/redis.keys.ts](src/core/infrastructure/redis/redis.keys.ts) — see [ARCHITECTURE.md §4.2](ARCHITECTURE.md#42-cross-module-public-api-enforcement-eslint-enforced).
+- Inject **by class**. Ports are `abstract class`es so they double as tokens: `{ provide: StorageDriverPort, useClass: S3Driver }`.
+- MUST NOT introduce a `*_TOKENS` symbol map. The only legitimate symbol token is [`BETTER_AUTH`](src/modules/auth/better-auth/better-auth.token.ts), because Better Auth's instance is a factory-built plain object.
+- MUST NOT use `useFactory` where `useClass` works. A `useFactory` needs a comment explaining why.
+- A feature module MUST NOT list its own repository in `providers` — `PersistenceModule` is `@Global()` and supplies it.
 
 ---
 
-## 4. Layer boundaries — MUST / MUST NOT
+## 4. Boundaries — MUST / MUST NOT (ESLint-enforced)
 
 ESLint enforces these in [eslint.config.mjs](eslint.config.mjs). An agent MUST NOT add `eslint-disable` to bypass them.
 
-- **Domain** MUST NOT import `@nestjs/*`, `@prisma/client`, `ioredis`, `nestjs-i18n`, `class-validator`, `class-transformer`, generated Prisma types, `application/`, `infrastructure/`, `presentation/`, or request context internals.
-- **Application** MUST NOT import Prisma, NestJS, Redis, i18n libs, `infrastructure/`, or `presentation/`. Application receives infrastructure dependencies only as constructor-injected port interfaces from `domain/ports/`.
-- **Presentation** MUST NOT import Prisma, Redis, or non-config/non-logger infrastructure paths.
-- **Infrastructure** MUST NOT import `presentation/`.
+- **Prisma is confined to `src/persistence/**`.** `@prisma/client` and `#src/generated/prisma/**` are forbidden elsewhere; `#src/persistence/prisma/**` is importable only from inside `src/persistence/`. A service injects the abstract repository, never `PrismaService`.
+- **`$transaction` is forbidden outside `src/persistence/prisma/`.** Compose writes with `TransactionManager.run()`.
+- **A repository port MUST NOT name a Prisma type** — no `Prisma.XWhereInput`, no generated model, no `Decimal`/`JsonValue`. See [docs/persistence.md](docs/persistence.md).
+- **Another module's repository is private.** `#src/modules/*/*.repository.js` is off-limits across modules; inject the service that module exports.
+- **`ioredis` / `redis`** may only be imported inside `src/infrastructure/cache/`. Elsewhere inject `CacheManagerPort` or `RedisService`.
 - **Globally**: `class-validator` and `class-transformer` are forbidden. Use Zod + `createStrictZodDto`.
+- The one allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth/better-auth.ts`.
+- Inside a module, use **relative imports**. Do not self-reference via `#src/modules/<own-feature>/...`.
 
 ---
 
@@ -62,24 +65,25 @@ ESLint enforces these in [eslint.config.mjs](eslint.config.mjs). An agent MUST N
 
 Detailed rules and size thresholds live in [docs/file-organization.md](docs/file-organization.md). Summary:
 
-- **MAY** merge cohesive use cases, cohesive request/response DTOs per controller, cohesive port sets, or feature cache-key constants into one file.
-- **MUST NOT** merge code from different architectural layers, a controller with its DTOs, or a repository adapter with its mapper.
-- **MUST split** when a file exceeds ~400 LOC, contains > ~6 exported use cases or DTOs, or mixes more than one bounded concern.
+- **MAY** group all DTOs for one controller, a small cohesive port set (`<feature>.ports.ts`), or a feature's cache-key constants into one file.
+- **MUST NOT** merge a controller with its DTOs, or a repository port with its adapter.
+- **MUST split** when a file exceeds ~400 LOC, a service exceeds ~10 public methods, or the file mixes more than one bounded concern.
 - **MUST NOT** create `utils.ts`, `helpers.ts`, `misc.ts`, or any other generic dumping ground. Name files after their actual contents.
 
 ---
 
 ## 6. Naming conventions — MUST
 
-- Use cases: `{verb}-{noun}.use-case.ts`. Class: `{Verb}{Noun}UseCase`.
-- Grouped use cases: `<feature>.<slice>.use-cases.ts` (e.g., `auth.password.use-cases.ts`).
-- Repositories: `prisma-{entity}.repository.ts`. Class: `Prisma{Entity}Repository`.
-- Port interfaces: `{name}.port.ts` in `domain/ports/`. Interface: `{Name}Port`.
-- Value objects: `{name}.vo.ts` in `domain/value-objects/`. Class: `{Name}VO`.
-- DTOs: `{intent}.dto.ts` (or grouped `<feature>.dto.ts`). Class extends `createStrictZodDto(...)`.
-- Exception class: `{Module}Exception` in `<module>/<layer>/exceptions/{module}.exception.ts`. Static factories return new instances (see [src/modules/authorization/application/exceptions/authorization.exception.ts](src/modules/authorization/application/exceptions/authorization.exception.ts)).
-- Tokens: `{MODULE}_TOKENS` constant of `Symbol`-keyed entries in `<feature>.tokens.ts`.
-- Unit specs: co-located as `*.spec.ts`.
+- Controller: `<feature>.controller.ts`. Class: `{Feature}Controller`.
+- Service: `<feature>.service.ts`. Class: `{Feature}Service`. A second service is named after its sub-concern.
+- Repository port: `<feature>.repository.ts`. Class: `abstract class {Feature}Repository`.
+- Repository adapter: `src/persistence/prisma/<feature>.prisma.repository.ts`. Class: `Prisma{Feature}Repository`.
+- Other port: `<feature>.ports.ts` or `<name>.port.ts`. Class: `abstract class {Name}Port`.
+- Entity: `entities/{name}.entity.ts`. Value object: `{name}.vo.ts`, class `{Name}VO`.
+- DTOs: `dto/{intent}.dto.ts` (or grouped `dto/<feature>.dto.ts`). Class extends `createStrictZodDto(...)`.
+- Exception class: `{Feature}Exception` in `<feature>.exception.ts`. Static factories return new instances (see [src/modules/authorization/authorization.exception.ts](src/modules/authorization/authorization.exception.ts)).
+- Guards: `guards/{name}.guard.ts`. Decorators: `decorators/{name}.decorator.ts`.
+- Unit specs: co-located as `*.spec.ts`, wired with `Test.createTestingModule`.
 - Contract tests: `test/<module>.contract-spec.ts`.
 - E2E tests: `test/<module>.e2e-spec.ts`.
 
@@ -95,7 +99,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 8. Validation — MUST
 
-- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/authorization/presentation/http/dtos/set-permission-override.dto.ts](src/modules/authorization/presentation/http/dtos/set-permission-override.dto.ts).
+- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/authorization/dto/set-permission-override.dto.ts](src/modules/authorization/dto/set-permission-override.dto.ts).
 - Strict mode rejects unknown keys. Do not relax it without justification documented in the PR.
 - `class-validator` is **forbidden globally** (ESLint-enforced).
 
@@ -103,7 +107,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 9. Errors & responses — MUST
 
-- All errors thrown from application or domain MUST be `AppException` subclasses (see [src/core/domain/exceptions/app-exception.ts](src/core/domain/exceptions/app-exception.ts)). Wrap Prisma/Redis/external-provider failures into a feature-specific `AppException` subclass at the infrastructure boundary.
+- Every error crossing a boundary MUST be an `AppException` subclass (see [src/common/exceptions/app-exception.ts](src/common/exceptions/app-exception.ts)). Wrap Prisma/Redis/external-provider failures into the feature's `AppException` subclass **inside the adapter** — a driver error code must never reach a service.
 - Every `AppException` subclass MUST use a stable `AppErrorCode` and an i18n `messageKey`. Never expose raw framework or driver errors to the client.
 - All HTTP responses MUST flow through the global response interceptor and use the envelope:
   - Success: `{ success: true, message?, data? }`
@@ -154,17 +158,17 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 For full detail and code snippets, see [docs/adding-a-feature.md](docs/adding-a-feature.md). The numbered steps in that document are authoritative; the summary below MUST match it exactly.
 
 1. **Decide** whether the work is a new module or an extension of an existing one.
-2. **Scaffold** the folder structure for the module (or the layer subfolders that are new).
-3. **Author the domain** — entities, value objects, port interfaces, domain exceptions.
-4. **Author the application** — use cases, application exceptions, response mappers.
-5. **Author the infrastructure** — repository adapters, provider adapters.
-6. **Author the presentation** — controller, Zod DTOs, guards, decorators.
-7. **Register the NestJS module** — providers wired via tokens, controllers listed, exports declared.
-8. **Expose the public API** — extend the root `index.ts` with the new public surface.
-9. **Add i18n keys** to all locales for any new user-facing message.
-10. **Add tests** — unit specs for use cases, contract tests for endpoints.
-11. **Update docs** if architecture or boundaries changed.
-12. **Run the Definition of Done** checklist (§16).
+2. **Scaffold** with `nest g resource modules/<feature>`, then adjust to this project's conventions (`.js` extensions, Zod DTOs, no barrel).
+3. **Declare the repository port** — `<feature>.repository.ts`, an `abstract class` using only your own types. Skip if the feature stores nothing.
+4. **Implement the adapter** under `src/persistence/prisma/` and bind it in `persistence.module.ts`.
+5. **Write the DTOs** — Zod via `createStrictZodDto`, under `dto/`.
+6. **Write the service** — all behaviour, injecting the abstract repository.
+7. **Write the exception class** — `<feature>.exception.ts`, one static factory per error case.
+8. **Write the controller** — guards, DTO, one service call.
+9. **Register the NestJS module** and add it to `app.module.ts`.
+10. **Add i18n keys** to all locales for any new user-facing message.
+11. **Add tests** — a service spec overriding the port, plus a contract test per endpoint.
+12. **Update docs** if architecture or boundaries changed, then **run the Definition of Done** (§16).
 
 If any step is unclear, STOP and ask — do not guess.
 
@@ -172,13 +176,13 @@ If any step is unclear, STOP and ask — do not guess.
 
 ## 15. Detecting shared / core extraction
 
-Apply the **three-signal rule**. Extract code to `core/` only if **all three** are true:
+Apply the **three-signal rule**. Extract shared code only if **all three** are true:
 
 1. The code is needed by **two or more features**.
 2. The code has **no feature-specific domain meaning**.
-3. The code is **framework infrastructure or a cross-cutting concern** (logger, persistence client, validation pipe, request context, security primitives).
+3. The code is **framework infrastructure or a cross-cutting concern** (logger, database client, validation pipe, request context, security primitives).
 
-If any signal is false, the code stays feature-owned. Examples and false positives in [docs/shared-core-extraction.md](docs/shared-core-extraction.md).
+If any signal is false, the code stays feature-owned. The destination matters too: `src/common/` for code with no Nest module, `src/infrastructure/` for a module wrapping an external system, `src/persistence/` for the database and nothing else. Examples and false positives in [docs/shared-core-extraction.md](docs/shared-core-extraction.md).
 
 ---
 
@@ -191,7 +195,9 @@ A change is **done** when all of the following are true:
 - [ ] `npm test` passes (unit + contract + e2e relevant to the change).
 - [ ] No new `eslint-disable` directives on import or layer rules.
 - [ ] No new `@ts-ignore` / `@ts-expect-error` to bypass architectural constraints.
-- [ ] All new cross-module imports go through the target module's `index.ts`.
+- [ ] No Prisma import outside `src/persistence/`, and no repository port exposing a Prisma type.
+- [ ] No `$transaction` outside `src/persistence/prisma/`.
+- [ ] No new `index.ts` barrel or `*_TOKENS` symbol map.
 - [ ] All new user-facing messages have i18n keys in **all** locales.
 - [ ] `@SkipEnvelope()` is not used (or, if used, is on a documented webhook with a contract test).
 - [ ] No new dependency, or new dependency is justified in the PR description.
@@ -203,14 +209,14 @@ A change is **done** when all of the following are true:
 
 These rules exist because shortcuts have cost the project before. An AI agent MUST NOT:
 
-a. Add `eslint-disable` to a layer-boundary or import-restriction rule.
+a. Add `eslint-disable` to an import-restriction rule.
 b. Reintroduce `class-validator` or `class-transformer` "for one quick endpoint".
 c. Add a second path alias (`@/`, `~/`, etc.). Only `#src/` is allowed.
-d. Create a "temporary" deep cross-module import. There is no such thing.
+d. Inject `PrismaService` into a service, controller, or guard "just this once".
 e. Use `@SkipEnvelope()` outside a documented webhook.
 f. Catch `AppException` to suppress it from the global filter.
 g. Add a runtime dependency without explicit approval in the PR.
-h. Merge architectural layers into one file (e.g., putting a use case and a repository in the same file).
+h. Put a Prisma type in a repository port signature, or let a Prisma error code escape an adapter.
 i. Read `process.env` directly outside `src/config/`.
 j. Use `console.*` instead of the injected Pino logger.
 k. Mock out the database in contract or e2e tests. Use the real test Postgres on port 5435.

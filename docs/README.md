@@ -36,7 +36,8 @@ Everything in `docs/` exists to make those two documents executable.
 | [adding-a-feature.md](adding-a-feature.md)             | Step-by-step procedure for scaffolding a new feature or extending an existing one.  |
 | [module-boundaries.md](module-boundaries.md)           | Allowed and forbidden imports between modules and layers. Public API rules.         |
 | [file-organization.md](file-organization.md)           | When to merge files, when to split, naming conventions, size thresholds.            |
-| [shared-core-extraction.md](shared-core-extraction.md) | What belongs in `core/` vs what stays feature-owned. The three-signal rule.         |
+| [persistence.md](persistence.md) | The contract that keeps Prisma replaceable: repository ports, transactions, error mapping. |
+| [shared-core-extraction.md](shared-core-extraction.md) | What belongs in `common/` / `infrastructure/` vs what stays feature-owned. The three-signal rule. |
 | [quickstart.md](quickstart.md)                         | Fast local setup for new users.                                                     |
 | [configuration.md](configuration.md)                   | Environment files and runtime configuration groups.                                 |
 | [api-conventions.md](api-conventions.md)               | Response envelopes, auth cookies, CSRF, and validation.                             |

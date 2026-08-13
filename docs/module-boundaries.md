@@ -1,158 +1,110 @@
 # Module boundaries
 
-This document operationalizes the import rules from [ARCHITECTURE.md §4](../ARCHITECTURE.md#4-dependency-direction), [§5](../ARCHITECTURE.md#5-cross-module-integration), and [§6](../ARCHITECTURE.md#6-public-api-boundary). When in doubt, the architecture document wins.
+This document operationalizes the import rules from [ARCHITECTURE.md §4](../ARCHITECTURE.md#4-dependency-direction). When in doubt, the architecture document wins.
+
+The layout has no layer folders and no barrels, so there are far fewer rules than there used to be — but the ones that remain are the load-bearing ones, and all four are machine-enforced in [eslint.config.mjs](../eslint.config.mjs).
 
 ---
 
 ## 1. The four allowed import shapes
 
-Inside a feature module, code MAY import from exactly four sources:
-
 | Source | Example | When |
 |--------|---------|------|
-| **Same module, relative** | `import { PermissionKeyVO } from '../value-objects/permission-key.vo.js';` | In-module references. The default. |
-| **`#src/core/...`** | `import { PrismaService } from '#src/core/index.js';` | Anything from `core/`. |
-| **`#src/modules/<other>/index.js`** | `import { AUTHORIZATION_TOKENS } from '#src/modules/authorization/index.js';` | Cross-module references. **Always via the barrel.** |
-| **External package** | `import { Module } from '@nestjs/common';` | Subject to layer restrictions in `eslint.config.mjs`. |
+| **Same module, relative** | `import { PermissionKeyVO } from './permission-key.vo.js';` | In-module references. The default. |
+| **`#src/common/…`, `#src/config/…`, `#src/infrastructure/…`** | `import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';` | Cross-cutting code. Name the file. |
+| **`#src/modules/<other>/<file>.js`** | `import { AuthGuard } from '#src/modules/auth/auth.guard.js';` | Cross-module references — a direct file import, since there is no barrel. |
+| **External package** | `import { Module } from '@nestjs/common';` | Subject to the restrictions below. |
 
-Anything else is a violation.
-
----
-
-## 2. Allowed / forbidden — quick reference
-
-### ✅ Allowed
+Self-referencing your own module through `#src/` is wrong — use a relative path:
 
 ```ts
-// In src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts
-import { isPermissionKey } from '../../domain/permissions.catalog.js';   // relative, same module
-import type { AuthorizationRepositoryPort } from '../../domain/ports/authorization.repository.port.js';
-import { AuthorizationException } from '../exceptions/authorization.exception.js';
-```
+// ✅ inside src/modules/authorization/
+import { PermissionKeyVO } from './permission-key.vo.js';
 
-```ts
-// In src/modules/files/files.module.ts
-import { PrismaModule } from '#src/core/index.js';                       // from core
-import { AuthModule } from '#src/modules/auth/auth.module.js';           // module class via direct file
-import { PermissionsGuard } from '#src/modules/authorization/index.js';  // provider via barrel
-```
-
-### ❌ Forbidden in new code
-
-```ts
-// Deep import past the target module's barrel
-import { AuthGuard } from '#src/modules/auth/presentation/http/auth.guard.js';
-
-// Self-reference via #src instead of relative
-// (inside src/modules/authorization/...)
-import { PermissionKeyVO } from '#src/modules/authorization/domain/value-objects/permission-key.vo.js';
-
-// Layer violation — application reaching into infrastructure
-// (inside src/modules/authorization/application/...)
-import { PrismaAuthorizationRepository } from '../infrastructure/persistence/prisma-authorization.repository.js';
-
-// Layer violation — domain reaching into NestJS
-// (inside src/modules/authorization/domain/...)
-import { Injectable } from '@nestjs/common';
-
-// Forbidden globally
-import { IsEmail } from 'class-validator';
+// ❌ inside src/modules/authorization/
+import { PermissionKeyVO } from '#src/modules/authorization/permission-key.vo.js';
 ```
 
 ---
 
-## 3. Layer rules (ESLint-enforced)
+## 2. The four enforced rules
 
-These are mechanically enforced in [eslint.config.mjs](../eslint.config.mjs). A violation fails CI.
-
-| Layer | Forbidden imports |
-|-------|-------------------|
-| `domain/` | `@nestjs/*`, `@prisma/client`, generated Prisma types, `ioredis`, `redis`, `nestjs-i18n`, `class-validator`, `class-transformer`, `application/`, `infrastructure/`, `presentation/`, request context internals |
-| `application/` | `@prisma/client`, generated Prisma types, `@nestjs/*`, `ioredis`, `redis`, `nestjs-i18n`, `class-validator`, `class-transformer`, `infrastructure/`, `presentation/`, request context internals |
-| `presentation/` | `@prisma/client`, generated Prisma types, `ioredis`, `redis`, `class-validator`, `class-transformer`, `infrastructure/` (except `core/infrastructure/logger/`); configuration comes from `#src/config/index.js` |
-| `infrastructure/` | `presentation/`, `class-validator`, `class-transformer` |
-| **All of `src/`** | `class-validator`, `class-transformer`. `@prisma/client` and generated Prisma types outside `infrastructure/` and `core/db/prisma/`. |
-
----
-
-## 4. Cross-module rule (convention, reviewer-enforced)
-
-> **Cross-module imports MUST go through the target module's root `index.ts`.**
-
-In code:
+### Rule 1 — Prisma is confined to `src/persistence/**`
 
 ```ts
-// ✅ Correct
-import { AUTHORIZATION_TOKENS } from '#src/modules/authorization/index.js';
-
-// ❌ Forbidden in new code
-import { AUTHORIZATION_TOKENS } from '#src/modules/authorization/authorization.tokens.js';
-import { GetUserPermissionsUseCase } from '#src/modules/authorization/application/use-cases/get-user-permissions.use-case.js';
+// ❌ anywhere outside src/persistence/
+import type { Prisma } from '#src/generated/prisma/client.js';
+import { PrismaClient } from '@prisma/client';
 ```
 
-When the symbol you need is not yet exported by the target barrel, the **only correct fix** is to extend that barrel:
+Also enforced in the other direction: `#src/persistence/prisma/**` and `persistence.module.js` are importable **only from inside `src/persistence/`**. A service that wants data injects the abstract repository; a service that wants atomicity injects `TransactionManager` from `#src/persistence/transaction.manager.js`, which stays public.
+
+The single allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth/better-auth.ts`. See [persistence.md §4](persistence.md#4-the-one-accepted-exception-better-auth).
+
+### Rule 2 — another module's repository is not public
 
 ```ts
-// src/modules/authorization/index.ts
-export * from './authorization.tokens.js';
-export type { AuthorizationRepositoryPort } from './domain/ports/authorization.repository.port.js';   // ← add it here
+// ❌ #src/modules/*/*.repository.js from outside that module
+import { FileRepository } from '#src/modules/files/files.repository.js';
 ```
 
-Do **not** deep-import as a workaround.
+A repository is the private contract between one feature and its storage. Cross-module collaboration goes through the service the other module exports:
 
-### ESLint enforcement is planned
+```ts
+// ✅
+@Module({ imports: [FilesModule] })          // FilesModule exports FilesService
+// …then inject FilesService
+```
 
-Currently this rule is reviewer-enforced. A future `no-restricted-imports` pattern will make it mechanical. Until then, every PR review MUST check for new deep cross-module imports.
+### Rule 3 — validation is Zod
 
-### Legacy deep imports
+`class-validator` and `class-transformer` are forbidden in all of `src/`. Request DTOs use `createStrictZodDto`.
 
-The cross-module dependency map in [ARCHITECTURE.md §5.1](../ARCHITECTURE.md#51-current-cross-module-dependency-map-migration-target) lists existing deep imports. They are **not** a precedent for new code; they are a migration backlog.
+### Rule 4 — Redis clients belong to the cache capability
 
----
-
-## 5. The Prisma boundary
-
-Prisma is the most easily-leaked dependency. Rules:
-
-- `@prisma/client` and `#src/generated/prisma/**` MAY only be imported from:
-  - `src/modules/<feature>/infrastructure/**`
-  - `src/core/db/prisma/**` (where `PrismaService` is defined)
-- Exposing a Prisma type in a port signature, an application function signature, or a DTO is a violation. Define your own domain type and translate at the infrastructure boundary via a mapper (`infrastructure/mappers/`).
+`ioredis` and `redis` may only be imported inside `src/infrastructure/cache/`. Everything else injects `CacheManagerPort` (the abstract cache slice) or `RedisService` (when it needs raw commands, as the auth session tracker does).
 
 ---
 
-## 6. Circular dependencies
+## 3. What is *not* enforced any more, and why
 
-NestJS modules occasionally need bidirectional references (e.g., `auth` ↔ `authorization`). Rules:
+The old config had eleven per-layer blocks forbidding `@nestjs/*` in `domain/`, `infrastructure/` in `application/`, and so on. Those rules existed to keep use-case classes framework-agnostic. Services are now `@Injectable()` by design, so the rules would forbid the intended style. They are gone.
 
-- Use `forwardRef(() => OtherModule)` in the `imports` array.
-- Document the cycle either in [ARCHITECTURE.md §5.1](../ARCHITECTURE.md#51-current-cross-module-dependency-map-migration-target) or with a one-line comment at the import site explaining why the cycle is unavoidable.
-- A new circular dependency between two modules MUST be justified in the PR description. Prefer redesigning the feature to avoid it.
+What replaced them is not a weaker guarantee — it is a narrower and truer one: the thing actually worth protecting is the **database boundary**, and that is now enforced from both sides.
 
 ---
 
-## 7. Imports inside `core/`
+## 4. Cross-cutting code
 
-Within `core/`, the same layer rules apply:
+`src/common/`, `src/config/` and `src/infrastructure/` MUST NOT import from any feature module. If one of them needs to, the code belongs in a feature — see [shared-core-extraction.md](shared-core-extraction.md).
 
-- `core/domain/` MUST NOT import NestJS, Prisma, Redis, i18n, or other `core/` layers above it.
-- `core/application/` MUST NOT import infrastructure or presentation.
-- `core/infrastructure/` MAY use Prisma and Redis (this is where they are wired).
-- `core/presentation/` MUST NOT import non-config/non-logger infrastructure.
+There are no exceptions: nothing under those three directories imports a feature module.
 
-`core/` MUST NOT import from any feature module. If it does, that's a sign the code belongs in a feature, not in core. See [shared-core-extraction.md](shared-core-extraction.md).
+`src/persistence/` is the deliberate inverse: it imports repository ports and exception classes **from** feature modules, because it implements what those features declare. That direction is correct and is what makes the composition root work.
 
 ---
 
-## 8. Quick decision table
+## 5. Circular dependencies
+
+- Use `forwardRef(() => OtherModule)` on **both** sides.
+- Document the reason with a one-line comment at the import site.
+- A new cycle MUST be justified in the PR description. Prefer redesigning to avoid it.
+
+The one cycle in the repo: `auth` ↔ `authorization`. Auth guards its Better Auth admin routes with `EffectivePermissionsService`; authorization's own controller needs `AuthGuard`.
+
+---
+
+## 6. Quick decision table
 
 | You need to … | Do this |
 |---------------|---------|
 | Reference an entity in the same module | Relative import. |
-| Reference Prisma | Only from `infrastructure/`. |
-| Reference another feature's port | Import the port from `#src/modules/<other>/index.js`. If not exported there, extend that barrel first. |
-| Reference another feature's guard / decorator / response DTO | Same: through the barrel. Extend it if needed. |
-| Reference `PrismaService` / `RedisService` | `import { ... } from '#src/core/index.js';` |
-| Reference runtime configuration | Import its factory from `#src/config/index.js`, then inject `<factory>.KEY` with `ConfigType<typeof factory>`. |
-| Add a new env var | Declare it in the relevant Zod schema under `src/config/` and expose it from that namespace. Never read `process.env` in a consumer. |
-| Throw a domain/application error | Subclass `AppException` in `<feature>/<layer>/exceptions/`. Never throw raw `Error` or framework errors at the application boundary. |
+| Read or write the database | Inject the feature's abstract repository. Never `PrismaService`. |
+| Write across repositories atomically | Inject `TransactionManager` and use `run()`. Never `$transaction`. |
+| Add a repository method | Add it to `<feature>.repository.ts`, then implement in `src/persistence/prisma/`. |
+| Use another feature's behaviour | Import its module class, inject the service it exports. |
+| Use another feature's guard / decorator / DTO | Direct file import: `#src/modules/<other>/guards/x.guard.js`. |
+| Cache something | Inject `CacheManagerPort`, or `RequestContextStorePort.getOrLoad` for request-scoped memoization. |
+| Reference runtime configuration | Import the factory from `#src/config/index.js`, inject `<factory>.KEY` with `ConfigType<typeof factory>`. |
+| Add an env var | Declare it in the relevant Zod schema under `src/config/`. Never read `process.env` in a consumer. |
+| Throw an error | Subclass `AppException` in `<feature>.exception.ts`. Never throw a raw `Error` at a boundary. |

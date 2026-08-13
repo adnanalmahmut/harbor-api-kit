@@ -104,7 +104,7 @@ and reuse it for Better Auth and CLI database work.
 
 ## Static roles and permissions
 
-`src/modules/authorization/domain/permissions.catalog.ts` is the source of truth for:
+`src/modules/authorization/permissions.catalog.ts` is the source of truth for:
 
 - resources and actions;
 - application roles;

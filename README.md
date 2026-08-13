@@ -61,51 +61,43 @@ Planned features live in [ROADMAP.md](ROADMAP.md). The README lists implemented 
 
 ## Architecture
 
-This project follows **Clean Architecture** with strict layer boundaries enforced via ESLint.
+The layout is the **standard NestJS resource shape** — controller, service, DTOs, entities — plus **one addition**: a repository seam that keeps the database library replaceable.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full architectural rules (single source of truth).
 
-### Layer Structure
-
-Each feature module follows this structure:
+### Feature module structure
 
 ```
 modules/<feature>/
-  domain/          # Pure business logic (no framework deps)
-  application/     # Use-cases + orchestration
-  infrastructure/  # Adapters (Prisma, external providers)
-  presentation/    # Controllers, DTOs, guards
+  <feature>.module.ts       # providers, controllers, exports
+  <feature>.controller.ts   # HTTP only — guards, DTO, one service call
+  <feature>.service.ts      # the behaviour
+  <feature>.repository.ts   # abstract class = persistence port AND DI token
+  <feature>.exception.ts
+  dto/  entities/  guards/  decorators/
 ```
 
-Cross-cutting concerns live in `core/`:
+Flat by design: the role is in the file name, not in a folder. No `index.ts` barrels, no `*_TOKENS` symbol maps — abstract classes are the injection tokens.
 
-```
-core/
-  domain/          # Shared exceptions, types, ports
-  application/     # Cache service, logger port
-  infrastructure/  # Config, Prisma, Redis, Logger, i18n, Queue
-  presentation/    # Filters, guards, interceptors, decorators, docs, validation
-```
-
-### Dependency Direction
-
-- `presentation -> application -> domain` (allowed)
-- `infrastructure -> application/domain` (implements ports)
-- Layer isolation enforced via ESLint (domain/application cannot import from wrong layers)
-- Cross-feature imports use NestJS module imports + token injection for services, and direct imports for guards/decorators
+### Dependency direction
 
 ```mermaid
 flowchart LR
-  Client[HTTP Client] --> Presentation[Presentation Layer]
-  Presentation --> Application[Application Layer]
-  Application --> Domain[Domain Layer]
-  Infrastructure[Infrastructure Adapters] --> Application
-  Infrastructure --> Domain
-  Core[Core Infrastructure] --> Presentation
-  Core --> Infrastructure
+  Client[HTTP Client] --> Controller
+  Controller --> Service
+  Service --> Port["&lt;feature&gt;.repository (abstract)"]
+  Adapter["persistence/prisma/*.prisma.repository"] -.implements.-> Port
+  Common[common / infrastructure] --> Controller
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full dependency map and enforcement details.
+A service depends on the **abstract** repository declared beside it; the Prisma implementation lives in `src/persistence/` and is bound there. Swapping Prisma means adding one folder and editing one file — see [docs/persistence.md](docs/persistence.md).
+
+Four boundaries are ESLint-enforced and fail CI:
+
+1. Prisma is confined to `src/persistence/**` — enforced from both sides.
+2. Another module's repository is private; collaborate through its exported service.
+3. Validation is Zod (`class-validator` is forbidden).
+4. Redis clients belong to `src/infrastructure/cache/`.
 
 ## Documentation
 
@@ -119,7 +111,8 @@ Architecture is governed by the top-level architecture reference, with practical
 | [docs/adding-a-feature.md](docs/adding-a-feature.md)             | Step-by-step procedure for scaffolding a new feature or extending an existing one. |
 | [docs/module-boundaries.md](docs/module-boundaries.md)           | Allowed and forbidden imports between modules and layers; public API rules.        |
 | [docs/file-organization.md](docs/file-organization.md)           | When to merge files, when to split, naming conventions, size thresholds.           |
-| [docs/shared-core-extraction.md](docs/shared-core-extraction.md) | What belongs in `core/` vs what stays feature-owned (the three-signal rule).       |
+| [docs/persistence.md](docs/persistence.md)                       | The contract that keeps Prisma replaceable: repository ports, transactions, error mapping. |
+| [docs/shared-core-extraction.md](docs/shared-core-extraction.md) | What belongs in `common/` / `infrastructure/` vs what stays feature-owned (the three-signal rule). |
 | [docs/quickstart.md](docs/quickstart.md)                         | Short local setup path for first-time users.                                       |
 | [docs/configuration.md](docs/configuration.md)                   | Environment variables and runtime configuration groups.                            |
 | [docs/api-conventions.md](docs/api-conventions.md)               | Response envelope, auth cookies, CSRF, and validation conventions.                 |
@@ -140,34 +133,40 @@ This project was built with AI-assisted pair programming for scaffolding, docume
 
 ```
 src/
-  config/            # registerAs factories + per-namespace Zod schemas
-  core/
-    infrastructure/
-      db/prisma/     # PrismaModule + PrismaService
-      redis/         # RedisModule + RedisService
-      logger/        # Pino setup
-      i18n/          # nestjs-i18n setup
-      queue/         # BullMQ setup
-    domain/          # AppException, types, ports
-    presentation/
-      constants/     # Metadata keys
-      decorators/    # @ResponseMessage, @SkipEnvelope, @ApiErrors
-      docs/          # Swagger/Scalar setup
-      filters/       # GlobalExceptionFilter
-      hooks/         # RequestContextHook (Fastify)
-      interceptors/  # RequestIdentity, Response, RateLimit
-      security/      # CSRF guard, rate limiting
-      setup/         # CORS, bootstrap
-      types/         # API response types
-      utils/         # i18n helpers
-      validation/    # GlobalValidationPipe, Strict Zod DTO helpers
+  main.ts              # entrypoint
+  bootstrap.ts         # createApp / configureApp — reused by the test factory
+  app.module.ts
+  config/              # registerAs factories + per-namespace Zod schemas
+  common/              # cross-cutting code, no Nest module of its own
+    cache/             # AppCacheService
+    common.module.ts   # @Global() — AppCacheService, RequestContextStorePort
+    constants/         # cache TTLs, locales, metadata keys
+    context/           # request context store, type, Fastify hook
+    decorators/        # @ResponseMessage, @SkipEnvelope, @ApiResponses
+    docs/              # Swagger/Scalar setup
+    exceptions/        # AppException, AppErrorCode, ERROR_DEFINITIONS
+    filters/           # GlobalExceptionFilter
+    interceptors/      # RequestIdentity, Response, AuthRedirect
+    ports/             # CacheManagerPort, RateLimiterPort
+    security/          # CSRF guard, rate limiting
+    setup/             # CORS
+    types/  utils/  validation/
+  infrastructure/      # one folder per external-system capability, each complete
+    cache/             # Redis client + CacheManagerPort + AppCacheService + TTLs
+    rate-limit/        # port + Redis adapter + module + 3 interceptors + decorators
+    i18n/              # nestjs-i18n setup + locale resolver + translate helpers
+    logger/            # Pino setup
+    queue/             # BullMQ setup
+  persistence/         # THE DATABASE — nothing else goes here
+    persistence.module.ts   # @Global() — binds every repository port to its adapter
+    transaction.manager.ts  # abstract TransactionManager
+    prisma/                 # PrismaService, adapters, error mapper
   modules/
     auth/            # Authentication (better-auth, OAuth, sessions)
     authorization/   # Static policy, effective permissions, guards, per-user overrides
     files/           # File upload/download (S3, Local)
     notify/          # Email notifications (BullMQ + Resend)
     health/          # Health checks
-    shared/          # Reserved for cross-feature provider wiring; currently cache binding
 prisma/
   schema.prisma      # Database schema (9 models)
   migrations/        # Migration history
@@ -301,7 +300,7 @@ API documentation at `http://localhost:5000/documentation` (requires `ENABLE_DOC
 
 ## Testing
 
-- **Unit tests** (`src/**/*.spec.ts`): Domain logic, use-cases, validators
+- **Unit tests** (`src/**/*.spec.ts`): services (with the repository port overridden), value objects, validators, pure helpers
 - **Contract tests** (`test/*.contract-spec.ts`): API contract validation (auth, authorization, user permissions, files, security)
 - **E2E tests** (`test/*.e2e-spec.ts`): Full integration with database and Redis
 
