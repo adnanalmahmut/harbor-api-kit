@@ -18,9 +18,11 @@ npx prisma migrate dev
 npm run start:dev
 ```
 
-The default `.env.example` uses `STORAGE_DRIVER=r2`. Fill the S3/R2 variables
-before starting the app, or switch to `STORAGE_DRIVER=local` for quick
-local-only testing.
+The default `.env.example` uses `STORAGE_DRIVER=r2`. Supported values are
+`local`, `s3` (AWS), `r2` (Cloudflare) and `spaces` (DigitalOcean). All three
+remote drivers need `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` and
+`S3_BUCKET`; `r2` and `spaces` also need `S3_ENDPOINT`, while `s3` is located by
+region alone. Switch to `STORAGE_DRIVER=local` for quick local-only testing.
 
 The API runs at `http://localhost:5000/api/v1/`.
 

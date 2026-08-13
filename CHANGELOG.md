@@ -6,6 +6,60 @@ This project follows a lightweight changelog style inspired by Keep a Changelog.
 
 ## Unreleased
 
+### Added
+
+- **AWS S3 and Cloudflare R2 are recorded as distinct storage drivers.** The
+  `StorageDriver` Prisma enum carried only `S3_COMPAT` and `LOCAL`, so every
+  object stored on S3 or R2 was written as `S3_COMPAT` and the distinction was
+  lost. The mismatch with the application enum was hidden by an `as any` cast
+  in the Prisma repository — a write of `S3` or `R2` would have been rejected
+  by Postgres at runtime.
+  - Migration `20260813150000_storage_driver_s3_and_r2` adds both values.
+    Additive: no existing row changes, and `S3_COMPAT` keeps its meaning for
+    generic S3-compatible endpoints, which is what DigitalOcean Spaces is.
+  - The cast is gone, so the two enums are now checked against each other by
+    the compiler, and the config-to-driver map is
+    `satisfies Record<ConfigDriver, StorageDriver>` — adding a provider to the
+    configuration without mapping it is a compile error.
+  - **Fixed:** `S3Client` was constructed with `forcePathStyle: true` for all
+    three providers. AWS S3 requires virtual-hosted addressing for buckets
+    created since 2020 and is located by region alone, so it no longer receives
+    a custom endpoint. R2 and Spaces keep path-style against their configured
+    endpoint. `STORAGE_DRIVER=s3` no longer needs `S3_ENDPOINT`.
+
+### Changed
+
+- **Internal structure only — no HTTP contract changed:** flattened
+  `src/modules/`. 73 files across 9 sub-folders became 56 files across 1.
+  - Every feature folder is flat. `dto/`, `entities/`, `guards/`,
+    `decorators/`, `providers/`, `queue/` and `better-auth/` are gone. The only
+    remaining sub-folder is `files/storage/`, which is a swappable seam with
+    its own port rather than a group-by-kind bucket.
+  - **Import paths changed** for consumers of: `authorization/decorators/…` and
+    `authorization/guards/…` (now `authorization/permissions.guard.js`, which
+    exports both `Permissions` and `PermissionsGuard`); `files/entities/…` (now
+    `files/file.entity.js`, which also holds the `StorageDriver` enum);
+    `files/dto/…` (now `files/files.dto.js`); `authorization/dto/…` (now
+    `authorization/authorization.dto.js`); `auth/better-auth/…` (now
+    `auth/better-auth.js` and `auth/better-auth.registrar.js`, with
+    `BETTER_AUTH` exported from the former).
+  - **Renamed:** `AuthEmailHooks` → `AuthEmailSenderAdapter`; `AuthCacheKeys`
+    (static class) → `authCacheKeys` (object); `FileResponseMapper.map` →
+    `toFileResponse`; `PermissionCalculator.calculate` → `resolvePermissions`.
+    Redis key strings are unchanged.
+  - **Removed:** `createApiSuccess` and `createApiResponseConfig` returned their
+    arguments unchanged and forced every call site to pass `undefined` for a
+    `dataExample` nobody used; success rows are plain object literals now.
+    `createApiError` stays — it derives the status from the error code.
+    `createAuthFeatures` merged into `createBetterAuth`, and the BETTER_AUTH
+    provider's six-argument pass-through closure is now
+    `useFactory: createBetterAuth`.
+  - `AuthorizationService` no longer imports Zod: the request schema moved to
+    the DTO file, which had been importing it from the service.
+  - The two notify queue specs were replaced, not moved. Neither imported the
+    class it claimed to test — each reimplemented the logic inline and asserted
+    against that, including log messages the production code never emits.
+
 - **Internal structure only — no HTTP contract changed:** flattened
   `src/common/` and consolidated `src/infrastructure/`. 53 files across 17
   sub-folders became 23 files across 5, and the two capabilities with the most

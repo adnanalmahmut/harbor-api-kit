@@ -56,8 +56,8 @@ These look "shared" because more than one feature touches them, but they fail si
 | `Permissions` decorator | `authorization` module | Same — authorization-specific semantics. |
 | `UserPermissionsResponseDto` | `authorization` module | Response shapes are owned by the feature whose concept they represent. |
 | `EmailProviderPort`, `AuthEmailPort` and the Resend adapter | `notify` module | Notifications are a feature even when async. |
-| `permissions.catalog.ts`, `permission-calculator.ts`, `permission-key.vo.ts` | `authorization` module | Pure authorization knowledge. Being framework-free does not make it shared. |
-| Cache key prefixes for auth / authorization | `auth.cache.ts`, `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
+| `permissions.catalog.ts`, `permission-key.vo.ts` | `authorization` module | Pure authorization knowledge. Being framework-free does not make it shared. |
+| Cache key prefixes for auth / authorization | `auth.cache-keys.ts`, `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
 | Feature-specific exception subclasses | `<feature>/<feature>.exception.ts` | They extend `AppException` (shared) but encode feature semantics. |
 | Response mappers | The owning feature, e.g. `files.mapper.ts` | They translate that feature's entity to its response shape. |
 | A feature's repository port | `<feature>/<feature>.repository.ts` | It describes what *one* feature needs from storage. Never shared, and never public across modules. |
@@ -76,7 +76,7 @@ Walk through the three signals first:
 
 If signals 2 or 3 fail, the right answer is: **the feature that owns the concept exposes it, and the consumer imports it from there.** That is what cross-module integration *is* — it is not a signal that extraction is needed.
 
-Example: `PermissionsGuard` is needed by `authorization` and `files`. It does **not** belong in `src/common/` — it belongs to `authorization`, and `files` imports it from `#src/modules/authorization/guards/permissions.guard.js`.
+Example: `PermissionsGuard` is needed by `authorization` and `files`. It does **not** belong in `src/common/` — it belongs to `authorization`, and `files` imports it from `#src/modules/authorization/permissions.guard.js`.
 
 ---
 

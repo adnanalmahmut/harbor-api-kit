@@ -120,12 +120,12 @@ See below.
 
 ## 4. The one accepted exception: Better Auth
 
-`betterAuth({ database: prismaAdapter(prisma, …) })` is a hard dependency on the client object and must **not** be wrapped. Better Auth ships its own adapters (Kysely, Drizzle, Mongo), so changing the database means changing that one line in [src/modules/auth/better-auth/better-auth.ts](../src/modules/auth/better-auth/better-auth.ts).
+`betterAuth({ database: prismaAdapter(prisma, …) })` is a hard dependency on the client object and must **not** be wrapped. Better Auth ships its own adapters (Kysely, Drizzle, Mongo), so changing the database means changing that one line in [src/modules/auth/better-auth.ts](../src/modules/auth/better-auth.ts).
 
 Accordingly:
 
 - `PersistenceModule` exports `PrismaService`;
-- the ESLint allowlist admits `#src/persistence/prisma/**` in exactly two files — `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth/better-auth.ts`;
+- the ESLint allowlist admits `#src/persistence/prisma/**` in exactly two files — `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth.ts`;
 - any third file that tries to inject `PrismaService` fails lint.
 
 This is also why the swap can never be *zero* work, and saying so plainly is better than pretending the abstraction is total.

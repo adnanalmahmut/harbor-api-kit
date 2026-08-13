@@ -40,7 +40,7 @@ Node.js 22 (ESM) · TypeScript 5.9 · NestJS 11 (Fastify 5) · Prisma 7 + Postgr
 ## 3. Dependency injection — MUST
 
 - Inject **by class**. Ports are `abstract class`es so they double as tokens: `{ provide: StorageDriverPort, useClass: S3Driver }`.
-- MUST NOT introduce a `*_TOKENS` symbol map. The only legitimate symbol token is [`BETTER_AUTH`](src/modules/auth/better-auth/better-auth.token.ts), because Better Auth's instance is a factory-built plain object.
+- MUST NOT introduce a `*_TOKENS` symbol map. The only legitimate symbol token is [`BETTER_AUTH`](src/modules/auth/better-auth.ts), because Better Auth's instance is a factory-built plain object.
 - MUST NOT use `useFactory` where `useClass` works. A `useFactory` needs a comment explaining why.
 - A feature module MUST NOT list its own repository in `providers` — `PersistenceModule` is `@Global()` and supplies it.
 
@@ -56,7 +56,7 @@ ESLint enforces these in [eslint.config.mjs](eslint.config.mjs). An agent MUST N
 - **Another module's repository is private.** `#src/modules/*/*.repository.js` is off-limits across modules; inject the service that module exports.
 - **`ioredis` / `redis`** may only be imported inside `src/infrastructure/cache/`. Elsewhere inject `CachePort` or `RedisService`.
 - **Globally**: `class-validator` and `class-transformer` are forbidden. Use Zod + `createStrictZodDto`.
-- The one allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth/better-auth.ts`.
+- The one allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth.ts`.
 - Inside a module, use **relative imports**. Do not self-reference via `#src/modules/<own-feature>/...`.
 
 ---
@@ -99,7 +99,7 @@ Detailed rules and size thresholds live in [docs/file-organization.md](docs/file
 
 ## 8. Validation — MUST
 
-- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/authorization/dto/set-permission-override.dto.ts](src/modules/authorization/dto/set-permission-override.dto.ts).
+- All HTTP request bodies, params, and queries MUST be validated by Zod DTOs that extend `createStrictZodDto`. See [src/modules/authorization/authorization.dto.ts](src/modules/authorization/authorization.dto.ts).
 - Strict mode rejects unknown keys. Do not relax it without justification documented in the PR.
 - `class-validator` is **forbidden globally** (ESLint-enforced).
 
