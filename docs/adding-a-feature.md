@@ -223,8 +223,10 @@ Thin: guards, DTO, one service call, return. The global response interceptor add
 import { ApiResponses } from '#src/common/api-errors.decorator.js';
 import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { AuthGuard } from '#src/modules/auth/auth.guard.js';
-import { Permissions } from '#src/modules/authorization/decorators/permissions.decorator.js';
-import { PermissionsGuard } from '#src/modules/authorization/guards/permissions.guard.js';
+import {
+  Permissions,
+  PermissionsGuard,
+} from '#src/modules/authorization/permissions.guard.js';
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateThingDto } from './dto/create-thing.dto.js';
@@ -341,7 +343,7 @@ Then run the checklist in [workflow-checklist.md](workflow-checklist.md) and sta
 | Repository port + adapter | [files.repository.ts](../src/modules/files/files.repository.ts) → [file.prisma.repository.ts](../src/persistence/prisma/file.prisma.repository.ts) |
 | Transaction across repositories | [authorization.prisma.repository.ts](../src/persistence/prisma/authorization.prisma.repository.ts) (`replaceUserPermissions`) |
 | A second swappable driver | [src/modules/files/storage/](../src/modules/files/storage/) |
-| Wrapping a vendor library | [src/modules/auth/better-auth/](../src/modules/auth/better-auth/) |
+| Wrapping a vendor library | [src/modules/auth/better-auth.ts](../src/modules/auth/better-auth.ts) |
 | Async cross-module work via a queue | [src/modules/notify/queue/](../src/modules/notify/queue/) |
 | A feature with no controller | [src/modules/notify/](../src/modules/notify/) |
 | Two services in one feature | [src/modules/authorization/](../src/modules/authorization/) |

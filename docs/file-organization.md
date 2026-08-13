@@ -18,16 +18,13 @@ The layout is the standard NestJS resource shape: role in the file name, no laye
 | Repository adapter | `src/persistence/prisma/<feature>.prisma.repository.ts` | `Prisma{Feature}Repository` |
 | Other port | `<feature>.ports.ts` or `<name>.port.ts` | `abstract class {Name}Port` |
 | Adapter for a port | `<name>.adapter.ts` / `<name>.driver.ts` | `{Name}Adapter` / `{Name}Driver` |
-| Entity | `entities/<name>.entity.ts` | `{Name}` or `{Name}Entity` |
-| Enum owned by a feature | `entities/<name>.enum.ts` | `{Name}` |
+| Entity | `<name>.entity.ts` | `{Name}` or `{Name}Entity` |
+| Enum owned by an entity | inside `<name>.entity.ts` | `{Name}` |
 | Value object | `<name>.vo.ts` | `{Name}VO` |
-| Request DTO | `dto/<intent>.dto.ts` | `{Intent}Dto extends createStrictZodDto(...)` |
-| Grouped DTOs | `dto/<feature>.dto.ts` | one class per DTO |
-| OpenAPI examples | `dto/api-responses.examples.ts` | `{FEATURE}_RESPONSES` |
+| DTOs + OpenAPI contract | `<feature>.dto.ts` | one class per DTO, plus `{FEATURE}_RESPONSES` |
 | Exception | `<feature>.exception.ts` | `{Feature}Exception extends AppException` |
 | Cache keys | `<feature>.cache-keys.ts` | `{feature}CacheKeys` |
-| Guard | `guards/<name>.guard.ts` | `{Name}Guard` |
-| Decorator | `decorators/<name>.decorator.ts` | `{Name}` |
+| Guard (+ its decorator and metadata key) | `<name>.guard.ts` | `{Name}Guard`, `{Name}` |
 | Unit spec | `<file>.spec.ts` | co-located, next to the file it tests |
 | Contract test | `test/<module>.contract-spec.ts` | |
 | E2E test | `test/<module>.e2e-spec.ts` | |
@@ -38,10 +35,11 @@ There is **no** `index.ts` inside a feature module, and **no** `<feature>.tokens
 
 ## 2. Folder rules
 
-- A feature folder is flat by default. A sub-folder is created only for a **set** of same-kind files: `dto/`, `entities/`, `guards/`, `decorators/`.
-- A sub-folder for a genuine second seam is allowed and encouraged when it has its own port: [src/modules/files/storage/](../src/modules/files/storage/) holds `storage.port.ts`, the two drivers, the factory and the signature validator.
-- A sub-folder for a vendor integration is allowed: [src/modules/auth/better-auth/](../src/modules/auth/better-auth/) keeps everything Better-Auth-shaped in one place, so the vendor boundary is visible.
-- Do not create a folder that will hold exactly one file forever. Flatten it to the parent until a second file appears.
+- **A feature folder is flat.** The role goes in the file name, not in a folder name.
+- The one sub-folder in the repo is [src/modules/files/storage/](../src/modules/files/storage/), and it earns its place: it is not a group-by-kind bucket but a **second swappable seam** with its own port, two drivers behind it and a validator. That is the only reason to nest.
+- `dto/`, `entities/`, `guards/`, `decorators/` are **not** used. Each held one or two files that would never grow, and grouping by kind is the directory-level version of the layer folders a feature is forbidden from having. `nest g resource` emits `dto/` and `entities/`; delete them and flatten.
+- A vendor boundary is carried by a **file prefix**, not a folder: `better-auth.ts` and `better-auth.registrar.ts` sit at the auth module root. A folder named `better-auth/` holding files named `better-auth.*` says the same thing twice.
+- Do not create a folder that will hold exactly one file forever.
 - **Forbidden folder names inside a feature**: `domain/`, `application/`, `infrastructure/`, `presentation/`, `interfaces/`, `use-cases/`, `services/`, `__tests__/`.
 
 ### `src/common/` and `src/infrastructure/`
@@ -89,20 +87,18 @@ public-files.controller.ts   token-addressed public access
 files.service.ts             every behaviour, ~215 lines
 files.repository.ts          abstract FileRepository + Create/Update/Filter props
 files.exception.ts
-files.mapper.ts              entity → response shape
-files.urls.ts (+ .spec.ts)   local-driver URL normalization
-dto/files.dto.ts
-dto/api-responses.examples.ts
-entities/file.entity.ts
-entities/storage-driver.enum.ts
+files.mapper.ts (+ .spec.ts) entity → response shape, and local-driver URL normalization
+files.dto.ts                 DTOs + FILES_RESPONSES
+file.entity.ts               FileEntity + the StorageDriver enum
 storage/storage.port.ts      StorageDriverPort, FileValidatorPort
 storage/local.driver.ts
 storage/s3.driver.ts
-storage/storage-driver.factory.ts
 storage/file-signature.validator.ts (+ .spec.ts)
 ```
 
 Eight use-case classes became eight methods on `FilesService`. Two controllers share one service — that is normal, and it is why `PublicFilesController` needs no service of its own.
+
+Which driver serves `StorageDriverPort` is decided by a `useFactory` inside `files.module.ts`: picking an implementation from configuration is module wiring, and wiring does not need a file.
 
 ### Real domain logic kept flat — `authorization`
 
@@ -115,15 +111,28 @@ authorization.repository.ts
 authorization.exception.ts
 authorization.cache-keys.ts
 permissions.catalog.ts        the static policy: roles, statements, grants
-permission-calculator.ts      pure allow/deny resolution
 permission-key.vo.ts (+ .spec.ts)
-user-permission-override.ts
-dto/…  guards/…  decorators/…
+permissions.guard.ts          the guard, @Permissions and its metadata key
+authorization.dto.ts          request DTOs, response DTOs, USER_PERMISSIONS_RESPONSES
 ```
 
 Two services, deliberately. `EffectivePermissionsService` is read on every guarded request (including inside the auth module's Better Auth hooks); `AuthorizationService` only serves the write endpoints. Different lifetimes of concern, different files.
 
-`permissions.catalog.ts` and `permission-calculator.ts` are pure and framework-free. Flattening removed their `domain/` folder, not their status.
+`permissions.catalog.ts` is pure and framework-free. Flattening removed its `domain/` folder, not its status. The allow/deny resolution it used to pair with is now the free function `resolvePermissions` in `effective-permissions.service.ts`, beside `checkPermission` — a class with one static method and no state is a function.
+
+### A vendor wrapped without a folder — `auth`
+
+```
+auth.module.ts
+auth.guard.ts                 session lookup, cached
+auth.entities.ts (+ .spec.ts) User, Session, and hydration from the provider payload
+auth.cookies.ts               Better Auth Headers ⇄ Fastify set-cookie, both directions
+auth.ports.ts  auth.adapters.ts  auth.cache-keys.ts  auth.exception.ts
+better-auth.ts                the factory, the BETTER_AUTH token, the options
+better-auth.registrar.ts      mounts /auth/* on raw Fastify
+```
+
+Everything vendor-shaped is still identifiable at a glance, by prefix.
 
 ---
 

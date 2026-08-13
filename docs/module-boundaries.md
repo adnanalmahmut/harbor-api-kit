@@ -39,7 +39,7 @@ import { PrismaClient } from '@prisma/client';
 
 Also enforced in the other direction: `#src/persistence/prisma/**` and `persistence.module.js` are importable **only from inside `src/persistence/`**. A service that wants data injects the abstract repository; a service that wants atomicity injects `TransactionManager` from `#src/persistence/transaction.manager.js`, which stays public.
 
-The single allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth/better-auth.ts`. See [persistence.md §4](persistence.md#4-the-one-accepted-exception-better-auth).
+The single allowlisted exception is Better Auth's Prisma adapter, scoped to `src/modules/auth/auth.module.ts` and `src/modules/auth/better-auth.ts`. See [persistence.md §4](persistence.md#4-the-one-accepted-exception-better-auth).
 
 ### Rule 2 — another module's repository is not public
 

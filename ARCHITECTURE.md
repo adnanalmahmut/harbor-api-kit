@@ -43,11 +43,19 @@ src/modules/<feature>/
 ├── <feature>.service.spec.ts
 ├── <feature>.repository.ts       # abstract class = the persistence port AND the DI token
 ├── <feature>.exception.ts        # AppException subclass
-├── dto/                          # Zod request DTOs, response DTOs, OpenAPI examples
-├── entities/                     # plain classes we own — never a Prisma type
-├── guards/  decorators/          # only when the feature actually has them
+├── <feature>.dto.ts              # Zod request DTOs, response DTOs, OpenAPI contract
+├── <name>.entity.ts              # plain classes we own — never a Prisma type
+├── <name>.guard.ts               # the guard, its decorator and its metadata key
 └── <sub-concern>/                # a real second seam, e.g. files/storage/
 ```
+
+The folder is **flat**. The role is in the file name, so `dto/`, `entities/`,
+`guards/` and `decorators/` are not used — grouping by kind is the
+directory-level form of the layer folders §1 forbids. The only sub-folder in
+the repo is `files/storage/`, and it qualifies because it is a swappable seam
+with its own port, not a bucket of same-kind files. A vendor boundary is
+carried by a file prefix (`better-auth.ts`, `better-auth.registrar.ts`), not by
+a folder. See [docs/file-organization.md §2](docs/file-organization.md).
 
 The Prisma implementation of `<feature>.repository.ts` does **not** live here — see §5.
 
@@ -55,7 +63,7 @@ Reference implementations:
 - [src/modules/health/](src/modules/health/) — the minimal shape (6 files).
 - [src/modules/files/](src/modules/files/) — a full feature with a second swappable seam (`storage/`).
 - [src/modules/authorization/](src/modules/authorization/) — a feature with real domain logic kept as plain root-level files.
-- [src/modules/auth/](src/modules/auth/) — a feature wrapping a vendor library in `better-auth/`.
+- [src/modules/auth/](src/modules/auth/) — a feature wrapping a vendor library behind the `better-auth.` file prefix.
 
 ---
 
@@ -106,7 +114,7 @@ All are abstract classes, so the port is also the token: `{ provide: StorageDriv
 ### 3.6 Module wiring — `<feature>.module.ts`
 
 - **MUST** bind port → implementation with `useClass` / `useExisting`.
-- **MUST NOT** declare `Symbol` token maps. The one legitimate symbol in the codebase is [`BETTER_AUTH`](src/modules/auth/better-auth/better-auth.token.ts), because Better Auth's instance is a factory-built plain object and not a class.
+- **MUST NOT** declare `Symbol` token maps. The one legitimate symbol in the codebase is [`BETTER_AUTH`](src/modules/auth/better-auth.ts), because Better Auth's instance is a factory-built plain object and not a class.
 - **MUST NOT** list its own repository in `providers` — `PersistenceModule` is `@Global()` and supplies it.
 - **MUST** list cross-module-consumable providers in `exports`.
 
@@ -163,7 +171,7 @@ The seven rules that make that true — port types, entity mapping, error-code t
 
 Cohesion and size, not file count.
 
-**MAY group**: all DTOs for one controller (`dto/files.dto.ts`); a small cohesive port set (`auth.ports.ts`, `health.ports.ts`, `notify.ports.ts`); cache keys per feature (`<feature>.cache-keys.ts`).
+**MAY group**: all DTOs and the OpenAPI contract for one controller (`files.dto.ts`); a small cohesive port set (`auth.ports.ts`, `health.ports.ts`, `notify.ports.ts`); cache keys per feature (`<feature>.cache-keys.ts`).
 
 **MUST NOT group**: a controller with its DTOs; a repository port with its adapter (different directories by design); two unrelated concerns under a generic name — `utils.ts`, `helpers.ts`, `misc.ts` are forbidden, name files after their contents.
 
@@ -241,7 +249,7 @@ Not every feature has every file, and that is correct:
 - **`notify`** has no controller and no repository: nothing calls it over HTTP and it stores nothing. It owns two ports, one service, and provider/queue adapters.
 - **`health`** has no repository of its own: it depends on `DbHealthPort` and `CacheHealthPort`, whose Prisma implementation lives in `src/persistence/`.
 - **`auth`** has no controller: Better Auth mounts its own routes on the raw Fastify instance via `BetterAuthRouteRegistrar`, deliberately outside the Nest pipeline. See [docs/auth-authorization.md](docs/auth-authorization.md).
-- **`authorization`** keeps `permissions.catalog.ts`, `permission-calculator.ts`, `permission-key.vo.ts` and `user-permission-override.ts` as plain root-level files. They are pure, framework-free and unit-tested; they lost the `domain/` folder, not their existence.
+- **`authorization`** keeps `permissions.catalog.ts` and `permission-key.vo.ts` as plain root-level files. They are pure, framework-free and unit-tested; they lost the `domain/` folder, not their existence.
 
 ---
 

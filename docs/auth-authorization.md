@@ -48,7 +48,7 @@ along one line:
 
 - **`auth` decides *that* an email should go out, and in which language.** The
   Better Auth callbacks pass the user, the provider's own action `url` and the
-  request; `AuthEmailHooks` resolves the locale (request `Accept-Language` or
+  request; `AuthEmailSenderAdapter` resolves the locale (request `Accept-Language` or
   `?lang=` first, then the stored `user.locale`, then the default) and forwards
   an intent.
 - **`notify` owns everything else** behind `AuthEmailPort.sendAuthEmail({ kind,
