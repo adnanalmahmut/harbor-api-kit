@@ -44,14 +44,23 @@ export interface StreamFileResult {
 const DOWNLOAD_URL_EXPIRES_IN = 900; // 15 minutes
 const PUBLIC_URL_EXPIRES_IN = 300; // 5 minutes
 
-function mapDriverEnum(driver: string): StorageDriver {
-  switch (driver) {
-    case 'local':
-      return StorageDriver.LOCAL;
-    default:
-      return StorageDriver.S3_COMPAT;
-  }
-}
+/**
+ * The configured provider, recorded faithfully on the row.
+ *
+ * `spaces` maps to S3_COMPAT because DigitalOcean Spaces is exactly that: a
+ * generic S3-compatible endpoint with no behaviour of its own. AWS S3 and
+ * Cloudflare R2 get their own values so an operator can tell where an object
+ * lives without inspecting configuration that may since have changed.
+ */
+const DRIVER_BY_CONFIG = {
+  local: StorageDriver.LOCAL,
+  s3: StorageDriver.S3,
+  r2: StorageDriver.R2,
+  spaces: StorageDriver.S3_COMPAT,
+} as const satisfies Record<
+  ConfigType<typeof storageConfig>['driver'],
+  StorageDriver
+>;
 
 @Injectable()
 export class FilesService {
@@ -89,7 +98,7 @@ export class FilesService {
         filePath: uploadResult.key,
         mimeType: command.mimeType,
         size: BigInt(uploadResult.size),
-        driver: mapDriverEnum(this.config.driver),
+        driver: DRIVER_BY_CONFIG[this.config.driver],
         bucket: this.bucket(),
         uploadedById: command.uploadedById,
         isPublic: command.isPublic ?? false,
@@ -173,9 +182,7 @@ export class FilesService {
   }
 
   private bucket(): string | undefined {
-    return ['s3', 'r2', 'spaces'].includes(this.config.driver)
-      ? this.config.s3.bucket
-      : undefined;
+    return this.config.driver === 'local' ? undefined : this.config.s3.bucket;
   }
 
   private async getAccessibleOrThrow(

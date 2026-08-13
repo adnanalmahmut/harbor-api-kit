@@ -29,7 +29,7 @@ export class PrismaFileRepository extends FileRepository {
           mimeType: data.mimeType,
           size: data.size,
           bucket: data.bucket,
-          driver: data.driver as any, // Cast to Prisma enum
+          driver: data.driver,
           isPublic: data.isPublic,
           publicToken: data.publicToken,
           uploadedBy: data.uploadedById

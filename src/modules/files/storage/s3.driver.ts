@@ -31,14 +31,21 @@ export class S3Driver extends StorageDriverPort {
     super();
 
     this.bucket = config.s3.bucket!;
+
+    // AWS S3 is addressed virtual-hosted style (bucket in the hostname); it is
+    // the only supported form for buckets created since 2020, and the region
+    // alone tells the SDK where to go, so no endpoint is configured for it.
+    // R2 and Spaces are custom endpoints and are addressed path-style.
+    const isAws = config.driver === 's3';
+
     this.client = new S3Client({
       region: config.s3.region,
-      endpoint: config.s3.endpoint,
+      endpoint: isAws ? undefined : config.s3.endpoint,
       credentials: {
         accessKeyId: config.s3.accessKeyId!,
         secretAccessKey: config.s3.secretAccessKey!,
       },
-      forcePathStyle: true,
+      forcePathStyle: !isAws,
     });
   }
 
