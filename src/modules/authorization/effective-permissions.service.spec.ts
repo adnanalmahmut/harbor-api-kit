@@ -1,4 +1,3 @@
-import { RequestContextStorePort } from '#src/common/request-context.js';
 import { CachePort } from '#src/infrastructure/cache/cache.port.js';
 import { jest } from '@jest/globals';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -36,23 +35,14 @@ describe('EffectivePermissionsService', () => {
 
     logger = { warn: jest.fn(), setContext: jest.fn() };
 
-    // The request-scope memoizer is bypassed: every call reaches the loader.
-    const contextStore = {
-      get: jest.fn(),
-      set: jest.fn(),
-      run: jest.fn(),
-      getOrLoad: jest
-        .fn<RequestContextStorePort['getOrLoad']>()
-        .mockImplementation((_key, loader) => loader()),
-    };
-
+    // No request context is open, so `getOrLoad`'s request tier is inert and
+    // every call reaches the loader — which is what these cases exercise.
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         EffectivePermissionsService,
         { provide: AuthorizationRepository, useValue: repository },
         { provide: CachePort, useValue: cache },
         { provide: PinoLogger, useValue: logger },
-        { provide: RequestContextStorePort, useValue: contextStore },
       ],
     }).compile();
 

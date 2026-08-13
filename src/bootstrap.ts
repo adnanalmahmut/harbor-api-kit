@@ -7,14 +7,11 @@ import {
   parseHttpConfig,
   tenantConfig,
 } from '#src/config/index.js';
-import { RequestContextStorePort } from '#src/common/request-context.js';
-import { RedisService } from '#src/infrastructure/cache/redis.service.js';
 import type { BetterAuthInstance } from '#src/modules/auth/better-auth/better-auth.js';
 import { BETTER_AUTH } from '#src/modules/auth/better-auth/better-auth.token.js';
 import { createRequestContextHook } from '#src/common/request-context.js';
 import { setupApiDocs } from '#src/common/swagger.js';
 import { GlobalExceptionFilter } from '#src/common/global-exception.filter.js';
-import { RequestIdentityInterceptor } from '#src/common/response.interceptor.js';
 import { ResponseInterceptor } from '#src/common/response.interceptor.js';
 import { CsrfGuard } from '#src/common/csrf.guard.js';
 import { setupCors } from '#src/common/cors.js';
@@ -92,18 +89,7 @@ export async function configureApp(app: NestFastifyApplication) {
     defaultVersion: '1',
   });
 
-  const redisService = app.get(RedisService);
-  const contextStore = app.get<RequestContextStorePort>(
-    RequestContextStorePort,
-  );
-
-  const requestContextHook = createRequestContextHook(
-    http,
-    tenant,
-    contextStore,
-    redisService,
-  );
-  adapter.addHook('onRequest', requestContextHook);
+  adapter.addHook('onRequest', createRequestContextHook(http, tenant));
 
   // Defense-in-depth: security headers at application level
   // (nginx also sets these, but this protects dev/staging without nginx)
@@ -125,14 +111,9 @@ export async function configureApp(app: NestFastifyApplication) {
 
   app.useGlobalPipes(new GlobalValidationPipe());
 
-  app.useGlobalInterceptors(
-    new RequestIdentityInterceptor(contextStore),
-    new ResponseInterceptor(reflector, i18n, contextStore),
-  );
+  app.useGlobalInterceptors(new ResponseInterceptor(reflector, i18n));
 
-  app.useGlobalFilters(
-    new GlobalExceptionFilter(logger, i18n, http, contextStore),
-  );
+  app.useGlobalFilters(new GlobalExceptionFilter(logger, i18n, http));
 
   if (!appConfiguration.isProduction && http.docs.enabled) {
     const betterAuth = app.get<BetterAuthInstance>(BETTER_AUTH);

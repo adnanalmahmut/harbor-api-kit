@@ -1,4 +1,8 @@
-import { RequestContextStorePort } from '#src/common/request-context.js';
+import {
+  getRequestContext,
+  setRequestContext,
+} from '#src/common/request-context.js';
+import { CachePort, getOrLoad } from '#src/infrastructure/cache/cache.port.js';
 import { AuthCacheKeys } from './auth.cache.js';
 import type { CookieDirective } from './auth.dtos.js';
 import { AuthException } from './auth.exception.js';
@@ -28,7 +32,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     @Inject(BETTER_AUTH)
     private readonly auth: BetterAuthInstance,
-    private readonly contextStore: RequestContextStorePort,
+    private readonly cache: CachePort,
     private readonly config: AuthConfigPort,
     private readonly sessionTracker: SessionTrackerPort,
   ) {}
@@ -37,10 +41,10 @@ export class AuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<FastifyRequest>();
     const reply = context.switchToHttp().getResponse<FastifyReply>();
 
-    const ctx = this.contextStore.get();
+    const ctx = getRequestContext();
     if (!ctx) throw AuthException.authenticationRequired();
 
-    this.contextStore.set({
+    setRequestContext({
       headers: req.headers,
       query: req.query as Record<string, string | string[] | undefined>,
       ip: req.ip,
@@ -56,7 +60,8 @@ export class AuthGuard implements CanActivate {
     const scope = token ? 'both' : 'request';
     let refreshedCookies: CookieDirective[] | undefined;
 
-    const sessionResult = await this.contextStore.getOrLoad(
+    const sessionResult = await getOrLoad(
+      this.cache,
       cacheKey,
       async () => {
         const { headers, response } = await this.auth.api.getSession({
@@ -78,7 +83,7 @@ export class AuthGuard implements CanActivate {
 
     if (!sessionResult?.session) throw AuthException.authenticationRequired();
 
-    this.contextStore.set({
+    setRequestContext({
       userId: sessionResult.user.id,
       sessionId: sessionResult.session.id,
       sessionToken: token || undefined,

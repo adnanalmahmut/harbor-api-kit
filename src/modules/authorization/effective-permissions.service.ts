@@ -1,5 +1,4 @@
-import { RequestContextStorePort } from '#src/common/request-context.js';
-import { CachePort } from '#src/infrastructure/cache/cache.port.js';
+import { CachePort, getOrLoad } from '#src/infrastructure/cache/cache.port.js';
 import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { authorizationCacheKeys } from './authorization.cache-keys.js';
@@ -57,14 +56,14 @@ export class EffectivePermissionsService {
     private readonly authorizationRepo: AuthorizationRepository,
     private readonly cache: CachePort,
     private readonly logger: PinoLogger,
-    private readonly contextStore: RequestContextStorePort,
   ) {
     this.logger.setContext(EffectivePermissionsService.name);
   }
 
   async buildForUser(user: { id: string }): Promise<EffectivePermissions> {
     const userId = user.id;
-    return this.contextStore.getOrLoad(
+    return getOrLoad(
+      this.cache,
       authorizationCacheKeys.userPermissions(userId),
       async () => {
         const version =

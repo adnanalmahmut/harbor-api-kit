@@ -1,4 +1,3 @@
-import { CommonModule } from '#src/common/common.module.js';
 import { appConfig, authConfig, httpConfig } from '#src/config/index.js';
 import { AuthorizationModule } from '#src/modules/authorization/authorization.module.js';
 import { NotifyModule } from '#src/modules/notify/notify.module.js';
@@ -18,7 +17,7 @@ import { BETTER_AUTH } from './better-auth/better-auth.token.js';
 
 @Module({
   // Cycle: authorization's own controller needs AuthGuard from this module.
-  imports: [forwardRef(() => AuthorizationModule), NotifyModule, CommonModule],
+  imports: [forwardRef(() => AuthorizationModule), NotifyModule],
   providers: [
     AuthGuard,
     AuthEmailHooks,
