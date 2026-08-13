@@ -14,7 +14,7 @@ There are three test layers: **unit**, **contract**, and **e2e**. Each has a fix
 | Contract | `test/`                | `test/<module>.contract-spec.ts` | `test/jest-e2e.json`  |
 | E2E      | `test/`                | `test/<module>.e2e-spec.ts`      | `test/jest-e2e.json`  |
 
-Unit specs live next to the file they test (e.g., [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts](../src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts) next to `set-user-permission-override.use-case.ts`).
+Unit specs live next to the file they test (e.g. [src/modules/authorization/authorization.service.spec.ts](../src/modules/authorization/authorization.service.spec.ts) next to `authorization.service.ts`).
 
 Contract and e2e specs live under [test/](../test/) and use the helpers in [test/helpers/](../test/helpers/).
 
@@ -22,55 +22,64 @@ Contract and e2e specs live under [test/](../test/) and use the helpers in [test
 
 ## 2. Unit tests — what to cover
 
-For each new use case:
+For each new service method:
 
-- One spec file co-located as `<use-case>.spec.ts`.
-- Mock the port(s) the use case depends on. Use `jest.Mocked<PortInterface>`.
-- Assert behavior, not implementation.
-- Cover the happy path and every distinct failure case the use case throws (each maps to a static factory on a `*.Exception` class).
+- One spec file co-located as `<feature>.service.spec.ts`.
+- Wire it with `Test.createTestingModule` and **override the abstract port**, not the implementation. This is the standard mocking seam, and it is why a unit test survives a change of ORM untouched.
+- Assert behaviour, not implementation.
+- Cover the happy path and every distinct failure the method throws (each maps to a static factory on the feature's `*Exception` class).
 
 Boilerplate:
 
 ```ts
 import { jest } from '@jest/globals';
-import { SetUserPermissionOverrideUseCase } from './set-user-permission-override.use-case.js';
-import type { AuthorizationRepositoryPort } from '../../domain/ports/authorization.repository.port.js';
-import type { EffectivePermissionsService } from '../services/effective-permissions.service.js';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { AuthorizationRepository } from './authorization.repository.js';
+import { AuthorizationService } from './authorization.service.js';
+import { EffectivePermissionsService } from './effective-permissions.service.js';
 
-describe('SetUserPermissionOverrideUseCase', () => {
-  let repo: jest.Mocked<AuthorizationRepositoryPort>;
-  let effective: { refreshForUser: jest.Mock };
-  let useCase: SetUserPermissionOverrideUseCase;
+describe('AuthorizationService', () => {
+  let service: AuthorizationService;
+  let repository: jest.Mocked<AuthorizationRepository>;
+  let effective: { buildForUser: jest.Mock; refreshForUser: jest.Mock };
 
-  beforeEach(() => {
-    repo = {
+  beforeEach(async () => {
+    repository = {
       getUserRole: jest.fn(),
       listUserOverrides: jest.fn(),
       setUserPermissionOverride: jest.fn(),
       removeUserPermissionOverride: jest.fn(),
       replaceUserPermissions: jest.fn(),
-    };
-    effective = { refreshForUser: jest.fn() };
-    useCase = new SetUserPermissionOverrideUseCase(
-      repo,
-      effective as unknown as EffectivePermissionsService,
-    );
+    } as unknown as jest.Mocked<AuthorizationRepository>;
+    effective = { buildForUser: jest.fn(), refreshForUser: jest.fn() };
+
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthorizationService,
+        { provide: AuthorizationRepository, useValue: repository },
+        { provide: EffectivePermissionsService, useValue: effective },
+      ],
+    }).compile();
+
+    service = moduleRef.get(AuthorizationService);
   });
 
-  it('stores the override and refreshes the cached authorization', async () => {
-    await useCase.execute({
+  it('stores the override and invalidates the cached permissions', async () => {
+    await service.setOverride({
       userId: 'u1',
       permissionKey: 'files:delete',
       effect: 'DENY',
     });
 
-    expect(repo.setUserPermissionOverride).toHaveBeenCalledTimes(1);
+    expect(repository.setUserPermissionOverride).toHaveBeenCalledTimes(1);
     expect(effective.refreshForUser).toHaveBeenCalledWith('u1');
   });
 });
 ```
 
-Reference: [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts](../src/modules/authorization/application/use-cases/set-user-permission-override.use-case.spec.ts).
+**Never override `PrismaService` in a unit test.** If a test needs the database, it belongs in `test/` as a contract or e2e spec.
+
+References: [authorization.service.spec.ts](../src/modules/authorization/authorization.service.spec.ts), [health.service.spec.ts](../src/modules/health/health.service.spec.ts).
 
 ---
 

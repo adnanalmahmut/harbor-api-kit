@@ -1,124 +1,131 @@
 # File organization
 
-This document operationalizes the file-merging policy from [ARCHITECTURE.md §7](../ARCHITECTURE.md#7-file-count-optimization-policy).
+This document operationalizes the file-size policy from [ARCHITECTURE.md §6](../ARCHITECTURE.md#6-file-size-policy).
 
-The codebase tolerates two file styles for use cases and DTOs: **one-per-file** and **grouped slices**. Both are valid. The rule is **cohesion + size**, not file count.
-
----
-
-## 1. The merge policy at a glance
-
-| | MAY merge | MUST split |
-|---|-----------|------------|
-| **Use cases** | Cohesive set under a single bounded concern (e.g., password lifecycle). | > ~6 use cases per file, > ~400 LOC, or two unrelated concerns appearing. |
-| **Request/response DTOs** | All DTOs for a single controller. | Cross-controller DTO sharing — extract to a feature-level `presentation/http/dtos/` folder. |
-| **Port interfaces** | A small, cohesive set for one feature (e.g., `auth.ports.ts` holds auth configuration and email ports). | Each port begins serving an unrelated purpose. |
-| **Cache keys / constants** | Per feature in `<feature>.cache-keys.ts`. | Mixing constants from multiple bounded concerns. |
-| **Architectural layers** | Never. | Always. |
+The layout is the standard NestJS resource shape: role in the file name, no layer folders, no barrels.
 
 ---
 
-## 2. MAY merge — concrete examples in the repo
+## 1. Naming conventions
 
-### Grouped use cases (auth)
-
-[src/modules/auth/application/use-cases/auth.password.use-cases.ts](../src/modules/auth/application/use-cases/auth.password.use-cases.ts) groups password-lifecycle use cases (`RequestPasswordReset`, `ResetPassword`, `ChangePassword`). They share invariants, exception cases, and ports — high cohesion.
-
-Other auth slices follow the same pattern:
-- `auth.account.use-cases.ts` — registration, deletion.
-- `auth.credentials.use-cases.ts` — credential management.
-- `auth.sessions.use-cases.ts` — session list / revoke / logout-all.
-- `auth.social.use-cases.ts` — OAuth flows.
-
-### Grouped DTOs (files)
-
-[src/modules/files/presentation/files.dto.ts](../src/modules/files/presentation/files.dto.ts) groups all DTOs for the files controller in one file. Acceptable because all DTOs serve the same controller and are below the size threshold.
-
-### Grouped port set (files)
-
-[src/modules/files/application/files.ports.ts](../src/modules/files/application/files.ports.ts) holds the small set of ports needed by the files application layer.
-
----
-
-## 3. One-per-file — concrete examples in the repo
-
-### One use case per file (authorization)
-
-[src/modules/authorization/application/use-cases/](../src/modules/authorization/application/use-cases/) keeps each use case in its own file: `set-user-permission-override.use-case.ts`, `replace-user-permissions.use-case.ts`, etc. This is the **default** and is preferable when:
-
-- Use cases are independently consumed (different controllers, different modules).
-- Use cases have meaningfully different dependencies.
-- The total count is high enough that a single file would exceed the size threshold.
-
-### One DTO per file (authorization)
-
-[src/modules/authorization/presentation/http/dtos/](../src/modules/authorization/presentation/http/dtos/) keeps DTOs separate. This is the default; choose grouping only when DTOs are small and serve one controller.
-
----
-
-## 4. MUST NOT merge — examples
-
-These mergers are forbidden regardless of size:
-
-- A use case and the repository that backs it (different layers).
-- A controller and its DTOs (different concerns; controllers are presentation orchestration, DTOs are validation contracts).
-- A repository adapter and its Prisma↔domain mapper (mappers belong in `infrastructure/mappers/` once non-trivial).
-- A domain entity and its value objects (each VO has its own validation).
-- Two unrelated concerns under a generic name (`utils.ts`, `helpers.ts`, `misc.ts` are forbidden — name files after their actual contents).
-
----
-
-## 5. Size thresholds
-
-Heuristics for when to split:
-
-- **~400 LOC**. If a single file exceeds this, split by sub-concern.
-- **~6 exported use cases** (or DTOs) in one file.
-- **More than one bounded concern** appearing in the same file. The test: can you describe the file's purpose in **one** sentence without using the words "and" or "or"? If not, split.
-
-These are heuristics, not hard limits. A 410-LOC file with one tightly-coupled concern is fine. A 250-LOC file mixing two unrelated concerns is not.
-
----
-
-## 6. Naming conventions
-
-| Concept | File | Class / type |
-|---------|------|--------------|
-| Single use case | `{verb}-{noun}.use-case.ts` | `{Verb}{Noun}UseCase` |
-| Grouped use cases | `<feature>.<slice>.use-cases.ts` | One class per use case (multiple per file) |
-| Repository adapter | `prisma-{entity}.repository.ts` | `Prisma{Entity}Repository` |
-| Repository port | `{entity}.repository.port.ts` | `{Entity}RepositoryPort` |
-| Other port | `{name}.port.ts` | `{Name}Port` |
-| Value object | `{name}.vo.ts` | `{Name}VO` |
-| Entity | `{name}.entity.ts` | `{Name}` |
-| DTO (single) | `{intent}.dto.ts` | `{Intent}Dto` extends `createStrictZodDto(...)` |
-| DTO (grouped) | `<feature>.dto.ts` or `<feature>.http.dtos.ts` | One class per DTO |
-| Module exception | `<feature>.exception.ts` | `{Feature}Exception extends AppException` |
-| Module tokens | `<feature>.tokens.ts` | `{FEATURE}_TOKENS` constant of `Symbol`-keyed entries |
-| Cache keys | `<feature>.cache-keys.ts` | `{feature}CacheKeys` constant |
+| Concept | File | Class / export |
+|---------|------|----------------|
 | NestJS module | `<feature>.module.ts` | `{Feature}Module` |
-| Public barrel | `index.ts` | (no class — pure re-export) |
-| Unit spec | `{file}.spec.ts` | Co-located. |
-| Contract test | `{module}.contract-spec.ts` | In `test/`. |
-| E2E test | `{module}.e2e-spec.ts` | In `test/`. |
+| Controller | `<feature>.controller.ts` | `{Feature}Controller` |
+| Service | `<feature>.service.ts` | `{Feature}Service` |
+| Second service | `<sub-concern>.service.ts` | `{SubConcern}Service` |
+| Repository port | `<feature>.repository.ts` | `abstract class {Feature}Repository` |
+| Repository adapter | `src/persistence/prisma/<feature>.prisma.repository.ts` | `Prisma{Feature}Repository` |
+| Other port | `<feature>.ports.ts` or `<name>.port.ts` | `abstract class {Name}Port` |
+| Adapter for a port | `<name>.adapter.ts` / `<name>.driver.ts` | `{Name}Adapter` / `{Name}Driver` |
+| Entity | `entities/<name>.entity.ts` | `{Name}` or `{Name}Entity` |
+| Enum owned by a feature | `entities/<name>.enum.ts` | `{Name}` |
+| Value object | `<name>.vo.ts` | `{Name}VO` |
+| Request DTO | `dto/<intent>.dto.ts` | `{Intent}Dto extends createStrictZodDto(...)` |
+| Grouped DTOs | `dto/<feature>.dto.ts` | one class per DTO |
+| OpenAPI examples | `dto/api-responses.examples.ts` | `{FEATURE}_RESPONSES` |
+| Exception | `<feature>.exception.ts` | `{Feature}Exception extends AppException` |
+| Cache keys | `<feature>.cache-keys.ts` | `{feature}CacheKeys` |
+| Guard | `guards/<name>.guard.ts` | `{Name}Guard` |
+| Decorator | `decorators/<name>.decorator.ts` | `{Name}` |
+| Unit spec | `<file>.spec.ts` | co-located, next to the file it tests |
+| Contract test | `test/<module>.contract-spec.ts` | |
+| E2E test | `test/<module>.e2e-spec.ts` | |
+
+There is **no** `index.ts` inside a feature module, and **no** `<feature>.tokens.ts` — abstract classes are the DI tokens.
 
 ---
 
-## 7. Folder structure rules
+## 2. Folder rules
 
-- A new layer subfolder MUST be named after its contents (`guards/`, `decorators/`, `mappers/`, `persistence/`, `value-objects/`).
-- Avoid one-deep folders that hold a single file forever — flatten to the parent until a second file appears.
-- `application/use-cases/` is the one exception: always present, even with one use case.
-- `__tests__/` directories are acceptable when a feature has many unit specs that would clutter the source folder. Default is co-located `*.spec.ts`.
+- A feature folder is flat by default. A sub-folder is created only for a **set** of same-kind files: `dto/`, `entities/`, `guards/`, `decorators/`.
+- A sub-folder for a genuine second seam is allowed and encouraged when it has its own port: [src/modules/files/storage/](../src/modules/files/storage/) holds `storage.port.ts`, the two drivers, the factory and the signature validator.
+- A sub-folder for a vendor integration is allowed: [src/modules/auth/better-auth/](../src/modules/auth/better-auth/) keeps everything Better-Auth-shaped in one place, so the vendor boundary is visible.
+- Do not create a folder that will hold exactly one file forever. Flatten it to the parent until a second file appears.
+- **Forbidden folder names inside a feature**: `domain/`, `application/`, `infrastructure/`, `presentation/`, `interfaces/`, `use-cases/`, `services/`, `__tests__/`.
 
 ---
 
-## 8. When to refactor an existing file
+## 3. Worked examples from the repo
 
-Refactor (split or merge) an existing file **only** when:
+### The minimal feature — `health` (6 files)
 
-1. You are already touching it for a feature task, AND
-2. The threshold rule is being violated, AND
-3. The split / merge can be done cleanly in the same PR.
+```
+health.module.ts          binds CacheHealthPort → RedisCacheHealthAdapter
+health.controller.ts      GET /health
+health.service.ts         pings both dependencies
+health.service.spec.ts    overrides both ports
+health.ports.ts           DbHealthPort, CacheHealthPort
+redis-cache-health.adapter.ts
+```
 
-Drive-by refactors are forbidden ([AGENTS.md §0](../AGENTS.md#0-prime-directives)). If a file violates the threshold but you don't need to touch it, leave it.
+`DbHealthPort`'s implementation is in `src/persistence/prisma/db-health.prisma.adapter.ts` — the health module never learns which database answers.
+
+### A full feature — `files`
+
+```
+files.module.ts
+files.controller.ts          upload, meta, download, stream, visibility
+public-files.controller.ts   token-addressed public access
+files.service.ts             every behaviour, ~215 lines
+files.repository.ts          abstract FileRepository + Create/Update/Filter props
+files.exception.ts
+files.mapper.ts              entity → response shape
+files.urls.ts (+ .spec.ts)   local-driver URL normalization
+dto/files.dto.ts
+dto/api-responses.examples.ts
+entities/file.entity.ts
+entities/storage-driver.enum.ts
+storage/storage.port.ts      StorageDriverPort, FileValidatorPort
+storage/local.driver.ts
+storage/s3.driver.ts
+storage/storage-driver.factory.ts
+storage/file-signature.validator.ts (+ .spec.ts)
+```
+
+Eight use-case classes became eight methods on `FilesService`. Two controllers share one service — that is normal, and it is why `PublicFilesController` needs no service of its own.
+
+### Real domain logic kept flat — `authorization`
+
+```
+authorization.module.ts
+authorization.controller.ts
+authorization.service.ts (+ .spec.ts)         the five write/read endpoints
+effective-permissions.service.ts (+ .spec.ts) role grants + overrides, cached
+authorization.repository.ts
+authorization.exception.ts
+authorization.cache-keys.ts
+permissions.catalog.ts        the static policy: roles, statements, grants
+permission-calculator.ts      pure allow/deny resolution
+permission-key.vo.ts (+ .spec.ts)
+user-permission-override.ts
+dto/…  guards/…  decorators/…
+```
+
+Two services, deliberately. `EffectivePermissionsService` is read on every guarded request (including inside the auth module's Better Auth hooks); `AuthorizationService` only serves the write endpoints. Different lifetimes of concern, different files.
+
+`permissions.catalog.ts` and `permission-calculator.ts` are pure and framework-free. Flattening removed their `domain/` folder, not their status.
+
+---
+
+## 4. Size thresholds
+
+Split when:
+
+- the file passes **~400 LOC**;
+- a service passes **~10 public methods**;
+- more than one bounded concern appears in the file. The test: can you state the file's purpose in one sentence without "and" or "or"?
+
+`FilesService` sits at ~215 lines with 7 public methods and is the largest service in the repo — that is the intended ceiling shape. If it grows past the threshold, split by sub-concern (`file-streaming.service.ts`), do not tolerate a god object.
+
+---
+
+## 5. When to refactor an existing file
+
+Refactor (split or merge) only when **all three** hold:
+
+1. you are already touching the file for a feature task, and
+2. a threshold above is being violated, and
+3. the change can be done cleanly in the same PR.
+
+Drive-by refactors are forbidden ([AGENTS.md §0](../AGENTS.md#0-prime-directives)). If a file violates a threshold but you do not need to touch it, leave it.

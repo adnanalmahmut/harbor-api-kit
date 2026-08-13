@@ -1,8 +1,8 @@
 # Adding a feature
 
-This is the **canonical procedure** for adding backend functionality to `harbor-api-kit`. The 12 steps below are the same 12 steps referenced from [AGENTS.md §14](../AGENTS.md#14-feature-addition-workflow--must-follow-before-scaffolding). If they ever drift, the architecture-side fix is here.
+This is the **canonical procedure** for adding backend functionality to `harbor-api-kit`. It is the same procedure referenced from [AGENTS.md](../AGENTS.md).
 
-Before starting, read [ARCHITECTURE.md](../ARCHITECTURE.md) and [AGENTS.md](../AGENTS.md). If any step below is unclear for the task at hand, **STOP and ask** — do not guess.
+Before starting, read [ARCHITECTURE.md](../ARCHITECTURE.md) and, if the feature stores anything, [persistence.md](persistence.md). If any step is unclear for the task at hand, **STOP and ask** — do not guess.
 
 ---
 
@@ -10,303 +10,339 @@ Before starting, read [ARCHITECTURE.md](../ARCHITECTURE.md) and [AGENTS.md](../A
 
 Answer in order:
 
-1. **Does this work introduce a new bounded concept** (a new business noun like "Invoice", "Order", "Audit")? → **New module.**
-2. **Does it add behavior to an existing concept** (a new endpoint on `authorization`, a new use case on `auth`)? → **Extend existing module.**
-3. **Does it cross multiple existing modules without owning a new concept** (e.g., a cross-feature reporting view)? → Most likely a **new module** that *consumes* the others via their barrels. Do not bolt it onto an existing module.
+1. **Does this introduce a new bounded concept** (a new business noun — "Invoice", "Order", "Audit")? → **New module.**
+2. **Does it add behaviour to an existing concept** (a new endpoint on `authorization`, a new method on `files`)? → **Extend the existing module.**
+3. **Does it span existing modules without owning a new concept**? → Most likely a **new module** that *consumes* the others. Do not bolt it onto one of them.
 
-If after these three questions the answer is still ambiguous, ask before scaffolding.
+If still ambiguous after those three, ask before scaffolding.
 
 ---
 
-## Step 2 — Scaffold the folder structure
+## Step 2 — Scaffold
 
-A new module gets the canonical layout (see [ARCHITECTURE.md §2](../ARCHITECTURE.md#2-canonical-module-layout)):
-
-```
-src/modules/<feature>/
-├── index.ts
-├── <feature>.module.ts
-├── <feature>.tokens.ts
-├── domain/
-│   ├── entities/
-│   ├── value-objects/
-│   ├── ports/
-│   └── exceptions/
-├── application/
-│   ├── use-cases/
-│   ├── exceptions/
-│   └── mappers/
-├── infrastructure/
-│   └── persistence/
-└── presentation/
-    └── http/
-        └── dtos/
+```bash
+npx nest g resource modules/things --no-spec=false
 ```
 
-Extending an existing module means adding files into the right layer subfolder, **not** introducing a new top-level folder.
+That produces the right shape. Then adjust to this project's conventions:
 
-If you need a layer subfolder that doesn't exist yet (e.g., the first guard for a module), create it under the appropriate layer with a meaningful name (`presentation/http/guards/`).
+- move `things.controller.ts` / `things.service.ts` / `things.module.ts` to `src/modules/things/` (Nest already nests them correctly if you pass the path above);
+- delete the generated `entities/thing.entity.ts` placeholder and write a real one;
+- replace the generated DTOs with Zod DTOs (Step 5);
+- add `.js` extensions to every relative import — this project is ESM/NodeNext.
+
+Target layout:
+
+```
+src/modules/things/
+├── things.module.ts
+├── things.controller.ts        (+ .spec.ts)
+├── things.service.ts           (+ .spec.ts)
+├── things.repository.ts        ← only if the feature stores something
+├── things.exception.ts
+├── dto/
+└── entities/
+```
+
+No `index.ts`, no `things.tokens.ts`, no layer folders. See [file-organization.md](file-organization.md).
 
 ---
 
-## Step 3 — Author the domain
+## Step 3 — Declare the repository port
 
-Domain code is pure TypeScript. No NestJS, no Prisma, no Redis, no i18n libs, no class-validator.
-
-- **Entities** — `domain/entities/{name}.entity.ts`, exporting a class. Constructors are explicit; mutation is method-based.
-- **Value objects** — `domain/value-objects/{name}.vo.ts`. Use a static `create(value)` factory that throws on invalid input.
-- **Ports** — `domain/ports/{name}.port.ts`, exporting an interface. Repositories, external providers, and any I/O the application layer needs are declared here. Example: [src/modules/authorization/domain/ports/authorization.repository.port.ts](../src/modules/authorization/domain/ports/authorization.repository.port.ts).
-- **Domain exceptions** — `domain/exceptions/`. Use sparingly; most errors live at the application layer.
-
-Cohesion rule: a small set of related ports MAY live in one file (`<feature>.ports.ts`). See [file-organization.md](file-organization.md).
-
----
-
-## Step 4 — Author the application
-
-Application code orchestrates use cases against ports. It MUST NOT import Prisma, NestJS decorators, Redis, i18n, infrastructure, or presentation.
-
-### Use cases
-
-One use case per file (preferred default), or grouped slices when cohesive (≤ 6 use cases per slice, ≤ 400 LOC, single bounded concern). Both styles are valid; see [file-organization.md](file-organization.md).
+Skip this step if the feature stores nothing (as `notify` does).
 
 ```ts
-// src/modules/<feature>/application/use-cases/create-thing.use-case.ts
-import type { ThingRepositoryPort } from '#src/modules/<feature>/domain/ports/thing.repository.port.js';
-// ...relative imports inside the same module
-import { ThingsException } from '../exceptions/things.exception.js';
+// src/modules/things/things.repository.ts
+import type { Thing } from './entities/thing.entity.js';
 
-export interface CreateThingCommand {
-  // explicit input shape — never accept the controller DTO directly
+export interface CreateThingProps {
+  name: string;
+  ownerId: string;
 }
 
-export class CreateThingUseCase {
-  constructor(private readonly repo: ThingRepositoryPort) {}
+export interface ThingFilterParams {
+  skip?: number;
+  take?: number;
+  where?: { ownerId?: string };
+}
 
-  async execute(cmd: CreateThingCommand): Promise<Thing> {
-    // 1. validate domain invariants via VOs
-    // 2. check repository for conflicts
-    // 3. construct entity
-    // 4. persist via the port
-  }
+/**
+ * Abstract class rather than an interface so it doubles as the DI token.
+ * Implemented in src/persistence/prisma/thing.prisma.repository.ts.
+ */
+export abstract class ThingRepository {
+  abstract create(props: CreateThingProps): Promise<Thing>;
+  abstract findById(id: string): Promise<Thing | null>;
+  abstract findAll(params: ThingFilterParams): Promise<[Thing[], number]>;
 }
 ```
 
-Reference: [src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts](../src/modules/authorization/application/use-cases/set-user-permission-override.use-case.ts).
-
-### Application exceptions
-
-`<feature>.exception.ts` extends `AppException` with static factories per error case. Each factory MUST set an `AppErrorCode` and a `messageKey` pointing to a locale file.
-
-```ts
-// src/modules/<feature>/application/exceptions/<feature>.exception.ts
-import { AppErrorCode, AppException } from '#src/core/domain/index.js';
-
-export class ThingsException extends AppException {
-  static notFound(id?: string) {
-    return new ThingsException({
-      code: AppErrorCode.NOT_FOUND,
-      messageKey: 'things.errors.thing_not_found',
-      details: id ? { id } : undefined,
-    });
-  }
-}
-```
-
-Reference: [src/modules/authorization/application/exceptions/authorization.exception.ts](../src/modules/authorization/application/exceptions/authorization.exception.ts).
-
-### Mappers
-
-`application/mappers/{name}-response.mapper.ts` translates a domain entity to a response shape consumed by the controller. Pure functions; no I/O.
+**Every type in these signatures must be yours.** A `Prisma.ThingWhereInput` here defeats the whole arrangement. Reference: [src/modules/files/files.repository.ts](../src/modules/files/files.repository.ts).
 
 ---
 
-## Step 5 — Author the infrastructure
-
-Infrastructure adapters implement domain ports. They MAY import Prisma, Redis, and external SDKs. They MUST NOT import `presentation/`.
+## Step 4 — Implement the adapter and bind it
 
 ```ts
-// src/modules/<feature>/infrastructure/persistence/prisma-thing.repository.ts
-import type { ThingRepositoryPort } from '#src/modules/<feature>/domain/ports/thing.repository.port.js';
-import { PrismaService } from '#src/core/index.js';
+// src/persistence/prisma/thing.prisma.repository.ts
+import { Thing } from '#src/modules/things/entities/thing.entity.js';
+import { ThingsException } from '#src/modules/things/things.exception.js';
+import {
+  ThingRepository,
+  type CreateThingProps,
+} from '#src/modules/things/things.repository.js';
 import { Injectable } from '@nestjs/common';
+import { isUniqueViolation } from './prisma-error.mapper.js';
+import { PrismaTransactionManager } from './prisma-transaction.manager.js';
 
 @Injectable()
-export class PrismaThingRepository implements ThingRepositoryPort {
-  constructor(private readonly prisma: PrismaService) {}
-  // implement port methods
+export class PrismaThingRepository extends ThingRepository {
+  constructor(private readonly db: PrismaTransactionManager) {
+    super();
+  }
+
+  /** Transaction-aware: the transactional client while inside `run`. */
+  private get prisma() {
+    return this.db.client;
+  }
+
+  async create(props: CreateThingProps): Promise<Thing> {
+    try {
+      return this.toEntity(await this.prisma.thing.create({ data: props }));
+    } catch (error) {
+      if (isUniqueViolation(error)) throw ThingsException.alreadyExists();
+      throw ThingsException.databaseError();
+    }
+  }
+
+  private toEntity(row: { id: string; name: string }): Thing {
+    return new Thing(row.id, row.name);
+  }
 }
 ```
 
-Prisma↔domain translation lives in `infrastructure/mappers/`, **not** in the repository itself when the mapping has any complexity.
+Then bind it in [src/persistence/persistence.module.ts](../src/persistence/persistence.module.ts) — add to **both** `providers` and `exports`:
 
-External provider adapters (e.g., a Resend email sender, a better-auth wrapper) live in their own subfolder under `infrastructure/`. They MUST wrap third-party errors into a feature-specific `AppException`.
+```ts
+{ provide: ThingRepository, useClass: PrismaThingRepository },
+```
+
+`PersistenceModule` is `@Global()`, so `ThingsModule` must **not** list the repository in its own providers.
+
+Read [persistence.md §3](persistence.md#3-the-rules) before writing this file — the seven rules there are what keep the swap cheap.
 
 ---
 
-## Step 6 — Author the presentation
-
-Controllers are thin. They:
-
-1. Accept a Zod DTO.
-2. Apply guards (`@UseGuards(AuthGuard, PermissionsGuard)`) and declare the required static permissions with `@Permissions([...])`.
-3. Call exactly one use case.
-4. Optionally pass the result through a response mapper.
-5. Return the value (the global response interceptor wraps the envelope).
-
-### DTOs
+## Step 5 — Write the DTOs
 
 ```ts
-// src/modules/<feature>/presentation/http/dtos/create-thing.dto.ts
-import { createStrictZodDto } from '#src/core/index.js';
+// src/modules/things/dto/create-thing.dto.ts
+import { createStrictZodDto } from '#src/common/validation/strict-zod-dto.js';
 import { z } from 'zod';
 
-const createThingSchema = z.object({
+export const createThingSchema = z.object({
   name: z.string().min(1),
 });
 
 export class CreateThingDto extends createStrictZodDto(createThingSchema) {}
 ```
 
-Strict mode rejects unknown keys. Do not relax it.
-
-DTOs may be one-per-file (preferred) or grouped per controller (`<feature>.dto.ts`). See [file-organization.md](file-organization.md).
-
-### Controllers
-
-Reference: [src/modules/authorization/presentation/http/user-permissions.controller.ts](../src/modules/authorization/presentation/http/user-permissions.controller.ts).
-
-`@ResponseMessage('<module>.messages.<key>')` on a method sets the success envelope's `message`. `@ApiResponses(...)` documents Swagger examples.
+Strict mode rejects unknown keys — do not relax it. DTOs may be one-per-file or grouped per controller (`dto/things.dto.ts`); see [file-organization.md](file-organization.md).
 
 ---
 
-## Step 7 — Register the NestJS module
+## Step 6 — Write the service
+
+All behaviour lives here, as methods. Inject the abstract repository, never `PrismaService`.
 
 ```ts
-// src/modules/<feature>/<feature>.module.ts
-import { Module } from '@nestjs/common';
-import { PrismaModule } from '#src/core/index.js';
-import { THINGS_TOKENS } from './things.tokens.js';
-import { CreateThingUseCase } from './application/use-cases/create-thing.use-case.js';
-import { PrismaThingRepository } from './infrastructure/persistence/prisma-thing.repository.js';
-import { ThingsController } from './presentation/http/things.controller.js';
-import type { ThingRepositoryPort } from './domain/ports/thing.repository.port.js';
+// src/modules/things/things.service.ts
+import { Injectable } from '@nestjs/common';
+import { ThingsException } from './things.exception.js';
+import { ThingRepository } from './things.repository.js';
 
-@Module({
-  imports: [PrismaModule],
-  controllers: [ThingsController],
-  providers: [
-    { provide: THINGS_TOKENS.THING_REPOSITORY, useClass: PrismaThingRepository },
-    {
-      provide: CreateThingUseCase,
-      useFactory: (repo: ThingRepositoryPort) => new CreateThingUseCase(repo),
-      inject: [THINGS_TOKENS.THING_REPOSITORY],
-    },
-  ],
-  exports: [
-    THINGS_TOKENS.THING_REPOSITORY,
-    CreateThingUseCase, // only if other modules consume it
-  ],
-})
-export class ThingsModule {}
-```
+@Injectable()
+export class ThingsService {
+  constructor(private readonly repository: ThingRepository) {}
 
-Tokens file:
+  async create(props: { name: string; ownerId: string }) {
+    return this.repository.create(props);
+  }
 
-```ts
-// src/modules/<feature>/<feature>.tokens.ts
-export const THINGS_TOKENS = {
-  THING_REPOSITORY: Symbol('THINGS_REPOSITORY'),
-} as const;
-```
-
-Reference: [src/modules/authorization/authorization.module.ts](../src/modules/authorization/authorization.module.ts) and [src/modules/authorization/authorization.tokens.ts](../src/modules/authorization/authorization.tokens.ts).
-
-Register the new module in [src/app.module.ts](../src/app.module.ts) so NestJS picks it up.
-
----
-
-## Step 8 — Expose the public API (`index.ts`)
-
-```ts
-// src/modules/<feature>/index.ts
-export * from './things.module.js';
-export * from './things.tokens.js';
-// Add explicit re-exports for any port, application service, response DTO,
-// guard, decorator, or exception type that another module legitimately needs.
-```
-
-**Rules** (from [ARCHITECTURE.md §6](../ARCHITECTURE.md#6-public-api-boundary)):
-
-- The barrel is the **only** entry point another module may import from.
-- When another module needs a symbol that isn't exported yet, the fix is to extend this `index.ts` — not to deep-import.
-- Do not re-export internal mappers, infrastructure adapters, or anything not intended for cross-module consumption.
-
-For richer barrel patterns (re-exporting via layer-level indices) see [src/modules/auth/index.ts](../src/modules/auth/index.ts).
-
----
-
-## Step 9 — Add i18n keys
-
-For each new user-facing message (success message or error), add the key to **every** locale:
-
-- `locales/en-US/<feature>.json`
-- `locales/ar-SY/<feature>.json`
-
-Convention:
-
-```json
-{
-  "messages": {
-    "thing_created_success": "Thing created successfully"
-  },
-  "errors": {
-    "thing_not_found": "Thing not found"
+  async getById(id: string) {
+    const thing = await this.repository.findById(id);
+    if (!thing) throw ThingsException.notFound(id);
+    return thing;
   }
 }
 ```
 
-The keys MUST match the strings used in `@ResponseMessage(...)` and in `AppException` `messageKey` arguments. Missing a locale fails the Definition of Done.
+If the operation writes through more than one repository, inject `TransactionManager` and wrap the writes in `run()` — never `$transaction`:
+
+```ts
+await this.transactions.run(async () => {
+  const thing = await this.things.create(props);
+  await this.audit.record('thing.created', thing.id);
+});
+```
+
+Reference: [src/modules/files/files.service.ts](../src/modules/files/files.service.ts).
 
 ---
 
-## Step 10 — Add tests
+## Step 7 — Write the exception class
+
+```ts
+// src/modules/things/things.exception.ts
+import { AppException } from '#src/common/exceptions/app-exception.js';
+import { AppErrorCode } from '#src/common/exceptions/error-definitions.js';
+
+export class ThingsException extends AppException {
+  static notFound(id?: string) {
+    return new ThingsException({
+      code: AppErrorCode.NOT_FOUND,
+      messageKey: 'things.errors.not_found',
+      details: id ? { id } : undefined,
+    });
+  }
+}
+```
+
+Every factory sets an `AppErrorCode` (which decides the HTTP status) and a `messageKey` that exists in every locale.
+
+Reference: [src/modules/authorization/authorization.exception.ts](../src/modules/authorization/authorization.exception.ts).
+
+---
+
+## Step 8 — Write the controller
+
+Thin: guards, DTO, one service call, return. The global response interceptor adds the envelope.
+
+```ts
+// src/modules/things/things.controller.ts
+import { ApiResponses } from '#src/common/decorators/api-errors.decorator.js';
+import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';
+import { AuthGuard } from '#src/modules/auth/auth.guard.js';
+import { Permissions } from '#src/modules/authorization/decorators/permissions.decorator.js';
+import { PermissionsGuard } from '#src/modules/authorization/guards/permissions.guard.js';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CreateThingDto } from './dto/create-thing.dto.js';
+import { ThingsService } from './things.service.js';
+
+@ApiTags('Things')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionsGuard)
+@Controller({ path: 'things', version: '1' })
+export class ThingsController {
+  constructor(private readonly thingsService: ThingsService) {}
+
+  @Permissions(['thing:create'])
+  @ResponseMessage('things.messages.created_success')
+  @ApiResponses(THINGS_RESPONSES.create)
+  @Post()
+  async create(@Body() body: CreateThingDto) {
+    return this.thingsService.create(body);
+  }
+}
+```
+
+Reference: [src/modules/authorization/authorization.controller.ts](../src/modules/authorization/authorization.controller.ts).
+
+---
+
+## Step 9 — Register the module
+
+```ts
+// src/modules/things/things.module.ts
+import { AuthModule } from '#src/modules/auth/auth.module.js';
+import { AuthorizationModule } from '#src/modules/authorization/authorization.module.js';
+import { Module } from '@nestjs/common';
+import { ThingsController } from './things.controller.js';
+import { ThingsService } from './things.service.js';
+
+// `ThingRepository` is provided globally by PersistenceModule.
+@Module({
+  imports: [AuthModule, AuthorizationModule],
+  controllers: [ThingsController],
+  providers: [ThingsService],
+  exports: [ThingsService], // only if another module consumes it
+})
+export class ThingsModule {}
+```
+
+Then add `ThingsModule` to [src/app.module.ts](../src/app.module.ts).
+
+If the feature introduces a new permission, add it to [permissions.catalog.ts](../src/modules/authorization/permissions.catalog.ts) and grant it to the appropriate roles.
+
+---
+
+## Step 10 — Add i18n keys
+
+For each new user-facing message, add the key to **every** locale:
+
+- `locales/en-US/<feature>.json`
+- `locales/ar-SY/<feature>.json`
+
+```json
+{
+  "messages": { "created_success": "Thing created successfully" },
+  "errors": { "not_found": "Thing not found" }
+}
+```
+
+Keys MUST match the strings in `@ResponseMessage(...)` and in `AppException` `messageKey` arguments. A missing locale fails the Definition of Done.
+
+---
+
+## Step 11 — Add tests
 
 Required:
 
-- **Unit specs** — one per use case, co-located as `*.spec.ts`. Mock the port; assert behavior, not implementation.
-- **Contract tests** — `test/<feature>.contract-spec.ts`. For every new endpoint, cover the happy path plus the relevant subset of `400`, `401`, `403`, `404`, `409`. Use the helpers in `test/helpers/`.
+- **Unit spec** — `things.service.spec.ts`, using `Test.createTestingModule` and overriding the repository port:
 
-Optional but encouraged:
+  ```ts
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      ThingsService,
+      { provide: ThingRepository, useValue: repositoryMock },
+    ],
+  }).compile();
+  ```
 
-- **E2E specs** — `test/<feature>.e2e-spec.ts` for flows that span multiple modules (e.g., auth → authorization → files).
+  Override the **port**, never `PrismaService` — a test written this way survives an ORM change untouched.
 
-Test environment is fixed: `.env.test`, Postgres on `localhost:5435`, Redis on `localhost:6380`. Never mock the database in contract or e2e tests. Full details in [testing.md](testing.md).
+- **Contract test** — `test/things.contract-spec.ts`. For every new endpoint, the happy path plus the relevant subset of `400`, `401`, `403`, `404`, `409`. Use `test/helpers/`.
 
----
+Encouraged: an **E2E spec** for flows spanning modules.
 
-## Step 11 — Update docs
-
-Update documentation when the change touches architecture or boundaries:
-
-- New module → add it (and any documented exception status) to [ARCHITECTURE.md §10](../ARCHITECTURE.md#10-documented-exceptions-partial-modules) if it deviates from the canonical layout.
-- New cross-module dependency → add a row to [ARCHITECTURE.md §5.1](../ARCHITECTURE.md#51-current-cross-module-dependency-map-migration-target).
-- New convention or pattern that future agents would otherwise have to infer → document it under `docs/`.
-- New shared helper in `core/` → ensure it passes the three-signal test ([shared-core-extraction.md](shared-core-extraction.md)) and reference it from the relevant doc.
-
-A pure feature addition that follows the existing patterns does not require doc changes.
+The test environment is fixed: `.env.test`, Postgres on `localhost:5435`, Redis on `localhost:6380`. Never mock the database in contract or e2e tests. Details in [testing.md](testing.md).
 
 ---
 
-## Step 12 — Run the Definition of Done
+## Step 12 — Update docs and run the Definition of Done
 
-Before opening the PR, run through the checklist in [workflow-checklist.md](workflow-checklist.md). The PR description MUST state that the checklist passed.
+Update docs when the change touches architecture or boundaries:
+
+- a module that deviates from the canonical layout → note it in [ARCHITECTURE.md §9](../ARCHITECTURE.md#9-deliberate-variations);
+- a new convention future contributors would otherwise have to infer → document it under `docs/`;
+- a new repository → it is already covered by [persistence.md](persistence.md); no doc change needed.
+
+A pure feature addition that follows existing patterns needs no doc changes.
+
+Then run the checklist in [workflow-checklist.md](workflow-checklist.md) and state in the PR description that it passed.
 
 ---
 
 ## Decision aids
 
-- Repository pattern? See [src/modules/authorization/infrastructure/persistence/prisma-authorization.repository.ts](../src/modules/authorization/infrastructure/persistence/prisma-authorization.repository.ts).
-- External provider adapter? See [src/modules/auth/infrastructure/](../src/modules/auth/infrastructure/) (`better-auth/`).
-- Multi-driver infrastructure (e.g., S3 / Local)? See [src/modules/files/infrastructure/](../src/modules/files/infrastructure/).
-- Async cross-module work via a job queue? See [src/modules/notify/infrastructure/](../src/modules/notify/infrastructure/) (`bullmq/`, `resend/`).
+| Pattern | Reference |
+|---|---|
+| Repository port + adapter | [files.repository.ts](../src/modules/files/files.repository.ts) → [file.prisma.repository.ts](../src/persistence/prisma/file.prisma.repository.ts) |
+| Transaction across repositories | [authorization.prisma.repository.ts](../src/persistence/prisma/authorization.prisma.repository.ts) (`replaceUserPermissions`) |
+| A second swappable driver | [src/modules/files/storage/](../src/modules/files/storage/) |
+| Wrapping a vendor library | [src/modules/auth/better-auth/](../src/modules/auth/better-auth/) |
+| Async cross-module work via a queue | [src/modules/notify/queue/](../src/modules/notify/queue/) |
+| A feature with no controller | [src/modules/notify/](../src/modules/notify/) |
+| Two services in one feature | [src/modules/authorization/](../src/modules/authorization/) |

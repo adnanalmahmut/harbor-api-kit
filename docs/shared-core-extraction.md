@@ -1,38 +1,48 @@
-# Shared / core extraction
+# Shared code extraction
 
-This document operationalizes [ARCHITECTURE.md §8](../ARCHITECTURE.md#8-shared--core-responsibilities). The question it answers is: *where does this code belong — in `core/` or in a feature?*
+This document operationalizes [ARCHITECTURE.md §7](../ARCHITECTURE.md#7-common-vs-feature-owned). The question it answers is: *where does this code belong — in a shared directory or in a feature?*
 
-The default answer is **feature**. Extract to `core/` only when the three-signal rule is satisfied.
+There are three shared destinations, and they are not interchangeable:
+
+| Destination | Holds |
+|---|---|
+| `src/common/` | cross-cutting code with **no Nest module of its own** — decorators, filters, interceptors, validation, security, exceptions, context, types, utils |
+| `src/infrastructure/` | one folder per external-system **capability**, complete with its port, adapter, module and consumers — cache, rate-limit, i18n, logger, queue |
+| `src/persistence/` | the database. Nothing else ever goes here; see [persistence.md](persistence.md) |
+
+The default answer is **feature**. Extract only when the three-signal rule is satisfied.
 
 ---
 
 ## 1. The three-signal rule
 
-Extract code to `core/` only if **all three** are true:
+Extract shared code only if **all three** are true:
 
 1. **Used by ≥ 2 features.** Not "could be used by". Actually used.
 2. **No feature-specific domain meaning.** It does not encode the rules of any one feature.
-3. **Framework infrastructure or a cross-cutting concern.** Logging, persistence client, HTTP pipeline, validation, request context, security primitives, exception base.
+3. **Framework infrastructure or a cross-cutting concern.** Logging, database client, HTTP pipeline, validation, request context, security primitives, exception base.
 
 If any signal is false, the code stays where it is. Move it later, not now — premature extraction is a far more common mistake than late extraction in this codebase.
 
 ---
 
-## 2. True positives — these belong in `core/`
+## 2. True positives
 
 | Code | Path | Why |
 |------|------|-----|
-| `PrismaService` | `core/infrastructure/db/` | Framework infra; every feature persists. |
-| `RedisService` | `core/infrastructure/redis/` | Framework infra; cache + session store. |
-| Namespaced configuration factories + schemas | `src/config/` | Cross-cutting bootstrap concern; only runtime application folder that reads `process.env`. |
-| Pino logger wiring + request context | `core/infrastructure/logger/`, `core/infrastructure/context/` | Cross-cutting; correlation IDs across modules. |
-| BullMQ wiring | `core/infrastructure/queue/` | Framework infra; enqueue from anywhere. |
-| i18n module setup | `core/infrastructure/i18n/` | Cross-cutting; controllers and exception filter both translate. |
-| Global response interceptor (envelope) | `core/presentation/interceptors/` | Cross-cutting; every endpoint. |
-| Global exception filter | `core/presentation/filters/` | Cross-cutting; every exception. |
-| Validation pipe + `createStrictZodDto` | `core/presentation/validation/` | Cross-cutting; every controller. |
-| CSRF, rate-limit, security headers, CORS | `core/presentation/security/`, `core/presentation/setup/` | Cross-cutting; HTTP pipeline. |
-| `AppException`, `AppErrorCode`, `ERROR_DEFINITIONS` | `core/domain/exceptions/` | Cross-cutting; the base every feature exception extends. |
+| `PrismaService`, repository adapters, `TransactionManager` | `src/persistence/` | The database. Confined by design — [persistence.md](persistence.md). |
+| `RedisService`, `CacheManagerPort`, `AppCacheService`, cache TTLs | `src/infrastructure/cache/` | Framework infra; cache + session store. One capability, one folder. |
+| Namespaced configuration factories + schemas | `src/config/` | Cross-cutting bootstrap concern; the only runtime folder that reads `process.env`. |
+| Pino logger wiring | `src/infrastructure/logger/` | Cross-cutting; correlation IDs across modules. |
+| BullMQ wiring | `src/infrastructure/queue/` | Framework infra; enqueue from anywhere. |
+| i18n module setup | `src/infrastructure/i18n/` | Cross-cutting; controllers and the exception filter both translate. |
+| Request context store | `src/common/context/` | Cross-cutting; provided globally by `CommonModule`. |
+| Global response interceptor (envelope) | `src/common/interceptors/` | Cross-cutting; every endpoint. |
+| Global exception filter | `src/common/filters/` | Cross-cutting; every exception. |
+| Validation pipe + `createStrictZodDto` | `src/common/validation/` | Cross-cutting; every controller. |
+| CSRF, CORS, OpenAPI setup | `src/common/csrf/`, `src/common/setup/`, `src/common/docs/` | Cross-cutting; the HTTP pipeline. |
+| Rate limiting (port, adapter, module, interceptors, decorators) | `src/infrastructure/rate-limit/` | An external-system capability, not a `common/` concern. |
+| `AppException`, `AppErrorCode`, `ERROR_DEFINITIONS` | `src/common/exceptions/` | Cross-cutting; the base every feature exception extends. |
 
 ---
 
@@ -40,16 +50,17 @@ If any signal is false, the code stays where it is. Move it later, not now — p
 
 These look "shared" because more than one feature touches them, but they fail signal #2 (they encode feature-specific domain meaning):
 
-| Code | Where it belongs | Why **not** in core |
+| Code | Where it belongs | Why **not** shared |
 |------|------------------|---------------------|
-| `AuthGuard`, `PermissionsGuard`, session types | `auth` / `authorization` modules | They encode authentication and authorization rules. Other features consume them via the barrel. |
+| `AuthGuard`, `PermissionsGuard`, session types | `auth` / `authorization` modules | They encode authentication and authorization rules. Other features import them directly from the owning module. |
 | `Permissions` decorator | `authorization` module | Same — authorization-specific semantics. |
 | `UserPermissionsResponseDto` | `authorization` module | Response shapes are owned by the feature whose concept they represent. |
-| `EmailProviderPort` and Resend adapter | `notify` module | Notifications are a feature even when async. |
-| Permission catalog / authorization value objects | `authorization` module | Pure authorization domain knowledge. |
+| `EmailProviderPort`, `AuthEmailPort` and the Resend adapter | `notify` module | Notifications are a feature even when async. |
+| `permissions.catalog.ts`, `permission-calculator.ts`, `permission-key.vo.ts` | `authorization` module | Pure authorization knowledge. Being framework-free does not make it shared. |
 | Cache key prefixes for auth / authorization | `auth.cache.ts`, `authorization.cache-keys.ts` | Each feature owns its own cache namespace. |
-| Feature-specific exception subclasses | `<feature>/<layer>/exceptions/` | They extend `AppException` (which lives in `core/`) but encode feature semantics. |
-| User mappers, role mappers | The owning feature's `application/mappers/` | They translate that feature's domain to its response shape. |
+| Feature-specific exception subclasses | `<feature>/<feature>.exception.ts` | They extend `AppException` (shared) but encode feature semantics. |
+| Response mappers | The owning feature, e.g. `files.mapper.ts` | They translate that feature's entity to its response shape. |
+| A feature's repository port | `<feature>/<feature>.repository.ts` | It describes what *one* feature needs from storage. Never shared, and never public across modules. |
 
 ---
 
@@ -63,9 +74,9 @@ Walk through the three signals first:
 - **Signal 2 (no feature-specific meaning)**: usually **no** — guards, ports, response shapes, decorators all encode feature semantics.
 - **Signal 3 (framework / cross-cutting)**: usually **no** — these are domain artifacts dressed in framework decorators.
 
-If signals 2 or 3 fail, the right answer is: **the feature that owns the concept exposes it through its barrel**. The consumer imports it from `#src/modules/<owner>/index.js`. That is what cross-module integration *is* — it's not a sign that extraction is needed.
+If signals 2 or 3 fail, the right answer is: **the feature that owns the concept exposes it, and the consumer imports it from there.** That is what cross-module integration *is* — it is not a signal that extraction is needed.
 
-Example: `PermissionsGuard` is needed by `authorization` and `files`. It does **not** belong in `core/` — it belongs in `authorization` (because it encodes authorization semantics) and is consumed via `#src/modules/authorization/index.js`.
+Example: `PermissionsGuard` is needed by `authorization` and `files`. It does **not** belong in `src/common/` — it belongs to `authorization`, and `files` imports it from `#src/modules/authorization/guards/permissions.guard.js`.
 
 ---
 
@@ -82,14 +93,16 @@ If the second consumer arrives later, **then** apply the three-signal rule and c
 When the three signals are satisfied:
 
 1. Open a PR whose **sole purpose** is the extraction. Do not bundle it with feature work.
-2. Move the code to the appropriate `core/` subfolder.
-3. Update consumers to import from `#src/core/index.js` (or the relevant core barrel).
-4. Re-export the new symbol from `core/index.ts` if it is publicly consumable.
-5. Update [ARCHITECTURE.md §8.1](../ARCHITECTURE.md#81-what-lives-in-core) and (if relevant) this document.
+2. Pick the destination from the table at the top: `common/` for code with no Nest module, `infrastructure/` for a module wrapping an external system.
+3. Move the code and update consumers to import the file directly. There are no barrels to update.
+4. If the code needs to be injectable, register it — in `CommonModule` for a global, or in its own `infrastructure/<name>/<name>.module.ts`.
+5. Update [ARCHITECTURE.md §7.1](../ARCHITECTURE.md#71-what-lives-in-srccommon) and, if relevant, this document.
 6. Verify lint, build, and tests pass.
 
 ---
 
 ## 7. Procedure for de-extraction (rare but valid)
 
-If a piece of `core/` is found to be used by only one feature and encodes that feature's semantics, move it back into the feature. Same procedure as above, in reverse, with documentation updates.
+If a piece of `src/common/` turns out to be used by only one feature and encodes that feature's semantics, move it back into the feature. Same procedure in reverse, with documentation updates.
+
+The restructure did exactly this in two places worth knowing about: `LoggerPort` was deleted (its only consumer now injects `PinoLogger` directly), and the `shared` module was folded into `CommonModule` because "shared" named a location rather than a concern.
