@@ -4,7 +4,7 @@ import {
   notificationConfig,
 } from '#src/config/index.js';
 import { resolveSupportedLocale } from '#src/infrastructure/i18n/i18n.utils.js';
-import { EmailProviderPort, type SendEmailParams } from '../notify.ports.js';
+import { EmailProviderPort, type SendEmailParams } from './notify.ports.js';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import * as fs from 'fs/promises';
@@ -12,8 +12,8 @@ import { PinoLogger } from 'nestjs-pino';
 import * as path from 'path';
 import { Resend } from 'resend';
 
-import { NotifyException } from '../notify.exception.js';
-import { maskEmail } from '../mask-email.js';
+import { NotifyException } from './notify.exception.js';
+import { maskEmail } from './mask-email.js';
 
 @Injectable()
 export class ResendEmailProvider implements EmailProviderPort {
