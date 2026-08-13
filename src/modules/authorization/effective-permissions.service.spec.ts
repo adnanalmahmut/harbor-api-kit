@@ -1,4 +1,4 @@
-import { RequestContextStorePort } from '#src/common/context/request-context.store.js';
+import { RequestContextStorePort } from '#src/common/request-context.js';
 import { CacheManagerPort } from '#src/infrastructure/cache/cache-manager.port.js';
 import { jest } from '@jest/globals';
 import { Test, type TestingModule } from '@nestjs/testing';

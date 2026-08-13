@@ -1,4 +1,4 @@
-import { createStrictZodDto } from '#src/common/validation/strict-zod-dto.js';
+import { createStrictZodDto } from '#src/common/validation.pipe.js';
 import { isPermissionKey } from '../permissions.catalog.js';
 import { z } from 'zod';
 

@@ -1,7 +1,7 @@
 import { httpConfig } from '#src/config/index.js';
-import { SecurityException } from '#src/common/exceptions/security.exception.js';
+import { SecurityException } from '#src/common/app-exception.js';
 import { RateLimiterPort } from '#src/infrastructure/rate-limit/rate-limiter.port.js';
-import { stripQuery } from '#src/common/utils/shared.utils.js';
+import { stripQuery } from '#src/common/utils.js';
 import {
   Inject,
   Injectable,

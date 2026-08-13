@@ -1,5 +1,5 @@
-import type { CacheScope } from '#src/common/context/request-context.store.js';
-import type { RequestContext } from '#src/common/context/request-context.type.js';
+import type { CacheScope } from '#src/common/request-context.js';
+import type { RequestContext } from '#src/common/request-context.js';
 
 export class AppCacheService {
   async getOrLoad<T>(

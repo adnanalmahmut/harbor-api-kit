@@ -1,4 +1,4 @@
-import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';
+import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { RateLimit } from '#src/infrastructure/rate-limit/rate-limit.decorators.js';
 import { Controller, Get } from '@nestjs/common';
 import { HealthService } from './health.service.js';

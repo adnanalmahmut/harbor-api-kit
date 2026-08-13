@@ -1,7 +1,4 @@
-import {
-  DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
-} from '#src/common/constants/locales.js';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '#src/common/locales.js';
 import { z } from 'zod';
 
 export const supportedLocaleSchema = z.enum(SUPPORTED_LOCALES);

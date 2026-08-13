@@ -1,7 +1,4 @@
-import {
-  buildI18nFallbacks,
-  SUPPORTED_LOCALES,
-} from '#src/common/constants/locales.js';
+import { buildI18nFallbacks, SUPPORTED_LOCALES } from '#src/common/locales.js';
 import { appConfig, i18nConfig } from '#src/config/index.js';
 import { Module } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';

@@ -1,5 +1,5 @@
-import type { ValidationIssue } from '#src/common/types/validation-issue.type.js';
-import { isI18nKeyLike } from '#src/common/utils/shared.utils.js';
+import type { ValidationIssue } from '#src/common/app-exception.js';
+import { isI18nKeyLike } from '#src/common/utils.js';
 import type { I18nService } from 'nestjs-i18n';
 
 function toSafeString(value: unknown): string {

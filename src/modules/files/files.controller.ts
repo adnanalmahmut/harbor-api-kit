@@ -1,6 +1,6 @@
 import { appConfig } from '#src/config/index.js';
-import { ApiResponses } from '#src/common/decorators/api-errors.decorator.js';
-import { ResponseMessage } from '#src/common/decorators/response-message.decorator.js';
+import { ApiResponses } from '#src/common/api-errors.decorator.js';
+import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { AuthGuard } from '#src/modules/auth/auth.guard.js';
 import { FilesException } from './files.exception.js';
 import { FileResponseMapper } from './files.mapper.js';

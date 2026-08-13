@@ -1,13 +1,12 @@
 import { Global, Module } from '@nestjs/common';
-import { RequestContextStoreAdapter } from './context/request-context.store.adapter.js';
-import { RequestContextStorePort } from './context/request-context.store.js';
+import {
+  RequestContextStoreAdapter,
+  RequestContextStorePort,
+} from './request-context.js';
 
 /**
  * The request-context store, global because filters, interceptors and guards
  * resolve it outside any feature module.
- *
- * `AppCacheService` is provided by `RedisModule` — it belongs to the cache
- * capability, which owns all of its own wiring.
  */
 @Global()
 @Module({

@@ -1,0 +1,230 @@
+import { appConfig, authConfig, httpConfig } from '#src/config/index.js';
+import {
+  Inject,
+  Injectable,
+  SetMetadata,
+  type CanActivate,
+  type ExecutionContext,
+} from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import crypto from 'node:crypto';
+import { AppErrorCode, AppException } from './app-exception.js';
+
+/** The methods a double-submit token is required for. */
+export const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+export const CSRF_EXEMPT_KEY = 'security:csrf-exempt';
+
+/** Opts an unsafe route out of the token check — webhooks, mostly. */
+export const CsrfExempt = () => SetMetadata(CSRF_EXEMPT_KEY, true);
+
+export const makeCsrfToken = () => crypto.randomBytes(32).toString('base64url');
+
+export function isAllowedByOriginOrReferer(params: {
+  origin?: string;
+  referer?: string;
+  originAllowlist: string[];
+  refererAllowlist: string[];
+}) {
+  const { origin, referer, originAllowlist, refererAllowlist } = params;
+
+  const originOk = origin ? originAllowlist.includes(origin) : null;
+  const refererOk = referer
+    ? refererAllowlist.some((p) => referer.startsWith(p))
+    : null;
+
+  const allow =
+    originOk === true ||
+    (originOk === null && refererOk === true) ||
+    (originOk === null &&
+      refererOk === null &&
+      originAllowlist.length === 0 &&
+      refererAllowlist.length === 0);
+
+  return allow;
+}
+
+@Injectable()
+export class CsrfGuard implements CanActivate {
+  constructor(
+    @Inject(appConfig.KEY)
+    private readonly app: ConfigType<typeof appConfig>,
+    @Inject(authConfig.KEY)
+    private readonly auth: ConfigType<typeof authConfig>,
+    @Inject(httpConfig.KEY)
+    private readonly http: ConfigType<typeof httpConfig>,
+    private readonly reflector?: Reflector,
+  ) {}
+
+  private isExempt(context: ExecutionContext): boolean {
+    if (!this.reflector) return false;
+    return Boolean(
+      this.reflector.getAllAndOverride<boolean>(CSRF_EXEMPT_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]),
+    );
+  }
+
+  private hasAuthCookie(req: FastifyRequest): boolean {
+    const { sessionTokenCookie, sessionDataCookie } = this.auth;
+    const cookies = (req as any).cookies as Record<string, string> | undefined;
+    const cookieHeader = String(req.headers?.cookie ?? '');
+
+    return (
+      Boolean(cookies?.[sessionTokenCookie]) ||
+      Boolean(cookies?.[sessionDataCookie]) ||
+      cookieHeader.includes(`${sessionTokenCookie}=`) ||
+      cookieHeader.includes(`${sessionDataCookie}=`)
+    );
+  }
+
+  private getCookieToken(req: any, cookieName: string): string | undefined {
+    const raw = req.cookies?.[cookieName];
+    if (typeof raw !== 'string') return undefined;
+    const v = raw.trim();
+    return v ? v : undefined;
+  }
+
+  private getHeaderToken(req: any, headerName: string): string | undefined {
+    const key = String(headerName ?? '')
+      .trim()
+      .toLowerCase();
+    if (!key) return undefined;
+
+    const raw = req.headers?.[key] as string | string[] | undefined;
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof v !== 'string') return undefined;
+    const t = v.trim();
+    return t ? t : undefined;
+  }
+
+  private issueCsrfCookieIfMissing(
+    reply: FastifyReply,
+    cookieName: string,
+    secure: boolean,
+    sameSite: 'lax' | 'strict' | 'none',
+    existing?: string,
+  ) {
+    if (existing) return;
+    const token = makeCsrfToken();
+    reply.setCookie(cookieName, token, {
+      httpOnly: false,
+      secure,
+      sameSite,
+      path: '/',
+    });
+  }
+
+  private assertOriginAllowed(
+    req: FastifyRequest,
+    csrf: ConfigType<typeof httpConfig>['csrf'],
+  ) {
+    if (!this.app.isProduction) return;
+
+    const secFetchSite = req.headers?.['sec-fetch-site'];
+    if (typeof secFetchSite === 'string') {
+      const s = secFetchSite.toLowerCase();
+      if (s !== 'same-origin' && s !== 'same-site') {
+        throw new AppException({
+          code: AppErrorCode.NOT_ALLOWED_BY_CORS,
+          messageKey: 'core.errors.security.csrf_origin_not_allowed',
+        });
+      }
+      return;
+    }
+
+    const origin = req.headers?.origin;
+    const referer = req.headers?.referer;
+
+    const allow = isAllowedByOriginOrReferer({
+      origin,
+      referer,
+      originAllowlist: csrf.originAllowlist,
+      refererAllowlist: csrf.refererAllowlist,
+    });
+
+    if (!allow) {
+      throw new AppException({
+        code: AppErrorCode.NOT_ALLOWED_BY_CORS,
+        messageKey: 'core.errors.security.csrf_origin_not_allowed',
+      });
+    }
+  }
+
+  canActivate(context: ExecutionContext): boolean {
+    const csrf = this.http.csrf;
+    if (!csrf.enabled) return true;
+
+    const http = context.switchToHttp();
+    const req = http.getRequest<FastifyRequest>() as any;
+    const reply = http.getResponse<FastifyReply>();
+
+    const isUnsafe = CSRF_METHODS.has(req.method);
+
+    const cookieToken = this.getCookieToken(req, csrf.cookieName);
+
+    if (!isUnsafe) {
+      this.issueCsrfCookieIfMissing(
+        reply,
+        csrf.cookieName,
+        csrf.cookieSecure,
+        csrf.sameSite,
+        cookieToken,
+      );
+      return true;
+    }
+
+    // Exempt unsafe routes early (webhooks, etc.)
+    if (this.isExempt(context)) {
+      return true;
+    }
+
+    // Enforce origin/referrer checks for ALL unsafe requests in prod
+    this.assertOriginAllowed(req, csrf);
+
+    const hasAuth = this.hasAuthCookie(req);
+    const headerToken = this.getHeaderToken(req, csrf.headerName);
+
+    if (!hasAuth) {
+      this.issueCsrfCookieIfMissing(
+        reply,
+        csrf.cookieName,
+        csrf.cookieSecure,
+        csrf.sameSite,
+        cookieToken,
+      );
+      return true;
+    }
+
+    if (!cookieToken || !headerToken) {
+      if (!cookieToken && hasAuth) {
+        this.issueCsrfCookieIfMissing(
+          reply,
+          csrf.cookieName,
+          csrf.cookieSecure,
+          csrf.sameSite,
+          cookieToken,
+        );
+      }
+
+      throw new AppException({
+        code: AppErrorCode.FORBIDDEN,
+        messageKey: !cookieToken
+          ? 'core.errors.security.csrf_token_required'
+          : 'core.errors.security.csrf_token_missing',
+      });
+    }
+
+    if (headerToken !== cookieToken) {
+      throw new AppException({
+        code: AppErrorCode.FORBIDDEN,
+        messageKey: 'core.errors.security.csrf_token_invalid',
+      });
+    }
+
+    return true;
+  }
+}

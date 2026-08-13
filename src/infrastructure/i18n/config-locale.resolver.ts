@@ -1,5 +1,5 @@
 import { i18nConfig } from '#src/config/index.js';
-import { resolveLocaleFromSource } from '#src/common/utils/shared.utils.js';
+import { resolveLocaleFromSource } from '#src/common/utils.js';
 import { Inject, Injectable, type ExecutionContext } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import type { FastifyRequest } from 'fastify';
