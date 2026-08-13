@@ -3,11 +3,12 @@ import { ResponseMessage } from '#src/common/response.interceptor.js';
 import { AuthGuard } from '#src/modules/auth/auth.guard.js';
 import { AuthorizationException } from './authorization.exception.js';
 import { AuthorizationService } from './authorization.service.js';
-import { Permissions } from './decorators/permissions.decorator.js';
-import { USER_PERMISSIONS_RESPONSES } from './dto/api-responses.examples.js';
-import { ReplaceUserPermissionsDto } from './dto/replace-user-permissions.dto.js';
-import { SetPermissionOverrideDto } from './dto/set-permission-override.dto.js';
-import { PermissionsGuard } from './guards/permissions.guard.js';
+import {
+  ReplaceUserPermissionsDto,
+  SetPermissionOverrideDto,
+  USER_PERMISSIONS_RESPONSES,
+} from './authorization.dto.js';
+import { Permissions, PermissionsGuard } from './permissions.guard.js';
 import { isPermissionKey } from './permissions.catalog.js';
 import {
   Body,

@@ -1,15 +1,31 @@
-import { AuthorizationException } from '../authorization.exception.js';
-import { EffectivePermissionsService } from '../effective-permissions.service.js';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator.js';
-import type { PermissionRequirement } from '../decorators/permissions.decorator.js';
 import {
   Injectable,
+  SetMetadata,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 import { PinoLogger } from 'nestjs-pino';
+import { AuthorizationException } from './authorization.exception.js';
+import { EffectivePermissionsService } from './effective-permissions.service.js';
+import type { PermissionKey } from './permissions.catalog.js';
+
+export const PERMISSIONS_KEY = 'authorization:permissions';
+
+export type PermissionRequirement = {
+  permissions: readonly PermissionKey[];
+  mode: 'AND' | 'ANY';
+};
+
+/**
+ * Declares what a route requires. The guard below is the only reader of this
+ * metadata, so the two live together — the same shape as `csrf.guard.ts`.
+ */
+export const Permissions = (
+  permissions: readonly PermissionKey[],
+  mode: 'AND' | 'ANY' = 'AND',
+) => SetMetadata(PERMISSIONS_KEY, { permissions, mode });
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {

@@ -3,7 +3,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { AuthorizationController } from './authorization.controller.js';
 import { AuthorizationService } from './authorization.service.js';
 import { EffectivePermissionsService } from './effective-permissions.service.js';
-import { PermissionsGuard } from './guards/permissions.guard.js';
+import { PermissionsGuard } from './permissions.guard.js';
 
 // `AuthorizationRepository` is provided globally by PersistenceModule.
 @Module({
