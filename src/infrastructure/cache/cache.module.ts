@@ -1,9 +1,9 @@
 import { redisConfig } from '#src/config/index.js';
 import { Global, Module } from '@nestjs/common';
-import { AppCacheService } from './app-cache.service.js';
-import { CacheManagerPort } from './cache-manager.port.js';
 import type { ConfigType } from '@nestjs/config';
 import type { Redis as RedisClient } from 'ioredis';
+import { AppCacheService } from './app-cache.service.js';
+import { CachePort } from './cache.port.js';
 import { RedisService } from './redis.service.js';
 
 const REDIS_CLIENT = Symbol('REDIS_CLIENT');
@@ -15,6 +15,10 @@ function resolveRedisCtor(mod: any): RedisCtor {
   return (mod?.default ?? mod) as RedisCtor;
 }
 
+/**
+ * The cache capability: the Redis client, the port every consumer injects, and
+ * the two-tier read-through cache layered over it.
+ */
 @Global()
 @Module({
   providers: [
@@ -39,11 +43,10 @@ function resolveRedisCtor(mod: any): RedisCtor {
         config: ConfigType<typeof redisConfig>,
       ) => new RedisService(client, config.prefix),
     },
-    { provide: CacheManagerPort, useExisting: RedisService },
+    { provide: CachePort, useExisting: RedisService },
 
-    // The two-tier read-through cache over RequestContext.
     AppCacheService,
   ],
-  exports: [RedisService, CacheManagerPort, AppCacheService],
+  exports: [RedisService, CachePort, AppCacheService],
 })
-export class RedisModule {}
+export class CacheModule {}

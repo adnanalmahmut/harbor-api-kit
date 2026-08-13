@@ -1,9 +1,9 @@
-import type { CacheManagerPort } from '#src/infrastructure/cache/cache-manager.port.js';
+import type { CachePort } from '#src/infrastructure/cache/cache.port.js';
 import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 
 @Injectable()
-export class RedisService implements CacheManagerPort, OnApplicationShutdown {
+export class RedisService implements CachePort, OnApplicationShutdown {
   constructor(
     private readonly client: Redis,
     private prefix: string,

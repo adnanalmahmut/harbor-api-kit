@@ -76,18 +76,18 @@ const foreignRepositoryRestricted = {
   ],
 };
 
-/** Direct cache access belongs behind CacheManagerPort. */
+/** Direct cache access belongs behind CachePort. */
 const redisRestricted = {
   paths: [
     {
       name: 'ioredis',
       message:
-        'Direct Redis access belongs in src/infrastructure/cache. Inject CacheManagerPort or RedisService.',
+        'Direct Redis access belongs in src/infrastructure/cache. Inject CachePort or RedisService.',
     },
     {
       name: 'redis',
       message:
-        'Direct Redis access belongs in src/infrastructure/cache. Inject CacheManagerPort or RedisService.',
+        'Direct Redis access belongs in src/infrastructure/cache. Inject CachePort or RedisService.',
     },
   ],
 };

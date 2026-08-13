@@ -1,5 +1,5 @@
 import { authConfig } from '#src/config/index.js';
-import { CacheTTL } from '#src/infrastructure/cache/cache.constants.js';
+import { CacheTTL } from '#src/infrastructure/cache/cache.port.js';
 import { RedisService } from '#src/infrastructure/cache/redis.service.js';
 import { AuthConfigPort, SessionTrackerPort } from './auth.ports.js';
 import { Inject, Injectable } from '@nestjs/common';

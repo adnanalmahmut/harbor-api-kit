@@ -1,5 +1,5 @@
 import { RequestContextStorePort } from '#src/common/request-context.js';
-import { CacheManagerPort } from '#src/infrastructure/cache/cache-manager.port.js';
+import { CachePort } from '#src/infrastructure/cache/cache.port.js';
 import { jest } from '@jest/globals';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
@@ -12,7 +12,7 @@ import { UserPermissionOverride } from './user-permission-override.js';
 describe('EffectivePermissionsService', () => {
   let service: EffectivePermissionsService;
   let repository: jest.Mocked<AuthorizationRepository>;
-  let cache: jest.Mocked<CacheManagerPort>;
+  let cache: jest.Mocked<CachePort>;
   let logger: { warn: jest.Mock; setContext: jest.Mock };
 
   beforeEach(async () => {
@@ -28,11 +28,11 @@ describe('EffectivePermissionsService', () => {
     repository.listUserOverrides.mockResolvedValue({ allow: [], deny: [] });
 
     cache = {
-      get: jest.fn<CacheManagerPort['get']>().mockResolvedValue(null),
-      set: jest.fn<CacheManagerPort['set']>().mockResolvedValue('OK'),
-      del: jest.fn<CacheManagerPort['del']>().mockResolvedValue(1),
-      incr: jest.fn<CacheManagerPort['incr']>().mockResolvedValue(1),
-    } as unknown as jest.Mocked<CacheManagerPort>;
+      get: jest.fn<CachePort['get']>().mockResolvedValue(null),
+      set: jest.fn<CachePort['set']>().mockResolvedValue('OK'),
+      del: jest.fn<CachePort['del']>().mockResolvedValue(1),
+      incr: jest.fn<CachePort['incr']>().mockResolvedValue(1),
+    } as unknown as jest.Mocked<CachePort>;
 
     logger = { warn: jest.fn(), setContext: jest.fn() };
 
@@ -50,7 +50,7 @@ describe('EffectivePermissionsService', () => {
       providers: [
         EffectivePermissionsService,
         { provide: AuthorizationRepository, useValue: repository },
-        { provide: CacheManagerPort, useValue: cache },
+        { provide: CachePort, useValue: cache },
         { provide: PinoLogger, useValue: logger },
         { provide: RequestContextStorePort, useValue: contextStore },
       ],

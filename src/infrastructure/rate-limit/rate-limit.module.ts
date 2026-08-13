@@ -1,4 +1,4 @@
-import { RedisModule } from '#src/infrastructure/cache/redis.module.js';
+import { CacheModule } from '#src/infrastructure/cache/cache.module.js';
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RateLimitInterceptor } from './rate-limit.interceptor.js';
@@ -18,7 +18,7 @@ import { UserRateLimitInterceptor } from './user-rate-limit.interceptor.js';
  */
 @Global()
 @Module({
-  imports: [RedisModule],
+  imports: [CacheModule],
   providers: [
     RedisRateLimiterAdapter,
     { provide: RateLimiterPort, useExisting: RedisRateLimiterAdapter },

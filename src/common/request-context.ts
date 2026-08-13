@@ -1,6 +1,6 @@
 import type { httpConfig, tenantConfig } from '#src/config/index.js';
 import { AppCacheService } from '#src/infrastructure/cache/app-cache.service.js';
-import type { CacheManagerPort } from '#src/infrastructure/cache/cache-manager.port.js';
+import type { CachePort } from '#src/infrastructure/cache/cache.port.js';
 import { Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -42,7 +42,7 @@ export type RequestContext = {
   query?: Record<string, string | string[] | undefined>;
   cookies?: Record<string, string>;
 
-  redis?: CacheManagerPort;
+  redis?: CachePort;
   user?: AuthenticatedUser;
   session?: AuthenticatedSession;
 };
@@ -127,7 +127,7 @@ export function createRequestContextHook(
   http: ConfigType<typeof httpConfig>,
   tenant: ConfigType<typeof tenantConfig>,
   contextStore: RequestContextStorePort,
-  redisService?: CacheManagerPort,
+  redisService?: CachePort,
 ) {
   return function onRequest(
     req: FastifyRequest,

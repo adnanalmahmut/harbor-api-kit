@@ -1,8 +1,16 @@
+import { getRequestContextStatic } from '#src/common/request-context.js';
 import { stripQuery } from '#src/common/utils.js';
+import { loggerConfig } from '#src/config/index.js';
+import { Global, Module } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import type { LevelWithSilent } from 'pino';
 import type { Options } from 'pino-http';
-import { getRequestContextStatic } from '#src/common/request-context.js';
 
+/**
+ * The mixin reads the request context statically because pino is constructed
+ * outside the DI container — this is the one place that back door is used.
+ */
 export function createPinoOptions(
   level: LevelWithSilent,
   pretty: boolean,
@@ -37,3 +45,17 @@ export function createPinoOptions(
       : undefined,
   };
 }
+
+@Global()
+@Module({
+  imports: [
+    PinoLoggerModule.forRootAsync({
+      inject: [loggerConfig.KEY],
+      useFactory: (config: ConfigType<typeof loggerConfig>) => ({
+        pinoHttp: createPinoOptions(config.level, config.pretty),
+      }),
+    }),
+  ],
+  exports: [PinoLoggerModule],
+})
+export class LoggerModule {}

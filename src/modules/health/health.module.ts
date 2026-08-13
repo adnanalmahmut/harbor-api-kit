@@ -1,5 +1,5 @@
 import { RateLimitModule } from '#src/infrastructure/rate-limit/rate-limit.module.js';
-import { RedisModule } from '#src/infrastructure/cache/redis.module.js';
+import { CacheModule } from '#src/infrastructure/cache/cache.module.js';
 import { Module } from '@nestjs/common';
 import { HealthController } from './health.controller.js';
 import { CacheHealthPort } from './health.ports.js';
@@ -8,7 +8,7 @@ import { RedisCacheHealthAdapter } from './redis-cache-health.adapter.js';
 
 // `DbHealthPort` is provided globally by PersistenceModule.
 @Module({
-  imports: [RateLimitModule, RedisModule],
+  imports: [RateLimitModule, CacheModule],
   controllers: [HealthController],
   providers: [
     HealthService,
