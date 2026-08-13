@@ -3,17 +3,16 @@ import {
   setRequestContext,
 } from '#src/common/request-context.js';
 import { CachePort, getOrLoad } from '#src/infrastructure/cache/cache.port.js';
-import { AuthCacheKeys } from './auth.cache.js';
-import type { CookieDirective } from './auth.dtos.js';
+import { authCacheKeys } from './auth.cache-keys.js';
+import {
+  applyCookies,
+  readCookiesFromHeaders,
+  type CookieDirective,
+} from './auth.cookies.js';
+import { hydrateSession, hydrateUser } from './auth.entities.js';
 import { AuthException } from './auth.exception.js';
 import { AuthConfigPort, SessionTrackerPort } from './auth.ports.js';
-import { readCookiesFromHeaders } from './better-auth/better-auth.helpers.js';
-import {
-  hydrateSession,
-  hydrateUser,
-} from './better-auth/better-auth.hydrators.js';
-import { BETTER_AUTH } from './better-auth/better-auth.token.js';
-import type { BetterAuthInstance } from './better-auth/better-auth.js';
+import { BETTER_AUTH, type BetterAuthInstance } from './better-auth.js';
 import {
   type CanActivate,
   type ExecutionContext,
@@ -23,7 +22,6 @@ import {
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
-import { applyCookies } from './auth.cookies.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -55,7 +53,7 @@ export class AuthGuard implements CanActivate {
     // If we have a token, we can use it as a cache key.
     // If no token, we can't cache reliably (or we let the provider fail).
     const cacheKey = token
-      ? AuthCacheKeys.session(token)
+      ? authCacheKeys.session(token)
       : 'auth_session_generic';
     const scope = token ? 'both' : 'request';
     let refreshedCookies: CookieDirective[] | undefined;

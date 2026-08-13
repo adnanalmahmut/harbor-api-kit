@@ -1,9 +1,8 @@
 import { authConfig } from '#src/config/index.js';
 import { EffectivePermissionsService } from '#src/modules/authorization/effective-permissions.service.js';
 import type { PermissionKey } from '#src/modules/authorization/permissions.catalog.js';
-import { SessionTrackerPort } from '../auth.ports.js';
-import type { BetterAuthInstance } from './better-auth.js';
-import { BETTER_AUTH } from './better-auth.token.js';
+import { SessionTrackerPort } from './auth.ports.js';
+import { BETTER_AUTH, type BetterAuthInstance } from './better-auth.js';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { HttpAdapterHost } from '@nestjs/core';
