@@ -1,4 +1,4 @@
-import { NotifyException } from '../notify.exception.js';
+import { NotifyException } from './notify.exception.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 /**

@@ -2,10 +2,9 @@ import { QueueModule } from '#src/infrastructure/queue/queue.module.js';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AuthEmailService } from './auth-email.service.js';
+import { BullMqEmailQueueAdapter, EmailProcessor } from './email.queue.js';
 import { AuthEmailPort, EmailProviderPort } from './notify.ports.js';
-import { ResendEmailProvider } from './providers/resend.provider.js';
-import { BullMqEmailQueueAdapter } from './queue/bullmq-email-queue.adapter.js';
-import { EmailProcessor } from './queue/email.processor.js';
+import { ResendEmailProvider } from './resend.provider.js';
 
 @Module({
   imports: [
