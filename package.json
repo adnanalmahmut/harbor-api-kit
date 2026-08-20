@@ -52,9 +52,9 @@
     "#src/*": "./dist/src/*"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1029.0",
-    "@aws-sdk/lib-storage": "3.1029.0",
-    "@aws-sdk/s3-request-presigner": "3.1029.0",
+    "@aws-sdk/client-s3": "3.1111.0",
+    "@aws-sdk/lib-storage": "3.1111.0",
+    "@aws-sdk/s3-request-presigner": "3.1111.0",
     "@fastify/cookie": "11.0.2",
     "@fastify/multipart": "9.4.0",
     "@nestjs/bullmq": "11.0.4",
